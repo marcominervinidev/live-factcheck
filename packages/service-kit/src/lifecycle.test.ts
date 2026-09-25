@@ -1,76 +1,12 @@
-import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { freePort, jsonLines, startServiceProcess } from './testing/process.js';
+
 const FIXTURE = fileURLToPath(new URL('./testing/fixture-service.ts', import.meta.url));
-
-function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      server.close(() => {
-        if (address !== null && typeof address === 'object') {
-          resolve(address.port);
-        } else {
-          reject(new Error('no port'));
-        }
-      });
-    });
-  });
-}
-
-interface Run {
-  readonly exitCode: Promise<number | null>;
-  readonly output: () => string;
-  readonly waitFor: (text: string) => Promise<void>;
-  readonly kill: (signal: NodeJS.Signals) => void;
-}
-
-function startFixture(env: Record<string, string>): Run {
-  const child = spawn(process.execPath, ['--conditions=development', '--import', 'tsx', FIXTURE], {
-    env: { PATH: process.env['PATH'] ?? '', ...env },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let output = '';
-  const listeners: (() => void)[] = [];
-  const onData = (chunk: Buffer) => {
-    output += chunk.toString();
-    listeners.forEach((listener) => {
-      listener();
-    });
-  };
-  child.stdout.on('data', onData);
-  child.stderr.on('data', onData);
-  return {
-    exitCode: new Promise((resolve) => {
-      child.on('exit', (code) => {
-        resolve(code);
-      });
-    }),
-    output: () => output,
-    waitFor: (text) =>
-      new Promise((resolve) => {
-        const check = () => {
-          if (output.includes(text)) {
-            resolve();
-          }
-        };
-        listeners.push(check);
-        check();
-      }),
-    kill: (signal) => child.kill(signal),
-  };
-}
-
-const jsonLines = (output: string) =>
-  output
-    .split('\n')
-    .filter((line) => line.startsWith('{'))
-    .map((line) => JSON.parse(line) as Record<string, unknown>);
+const startFixture = (env: Record<string, string>) => startServiceProcess(FIXTURE, env);
 
 describe('runService', () => {
   it('exits 1 with a clear JSON log line when required config is missing', async () => {

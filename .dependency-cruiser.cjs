@@ -35,12 +35,15 @@ module.exports = {
     {
       name: 'only-package-entry-points',
       comment:
-        'Other workspaces may import a package only through its declared exports (resolved to src/index.ts in development).',
+        'Other workspaces may import a package only through its declared exports (resolved to src/index.ts, src/testing/index.ts or src/bin/healthcheck.ts in development).',
       severity: 'error',
       from: { path: '^(apps|services|tests|packages)/([^/]+)/' },
       to: {
         path: '^packages/([^/]+)/',
-        pathNot: ['^packages/$2/', '^packages/[^/]+/src/index\\.ts$'],
+        pathNot: [
+          '^packages/$2/',
+          '^packages/[^/]+/src/(index|testing/index|bin/healthcheck)\\.ts$',
+        ],
       },
     },
     {
