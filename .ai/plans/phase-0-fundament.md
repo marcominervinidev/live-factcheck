@@ -290,25 +290,25 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
 ## Status
 
 - [x] Plan freigegeben (2026-09-25)
-- [x] Gate 1: PR #1 · [x] Gate 2: PR #2 · [x] Gate 3: PR #3 (alle gemergt)
+- [x] Gate 1–4: PR #1–#4 gemergt; Ruleset `main` mit Pflicht-Checks `ci passed`, `pr passed` aktiv
 - Arbeitsweise: ein PR pro Gate, Branch `phase-0/tpN-<thema>`
-- [x] TP4 erledigt auf `phase-0/tp4-services`:
-  - T4.1 gateway als Referenzservice (+ `@lfc/service-kit/testing` für Prozess-Tests)
-  - T4.2 transcription, claim-extractor, fact-checker per Subagent mit Skill `new-service`; dafür neu `packages/providers` (LLM-Konfiguration pro Task)
-  - T4.3 apps/web (App-Shell, `/config.json`, nginx-unprivileged)
-  - T4.4 `pr.yml` (hadolint, Semgrep, Image-Build amd64 + Trivy) und `codeql.yml`
-  - vorgezogen aus T7.2: erste README und `docs/architecture.md` (Wunsch Marco)
-- Aktuelles Gate: **Gate 4 – wartet auf Marcos Review von PR #4**
-- Nächster Task nach Freigabe: T5.1 `docker-compose.yml` (Branch `phase-0/tp5-compose`)
-- Abweichungen in TP4:
-  - Der Secret-Datei-Test läuft auf Prozessebene (`main.int.test.ts`); ein Image-Build per Testcontainers scheitert an BuildKit (`invalid tar header`). Das Image mit Compose-Secrets wird in TP5 am laufenden Stack geprüft.
-  - Tests liegen neben dem Code (`src/*.test.ts`) statt unter `test/` (Brief 13.2).
+- [x] TP5 erledigt auf `phase-0/tp5-compose`:
+  - T5.1 `docker-compose.yml` (Caddy mit eigenem Non-Root-Image, Redis-ACL `app`/`mcp`, SearXNG, Netze edge/internal/egress, ADR 0004)
+  - T5.2 `compose.dev.yaml` (watch, Hot Reload belegt) und `.devcontainer/`
+  - T5.3 Makefile mit allen Zielen aus Brief 12; `secrets-init` erzeugt interne Secrets zufällig
+  - Redis-MCP aus T3.5 gegen den Stack geprüft (lesen ok, schreiben von Redis verweigert)
+- DoD-Punkte belegt: `make up` + alle `/readyz` grün, nur Caddy mit Host-Ports, `make scan` ohne kritische Befunde, Pre-Commit 11,1 s mit Unit-Tests, Services lesen Secrets als Dateien (kein Secret in Env-Variablen)
+- Aktuelles Gate: **Gate 5 – wartet auf Marcos Review von PR #5**
+- Nächster Task nach Freigabe: T6.1 Frontend-Integration (Stufe 2b), Branch `phase-0/tp6-test-stages`
+- Abweichungen in TP5:
+  - Host-Ports konfigurierbar (`LFC_HTTP_PORT`, `LFC_HTTPS_PORT`), weil der macOS-Apache Port 80 belegt
+  - service-kit behandelt leere Werte als „nicht gesetzt“ (Compose `${VAR:-}`, leere Secret-Datei)
+  - Dev-Stages starten tsx/vite direkt statt `pnpm run`
 - Offene Punkte:
-  - Marco: Ruleset `main` → Pflicht-Checks `ci passed`, `pr passed`
-  - Pre-Commit-Messung mit Unit-Tests als Datei sichern (TP5); gemessen: 5,0 s
-  - `ci.yml`: Test-Jobs hängen bewusst nicht per `needs` an `static`; die teuren Jobs (Images) liegen in `pr.yml`
+  - **Marco:** Deny-Regel `Edit(./.env.*)` in `.claude/settings.json` blockiert auch `.env.example`; die neue `.env.example` (LAN_HOST, Ports, LLM-Variablen) liegt vorbereitet im PR-Text
+  - **Marco:** `make secrets-init` einmal ausführen (erzeugt jetzt `redis_mcp_password`), danach `make up`
   - Antigravity-Verhalten erst in T7.4 verifizierbar
   - Beim Plan-Update immer am Zeilenanfang `\n## Status\n` verankern (der Text von T3.4 enthält `## Status` in Backticks)
-- Evidence: `docs/evidence/phase-0/` (neu: t4-images)
+- Evidence: `docs/evidence/phase-0/` (neu: t5-stack-up, t5-security, t5-scan, t5-precommit-timing)
 
 ## Session-Log
