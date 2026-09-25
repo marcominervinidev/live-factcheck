@@ -1,0 +1,172 @@
+# Push pipeline (brief 13.3, 14.2): stage 0 plus unit and integration tests,
+# backend and frontend in parallel, only for affected workspaces.
+# PR-only stages (images, scans, API/E2E) live in pr.yml; see ADR 0005.
+name: ci
+
+on:
+  push:
+    branches: ['**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GITLEAKS_VERSION: 8.30.1
+  GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+
+jobs:
+  static:
+    name: static (stage 0)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm depcruise
+      - name: gitleaks (full history)
+        run: |
+          curl -fsSL -o /tmp/gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tgz" | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+          /tmp/gitleaks git --redact --no-banner .
+
+  changes:
+    name: affected workspaces
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      backend_unit: ${{ steps.affected.outputs.backend_unit }}
+      backend_int: ${{ steps.affected.outputs.backend_int }}
+      frontend_unit: ${{ steps.affected.outputs.frontend_unit }}
+      frontend_int: ${{ steps.affected.outputs.frontend_int }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - id: affected
+        # On main everything runs; on branches only what changed since main, plus dependents.
+        run: node scripts/ci/affected.mjs ${{ github.ref != 'refs/heads/main' && 'origin/main' || '' }}
+
+  backend-unit:
+    name: backend unit · ${{ matrix.workspace.name }}
+    needs: changes
+    if: needs.changes.outputs.backend_unit != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      checks: write
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: ${{ fromJSON(needs.changes.outputs.backend_unit) }}
+    steps: &test-steps
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "${{ matrix.workspace.name }}..."
+      - name: test
+        working-directory: ${{ matrix.workspace.dir }}
+        run: >-
+          pnpm run ${{ env.TEST_SCRIPT }}
+          --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+          --coverage.enabled --coverage.reporter=text-summary --coverage.reporter=json-summary
+        env:
+          TEST_SCRIPT: ${{ contains(github.job, '-int') && 'test:int' || 'test:unit' }}
+      - name: report
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6.5.0
+        with:
+          report_paths: ${{ matrix.workspace.dir }}/reports/junit.xml
+          check_name: ${{ github.job }} · ${{ matrix.workspace.name }}
+      - name: coverage summary
+        if: ${{ !cancelled() }}
+        working-directory: ${{ matrix.workspace.dir }}
+        run: |
+          if [ -f reports/coverage/coverage-summary.json ]; then
+            node -e "const t=require('./reports/coverage/coverage-summary.json').total;console.log(['lines','branches','functions','statements'].map(k=>k+': '+t[k].pct+'%').join(' · '))" \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+  backend-int:
+    name: backend integration · ${{ matrix.workspace.name }}
+    needs: changes
+    if: needs.changes.outputs.backend_int != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      checks: write
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: ${{ fromJSON(needs.changes.outputs.backend_int) }}
+    steps: *test-steps
+
+  frontend-unit:
+    name: frontend unit · ${{ matrix.workspace.name }}
+    needs: changes
+    if: needs.changes.outputs.frontend_unit != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      checks: write
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: ${{ fromJSON(needs.changes.outputs.frontend_unit) }}
+    steps: *test-steps
+
+  frontend-int:
+    name: frontend integration · ${{ matrix.workspace.name }}
+    needs: changes
+    if: needs.changes.outputs.frontend_int != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      checks: write
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: ${{ fromJSON(needs.changes.outputs.frontend_int) }}
+    steps: *test-steps
+
+  # Single required check for branch protection: green only if every stage above
+  # succeeded or was skipped because nothing relevant changed.
+  ci-passed:
+    name: ci passed
+    needs: [static, changes, backend-unit, backend-int, frontend-unit, frontend-int]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - run: |
+          echo '${{ toJSON(needs) }}' | node -e "
+            const needs = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+            const bad = Object.entries(needs).filter(([, v]) => !['success', 'skipped'].includes(v.result));
+            if (bad.length) { console.error('failed:', bad.map(([k, v]) => k + '=' + v.result).join(', ')); process.exit(1); }
+            console.log('all stages green');"
