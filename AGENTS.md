@@ -3,7 +3,9 @@
 Authoritative rules for every coding agent (Claude Code, Antigravity, others) and for humans.
 Scope: the whole repo. Service and package folders have their own `AGENTS.md` with rules that apply only there; the narrowest scope wins.
 
-Source of truth for goals and architecture: `docs/PROJECT_BRIEF.md`. Current work: the phase plan in `.ai/plans/`.
+Source of truth for goals and architecture: `docs/PROJECT_BRIEF.md`. Current work: the phase plan in `.ai/plans/`. Agent tooling for Claude Code and Antigravity: `docs/ai-tooling.md`.
+
+Tool-neutral sources: role prompts in `.ai/prompts/`, skills in `.agents/skills/`, MCP servers in `.mcp.json` and `.agents/mcp_config.json` (kept identical, checked in CI). Every package or service with its own `AGENTS.md` also gets a glob rule in `.agents/rules/` so Antigravity loads it.
 
 ## Stack
 

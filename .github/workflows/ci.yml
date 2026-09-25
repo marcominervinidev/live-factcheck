@@ -37,6 +37,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm depcruise
+      - name: MCP configs in sync (Claude Code / Antigravity)
+        run: node scripts/ci/check-mcp-parity.mjs
       - name: gitleaks (full history)
         run: |
           curl -fsSL -o /tmp/gitleaks.tgz \

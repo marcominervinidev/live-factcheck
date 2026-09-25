@@ -14,6 +14,7 @@ esac
 # One file per secret. Keep in sync with the `secrets:` block in docker-compose.yml.
 SECRETS="
 redis_password
+redis_mcp_password
 searxng_secret
 gateway_token
 anthropic_api_key

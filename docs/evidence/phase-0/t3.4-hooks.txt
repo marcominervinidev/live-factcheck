@@ -1,0 +1,33 @@
+$ .claude/hooks/test-hooks.sh
+== guard-secrets.sh (2 = blocked)
+Read .env                                            exit 2  ok
+Read .env.local                                      exit 2  ok
+Read .env.example                                    exit 0  ok
+Read file in secrets dir                             exit 2  ok
+Glob in secrets dir                                  exit 2  ok
+Read AGENTS.md                                       exit 0  ok
+Bash: cat .env                                       exit 2  ok
+Bash: source ./.env.local                            exit 2  ok
+Bash: cp .env.example .env                           exit 2  ok
+Bash: cat .env.example                               exit 0  ok
+Bash: cat $SECRETS_DIR/x                             exit 2  ok
+Bash: ls secrets dir                                 exit 2  ok
+Bash: make secrets-init                              exit 2  ok
+Bash: scripts/secrets-init.sh x                      exit 2  ok
+Bash: cd . && sh scripts/secrets-init.sh             exit 2  ok
+Bash: git add scripts/secrets-init.sh                exit 0  ok
+Bash: grep SECRETS_DIR Makefile                      exit 0  ok
+Bash: node process.env                               exit 0  ok
+== warn-contracts.sh (asks the owner, never blocks)
+Edit packages/contracts/src/common.ts                exit 0  ok
+   -> ask
+Edit AGENTS.md                                       exit 0  ok
+   -> (no output = allowed)
+== session-start.sh / pre-compact.sh (scratch copy of the plan)
+Current plan: .ai/plans/phase-0-fundament.md (branch: master)
+
+## Status
+pre-compact appended: 1
+== stop-tests.sh
+stop_hook_active=true is a no-op                     exit 0  ok
+exit code: 0
