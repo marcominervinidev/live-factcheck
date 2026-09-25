@@ -1,0 +1,9 @@
+$ pnpm depcruise   # with a temporary services/zz-a -> services/zz-b import
+$ depcruise --config .dependency-cruiser.cjs .
+
+  error no-service-to-service: services/zz-a/src/x.ts → services/zz-b/src/y.ts
+
+x 1 dependency violations (1 errors, 0 warnings). 2 modules, 1 dependencies cruised.
+
+[ELIFECYCLE] Command failed with exit code 1.
+exit code: 1
