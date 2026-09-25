@@ -32,6 +32,7 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 - Switch tools only at a review gate. Before switching, update the plan and commit work in progress (`wip:` prefix allowed).
 - Every non-trivial architecture decision gets an ADR in `docs/adr/NNNN-title.md` (template `0000-template.md`).
 - A task is done only with evidence (brief 1.3): real command output, requests/responses, screenshots. Store it compactly in `docs/evidence/phase-N/`.
+- Scripts that change git state (checkout, reset, commit, branch) run only in a throwaway clone, start with `set -euo pipefail` and verify their working directory before the first write. Never run such experiments against the real working tree.
 - If the same correction happens twice, propose adding the rule to the right `AGENTS.md`, skill or review prompt. Do not use personal agent memory for project rules.
 
 ## Code conventions
