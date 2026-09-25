@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - services/*
+  - packages/*
+  - tests/*
+
+# Dependency install scripts are denied unless explicitly allowed here.
+allowBuilds:
+  # Git hooks are installed via `make hooks-install` (shim into the toolbox), not by postinstall.
+  lefthook: false
