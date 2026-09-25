@@ -26,7 +26,8 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 - Stack: `make up` (production images, waits until healthy), `make ready`, `make check-ports`, `make logs`, `make down`; `make dev` for hot reload via `docker compose watch`
 - Tests: `make test-unit`, `make test-integration`, `make test` (stages 0–4); `make scan` (Trivy on all local images)
 - Diagnose containers with `docker compose ps|logs|exec` (runtime images have no shell; use `scripts/ready.sh` patterns with a throwaway curl container). There is no Docker MCP server by design.
-- To verify the stack yourself, use a throwaway secrets directory, never the owner's `SECRETS_DIR`.
+- To verify the stack yourself, never touch the owner's stack: use an isolated Compose project on other host ports and a throwaway secrets directory, e.g. `COMPOSE_PROJECT_NAME=lfc-verify LFC_HTTP_PORT=8082 LFC_HTTPS_PORT=8444 SECRETS_DIR=<tmp>`. Tear it down with `down -v` afterwards. The owner's project `live-factcheck` may be running at any time.
+- After changing a secret file, running containers keep the old value: recreate them with `docker compose up -d --force-recreate`.
 - Never install Node, pnpm or Python packages on the host.
 
 ## Workflow

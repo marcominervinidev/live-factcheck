@@ -3,7 +3,8 @@
 # Uses a throwaway curl container: runtime images have no shell tools (ADR 0003).
 set -uo pipefail
 CURL=curlimages/curl:8.22.0
-PROJECT=live-factcheck
+# Honors COMPOSE_PROJECT_NAME, e.g. an isolated verification stack (AGENTS.md).
+PROJECT=${COMPOSE_PROJECT_NAME:-live-factcheck}
 status=0
 
 check() { # network url label
