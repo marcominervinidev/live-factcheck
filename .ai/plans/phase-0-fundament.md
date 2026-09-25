@@ -143,28 +143,17 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
   - `warn-contracts.sh` (PreToolUse `Edit|Write`): **warnt** bei `packages/contracts/**`, blockiert aber nicht
   - `format-lint.sh` (PostToolUse): `tb prettier --write` + `eslint --fix` auf die Datei. Ohne laufende Toolbox gibt es nur eine Warnung.
   - `stop-tests.sh` (Stop): führt `tb pnpm --filter "...[main]" test:unit` aus; Exit 2 bei Rot, `stop_hook_active` verhindert Schleifen
-  - `session-start.sh`: gibt `## Status
-
-- [x] Plan freigegeben (2026-09-25)
-- [x] Gate 1 freigegeben: PR #1 gemergt
-- Arbeitsweise ab Gate 2: **ein PR pro Gate**, Branch `phase-0/tpN-<thema>`
-- [x] TP2 erledigt (T2.1–T2.4) auf `phase-0/tp2-contracts-service-kit`, Draft-PR #2, CI grün
-- Aktuelles Gate: **Gate 2 – wartet auf Marcos Review von PR #2**
-- Nächster Task nach Freigabe: T3.1 Recherche MCP-Server und Antigravity (Branch `phase-0/tp3-agent-setup`)
-- Offene Punkte:
-  - Branch-Ruleset `main` (Marco, nach Merge): Pflicht-Checks `ci passed` und `pr passed`, „Require review from Code Owners“
-  - Pre-Commit-Messung mit Unit-Tests erneut als Datei sichern (TP4); gemessen: 5,0 s mit service-kit-Tests, 2,4 s ohne
-  - `ci.yml`: Test-Jobs hängen noch nicht per `needs` an `static` (heute billiger als das Warten); spätestens mit den teuren PR-Jobs in TP4 prüfen
-- Evidence: `docs/evidence/phase-0/` (t2.1-eslint-negative, t2.3-precommit-timing, t2.4-contract-check-scenarios, gate-2-ci)
-
-## Session-Log` an. *Einschränkung:* Inhaltliche Erkenntnisse schreibt Claude selbst vor `/compact`; das regelt `CLAUDE.md`.
+  - `session-start.sh`: gibt `## Status` der aktuellen Plan-Datei aus
+  - `pre-compact.sh`: hängt Zeitstempel, `git status` und `diff --stat` an `## Session-Log` an. *Einschränkung:* Inhaltliche Erkenntnisse schreibt Claude selbst vor `/compact`; das regelt `CLAUDE.md`.
 - Verifikation: Read auf `.env` wird blockiert, ein Edit in contracts erzeugt eine Warnung. Die Ausgaben kommen in die Evidence.
 
-**T3.5 MCP für beide Tools**
-- Dateien: `.mcp.json` (github, context7, docker, redis im Netz `lfc_internal`, ohne Tokens) und `tools/antigravity/mcp_config.example.json` (dieselben Server, Platzhalter `__REPO_ROOT__`)
-- Make-Ziel `agent-setup`: erzeugt `~/.gemini/antigravity/mcp_config.json` mit absoluten Pfaden. Eine vorhandene Datei wird nur mit Rückfrage bzw. Backup überschrieben.
-- `docs/ai-tooling.md`: Einrichtung beider Tools auf einem neuen Rechner, Übergabe-Ablauf nach 1.4, Hinweis auf die Freigabepflicht für Terminal-Befehle
-- Verifikation: `/mcp` in Claude Code zeigt vier Server. Der Redis-MCP wird nach TP5 funktional geprüft.
+**T3.5 MCP für beide Tools** (geändert nach Recherche, ADR 0006)
+- Dateien: `.mcp.json` (Claude Code) und `.agents/mcp_config.json` (Antigravity liest die Workspace-Datei direkt) mit denselben Servern: github (Toolsets begrenzt, Token aus `GITHUB_MCP_TOKEN` oder `gh auth token`), context7 (remote), redis (Read-only-ACL-User `mcp`, Netz `live-factcheck_internal`). Start über `/bin/zsh -lc`, damit auch die GUI-App Antigravity PATH und Env hat.
+- **Kein Docker-MCP** (Entscheidung Marco, 2026-09-25): kein offizieller, gepflegter Server; Agents nutzen `docker compose ps|logs|exec` im Terminal.
+- Entfällt: `tools/antigravity/mcp_config.example.json` und `make agent-setup`.
+- Antigravity-Rollen als Subagents in `.agents/agents/`, verschachtelte `AGENTS.md` über glob-Regeln in `.agents/rules/`; Workflows werden nicht genutzt (in Antigravity veraltet).
+- `docs/ai-tooling.md`: Einrichtung beider Tools, Übergabe-Ablauf nach 1.4, Freigabepflicht für Terminal-Befehle
+- Verifikation: `/mcp` in Claude Code zeigt drei Server. Redis-MCP funktional nach TP5, Antigravity in T7.4.
 
 **🛑 Gate 3**
 
@@ -280,6 +269,9 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
 2. `pre-compact.sh` sichert nur Metadaten; inhaltliche Notizen sichert eine Regel in der `CLAUDE.md`.
 3. Zusätzliches Netzwerk `egress`, weil `internal: true` jeden ausgehenden Verkehr sperrt.
 4. Die Toolbox bekommt den Docker-Socket, damit Testcontainers läuft. Das gilt nur für das Dev-Profil.
+5. Kein Docker-MCP (Marco, 2026-09-25): kein offizieller, gepflegter Server; Terminal mit `docker compose` stattdessen (ADR 0006).
+6. Antigravity: `.agents/mcp_config.json` im Workspace statt Vorlage + `make agent-setup`; Subagents statt Workflows; verschachtelte `AGENTS.md` über glob-Regeln (ADR 0006, Brief angepasst).
+7. Zusätzliches Secret `redis_mcp_password` für einen Read-only-ACL-User des Redis-MCP.
 
 ## DoD-Verifikation
 
@@ -298,7 +290,18 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
 ## Status
 
 - [x] Plan freigegeben (2026-09-25)
-- Aktuelles Gate: vor Gate 1 (TP1 in Arbeit)
-- Nächster Task: T1.1
+- [x] Gate 1: PR #1 gemergt · [x] Gate 2: PR #2 gemergt
+- Arbeitsweise: ein PR pro Gate, Branch `phase-0/tpN-<thema>`
+- [x] TP3 erledigt (T3.1–T3.5) auf `phase-0/tp3-agent-setup`
+- Aktuelles Gate: **Gate 3 – wartet auf Marcos Review von PR #3**
+- Nächster Task nach Freigabe: T4.1 `services/gateway` als Referenzservice (Branch `phase-0/tp4-services`)
+- Offene Punkte:
+  - Marco: in Claude Code `/mcp` prüfen (github, context7 verbunden; redis erst nach TP5) und die Projekt-Hooks bestätigen
+  - Branch-Ruleset `main` (Marco): Pflicht-Checks `ci passed` und `pr passed` fehlen noch. „Require review from Code Owners“ **nicht** aktivieren (Solo-Repo).
+  - Antigravity-Verhalten (Subagents, glob-Regeln, MCP-Start über `zsh -lc`) erst in T7.4 verifizierbar
+  - Pre-Commit-Messung mit Unit-Tests erneut als Datei sichern (TP4); gemessen: 5,0 s mit service-kit-Tests
+  - `ci.yml`: Test-Jobs hängen noch nicht per `needs` an `static`; mit den teuren PR-Jobs in TP4 prüfen
+  - Beim Plan-Update immer am Zeilenanfang `\n## Status\n` verankern (der Text von T3.4 enthält `## Status` in Backticks)
+- Evidence: `docs/evidence/phase-0/` (neu: t3.4-hooks)
 
 ## Session-Log
