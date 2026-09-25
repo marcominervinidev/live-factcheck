@@ -1,0 +1,32 @@
+{
+  "name": "@lfc/claim-extractor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Extracts checkable factual claims from final transcript segments via an LLM, deduplicates them and publishes them (brief 5).",
+  "files": [
+    "dist",
+    "!dist/**/*.test.*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch --conditions=development src/main.ts",
+    "start": "node dist/main.js",
+    "test:unit": "vitest run --project unit",
+    "test:int": "vitest run --project int"
+  },
+  "dependencies": {
+    "@lfc/providers": "workspace:*",
+    "@lfc/service-kit": "workspace:*",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@testcontainers/redis": "12.1.0",
+    "@types/node": "24.13.6",
+    "@vitest/coverage-v8": "5.0.1",
+    "testcontainers": "12.1.0",
+    "tsx": "4.23.14",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1"
+  }
+}

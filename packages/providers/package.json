@@ -1,0 +1,31 @@
+{
+  "name": "@lfc/providers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Adapters for external dependencies (LLM, speech-to-text, web search). Phase 0: LLM configuration only.",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test:unit": "vitest run --project unit"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "@vitest/coverage-v8": "5.0.1",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1"
+  }
+}

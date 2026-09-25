@@ -14,6 +14,9 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl git \
  && rm -rf /var/lib/apt/lists/*
 
+# Fail a RUN if any command in a pipe fails (the checksum check below uses a pipe).
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # gitleaks, verified against the release checksum.
 RUN set -eu; \
     case "${TARGETARCH}" in \
@@ -34,7 +37,8 @@ ENV PNPM_HOME=/home/node/.local/share/pnpm \
     CI=false
 RUN mkdir -p /pnpm-store /workspace && chown node:node /pnpm-store /workspace
 
-USER node
+# Numeric uid of the image's "node" user; matches the bind-mounted files on Docker Desktop.
+USER 1000:1000
 WORKDIR /workspace
 # The repo is bind-mounted and owned by the host user; git must accept it.
 RUN git config --global --add safe.directory /workspace

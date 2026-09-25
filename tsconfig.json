@@ -16,6 +16,21 @@
     },
     {
       "path": "./packages/service-kit"
+    },
+    {
+      "path": "./packages/providers"
+    },
+    {
+      "path": "./services/gateway"
+    },
+    {
+      "path": "./services/transcription"
+    },
+    {
+      "path": "./services/claim-extractor"
+    },
+    {
+      "path": "./services/fact-checker"
     }
   ]
 }

@@ -1,0 +1,7 @@
+{
+  "app.title": "Live-Faktencheck",
+  "app.tagline": "Behauptungen im Gespräch live prüfen",
+  "app.empty": "Noch keine Behauptungen geprüft.",
+  "config.loading": "Konfiguration wird geladen …",
+  "config.error": "Die App konnte ihre Konfiguration nicht laden. Bitte Seite neu laden."
+}
