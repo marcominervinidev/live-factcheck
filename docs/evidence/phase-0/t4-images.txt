@@ -1,0 +1,57 @@
+# TP4 image evidence (local build, linux/arm64)
+
+$ docker build -f services/gateway/Dockerfile --target runtime -t lfc/gateway:local .
+  built
+  user=65532:65532  size=179841218 bytes  entrypoint=[/nodejs/bin/node]  cmd=[dist/main.js]
+$ hadolint services/gateway/Dockerfile
+  exit code: 0
+
+$ docker build -f services/transcription/Dockerfile --target runtime -t lfc/transcription:local .
+  built
+  user=65532:65532  size=179841282 bytes  entrypoint=[/nodejs/bin/node]  cmd=[dist/main.js]
+$ hadolint services/transcription/Dockerfile
+  exit code: 0
+
+$ docker build -f services/claim-extractor/Dockerfile --target runtime -t lfc/claim-extractor:local .
+  built
+  user=65532:65532  size=179853818 bytes  entrypoint=[/nodejs/bin/node]  cmd=[dist/main.js]
+$ hadolint services/claim-extractor/Dockerfile
+  exit code: 0
+
+$ docker build -f services/fact-checker/Dockerfile --target runtime -t lfc/fact-checker:local .
+  built
+  user=65532:65532  size=179853813 bytes  entrypoint=[/nodejs/bin/node]  cmd=[dist/main.js]
+$ hadolint services/fact-checker/Dockerfile
+  exit code: 0
+
+$ docker build -f apps/web/Dockerfile --target runtime -t lfc/web:local .
+  built
+  user=101:101  size=55966431 bytes  entrypoint=[/docker-entrypoint.sh]  cmd=[nginx -g daemon off;]
+$ hadolint apps/web/Dockerfile
+  exit code: 0
+
+$ docker run --rm --read-only --cap-drop ALL lfc/gateway:local   # no config -> fail fast
+{"level":"fatal","time":"2026-09-25T19:28:32.328Z","service":"gateway","issues":["PORT: Invalid input: expected number, received NaN","REDIS_URL: Invalid input: expected string, received undefined","REDIS_PASSWORD: Invalid input: expected string, received undefined"],"msg":"invalid configuration, exiting"}
+  exit code: 1
+$ docker run --rm --read-only --cap-drop ALL lfc/transcription:local   # no config -> fail fast
+{"level":"fatal","time":"2026-09-25T19:28:32.702Z","service":"transcription","issues":["PORT: Invalid input: expected number, received NaN","REDIS_URL: Invalid input: expected string, received undefined","REDIS_PASSWORD: Invalid input: expected string, received undefined"],"msg":"invalid configuration, exiting"}
+  exit code: 1
+$ docker run --rm --read-only --cap-drop ALL lfc/claim-extractor:local   # no config -> fail fast
+{"level":"fatal","time":"2026-09-25T19:28:33.039Z","service":"claim-extractor","issues":["PORT: Invalid input: expected number, received NaN","REDIS_URL: Invalid input: expected string, received undefined","REDIS_PASSWORD: Invalid input: expected string, received undefined","EXTRACTOR_LLM_PROVIDER: Invalid option: expected one of \"anthropic\"|\"openai-compatible\"|\"mock\"","EXTRACTOR_LLM_MODEL: Invalid input: expected string, received undefined"],"msg":"invalid configuration, exiting"}
+  exit code: 1
+$ docker run --rm --read-only --cap-drop ALL lfc/fact-checker:local   # no config -> fail fast
+{"level":"fatal","time":"2026-09-25T19:28:33.402Z","service":"fact-checker","issues":["PORT: Invalid input: expected number, received NaN","REDIS_URL: Invalid input: expected string, received undefined","REDIS_PASSWORD: Invalid input: expected string, received undefined","CHECKER_LLM_PROVIDER: Invalid option: expected one of \"anthropic\"|\"openai-compatible\"|\"mock\"","CHECKER_LLM_MODEL: Invalid input: expected string, received undefined"],"msg":"invalid configuration, exiting"}
+  exit code: 1
+
+$ docker run --rm --read-only --tmpfs /tmp --cap-drop ALL lfc/web:local   # no WEB_GATEWAY_URL -> fail fast
+/docker-entrypoint.sh: Launching /docker-entrypoint.d/40-runtime-config.sh
+  exit code: 2
+
+$ can the runtime user modify the app code?
+  not writable: EACCES
+
+$ shells in the node runtime images
+  gateway: 0 shells
+  transcription: 0 shells
+  claim-extractor: 0 shells
+  fact-checker: 0 shells
