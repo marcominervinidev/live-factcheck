@@ -1,26 +1,27 @@
 # Projekt-Brief: Live-Faktencheck (`live-factcheck`)
 
-> Dieses Dokument ist der Ausgangspunkt für die Claude-Code-Session. Lies es vollständig, bevor du irgendetwas anlegst.
+> Dieses Dokument ist der Ausgangspunkt für die Arbeit mit einem Coding-Agent. Primär ist das Claude Code, als Ausweichwerkzeug Google Antigravity (siehe Abschnitt 1.4). Lies es vollständig, bevor du irgendetwas anlegst.
 
 ## 1. Deine Rolle und Arbeitsweise
 
 - Du arbeitest als Senior Full-Stack- und Platform-Engineer. Ich bin Senior Test Automation Engineer (TypeScript, Playwright, Docker, Jenkins) und baue gerade DevOps- und Kubernetes-Know-how auf. Erkläre DevOps-relevante Entscheidungen deshalb kurz. Grundlagen zu TypeScript oder Testing brauchst du mir nicht zu erklären.
 - Arbeite strikt in den Phasen aus Abschnitt 17 und nach dem Ablauf in Abschnitt 1.2. Ich führe die Architektur, du beschleunigst die Umsetzung. Die Verantwortung für Korrektheit, Sicherheit und Architektur bleibt bei mir.
 - Bevor du mit Phase 0 beginnst, stellst du mir maximal 5 Rückfragen zu Punkten, die wirklich unklar sind.
-- Lege zu Beginn eine Root-`CLAUDE.md` an (Stack, gemeinsame Befehle, übergreifende Konventionen, Architekturüberblick) und halte sie aktuell. Jeder Service und jedes Paket bekommt zusätzlich eine eigene `CLAUDE.md` neben seinem Code, mit dem, was nur dort gilt (Stack-Besonderheiten, Stolperfallen, Verträge). Das gilt besonders für `stt-local`, weil dort Python mit eigenen Konventionen läuft. Eine Regel gehört immer in den engsten passenden Scope. `CLAUDE.md` enthält Regeln, keine Schritt-für-Schritt-Anleitungen, keinen aktuellen Arbeitsstand und keine Secrets.
-- **Zweimal-Regel:** Korrigiere ich dich zum zweiten Mal beim selben Punkt, schlägst du vor, die Regel in die passende `CLAUDE.md`, einen Skill oder einen Subagent-Prompt aufzunehmen. Nutze dafür keine persönliche Memory, weil Projektregeln committet sein müssen.
+- Lege zu Beginn eine Root-`AGENTS.md` an (Stack, gemeinsame Befehle, übergreifende Konventionen, Architekturüberblick) und halte sie aktuell. Sie ist die **maßgebliche Regeldatei für alle Agent-Tools** (siehe 1.4). Jeder Service und jedes Paket bekommt zusätzlich eine eigene `AGENTS.md` neben seinem Code, mit dem, was nur dort gilt (Stack-Besonderheiten, Stolperfallen, Verträge). Das gilt besonders für `stt-local`, weil dort Python mit eigenen Konventionen läuft. Eine Regel gehört immer in den engsten passenden Scope. Regeldateien enthalten Regeln, keine Schritt-für-Schritt-Anleitungen, keinen aktuellen Arbeitsstand und keine Secrets.
+- Neben jeder `AGENTS.md` liegt eine schlanke `CLAUDE.md`. Sie bindet die `AGENTS.md` per `@AGENTS.md` ein und enthält nur, was ausschließlich Claude Code betrifft (z. B. `/compact`, Subagents, Hooks). Regeln werden nie doppelt gepflegt.
+- **Zweimal-Regel:** Korrigiere ich dich zum zweiten Mal beim selben Punkt, schlägst du vor, die Regel in die passende `AGENTS.md`, einen Skill oder einen Review-Prompt aufzunehmen. Nutze dafür keine persönliche Memory, weil Projektregeln committet sein müssen.
 - Dokumentiere jede nicht-triviale Architekturentscheidung als ADR unter `docs/adr/NNNN-titel.md` (Kontext, Entscheidung, Alternativen, Konsequenzen).
 - **Du committest nicht auf `main` und mergst nie selbst.** Jede Phase (bei großen Phasen jedes Teilprojekt) läuft auf einem eigenen Feature-Branch. Commits sind klein und folgen dem Conventional-Commits-Format. Am Ende öffnest du einen PR. Gemergt wird erst, nachdem ich den Diff Datei für Datei gelesen habe. Automatische Reviews (Subagents, CI, AI-Review) sind ein erster Filter, kein Ersatz für meine Freigabe.
 - Code, Bezeichner und Kommentare schreibst du auf Englisch. Alle UI-Texte sind Deutsch und werden i18n-fähig abgelegt.
 - Secrets gehören niemals in Code, Commits oder das Frontend.
 - **Das Projekt ist mein öffentliches DevOps-Portfolio.** README, Pipeline-Historie, ADRs und Architekturdiagramme sollen für Recruiter und technische Interviewer ohne Erklärung nachvollziehbar sein. Die README bekommt deshalb Status-Badges, ein Architekturdiagramm (Mermaid) und einen Abschnitt „Was dieses Projekt zeigt“.
 
-### 1.1 Claude-Code-Setup im Repo
+### 1.1 Agent-Setup im Repo
 
-Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets):
+Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets). Die Inhalte (Prompts, Skills, Regeln) liegen tool-neutral im Repo; die tool-spezifischen Dateien sind nur dünne Hüllen darum (siehe 1.4).
 
-- **Subagents unter `.claude/agents/`:**
-  - `reviewer` prüft Änderungen gegen diesen Brief: 12 Faktoren (4.1), Modulgrenzen und Verträge (4.2), Sicherheit (15), Tests (13) und Konventionen aus den `CLAUDE.md`-Dateien. Er achtet gezielt auf die typischen Agent-Fehler:
+- **Review- und Rollen-Prompts unter `.ai/prompts/`** (`reviewer.md`, `security-reviewer.md`, `platform-engineer.md`). Für Claude Code verweisen Subagents unter `.claude/agents/` auf diese Prompts, in Antigravity werden dieselben Prompts als eigene Agenten bzw. Workflows eingebunden:
+  - `reviewer` prüft Änderungen gegen diesen Brief: 12 Faktoren (4.1), Modulgrenzen und Verträge (4.2), Sicherheit (15), Tests (13) und Konventionen aus den `AGENTS.md`-Dateien. Er achtet gezielt auf die typischen Agent-Fehler:
     - aufgeweichte Typen (`any`-Äquivalente, nachträglich optionale Pflichtfelder, stille Default-Werte, die schlechte Eingaben verdecken)
     - Grenzverletzungen (Importe oder Aufrufe über Service- bzw. Paketgrenzen hinweg)
     - Drive-by-Änderungen, die nicht zum Task gehören
@@ -28,26 +29,27 @@ Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets):
     - Tests, die den Mock testen statt das Verhalten
     - Features oder Flags, die niemand verlangt hat
     - Er meldet Befunde mit Datei und Zeile, schreibt aber keinen Code.
+    - Er erwähnt kein bestimmtes Modell und setzt kein Claude-spezifisches Ausgabeformat voraus, damit der Prompt auch mit Gemini funktioniert.
   - `security-reviewer` legt den Fokus auf Secrets, SSRF, Prompt-Injection, Container-Härtung und Kubernetes-Manifeste.
   - `platform-engineer` ist zuständig für Dockerfiles, Compose, Kubernetes-Manifeste, Terraform und Pipelines.
-- **Hooks in `.claude/settings.json`:**
+- **Agent-Hooks in `.claude/settings.json`** sind ein Komfort- und Frühwarnsystem, nicht die eigentliche Absicherung. Die gilt für jedes Tool und liegt in Git-Hooks und CI (siehe 1.4).
   - Nach Dateiänderungen laufen Formatierung und Lint für die betroffenen Pakete.
   - Vor dem Abschluss einer Aufgabe (`Stop`) müssen die Tests des betroffenen Services grün sein.
-  - Ein Hook blockiert das Lesen und Schreiben von `.env`- und `secrets/`-Dateien.
-  - Ein Hook blockiert Änderungen unter `packages/contracts/`, solange ich sie nicht ausdrücklich freigegeben habe (siehe 4.2).
+  - Ein Hook blockiert das Lesen und Schreiben von `.env` sowie jeden Zugriff auf das Secret-Verzeichnis außerhalb des Repos (siehe 15.1).
+  - Ein Hook warnt bei Änderungen unter `packages/contracts/`, solange ich sie nicht ausdrücklich freigegeben habe (siehe 4.2).
   - Beim Sessionstart wird der Stand der aktuellen Phase aus `.ai/plans/` eingeblendet. Vor einer Kompaktierung (`PreCompact`) werden offene Punkte und Erkenntnisse in die Plan-Datei geschrieben.
-- **Skills unter `.claude/skills/`,** schmal und kombinierbar statt eines Mega-Skills:
-  - `new-service` legt einen Service nach Schema an: service-kit, Konfigurationsvalidierung, Health/Metrics, Dockerfile mit `dev`- und `runtime`-Stage, Compose-Eintrag, eigene `CLAUDE.md`, ab Phase 5 auch Kustomize-Manifeste.
+- **Skills unter `.agents/skills/`** (tool-neutraler Speicherort; `.claude/skills` ist ein Symlink darauf). Sie sind schmal und kombinierbar statt eines Mega-Skills und so formuliert, dass sie ohne Claude-spezifische Annahmen auch in Antigravity funktionieren:
+  - `new-service` legt einen Service nach Schema an: service-kit, Konfigurationsvalidierung, Health/Metrics, Dockerfile mit `dev`- und `runtime`-Stage, Compose-Eintrag, eigene `AGENTS.md` und `CLAUDE.md`, ab Phase 5 auch Kustomize-Manifeste.
   - `new-event-contract` legt ein neues zod-Schema mit `schemaVersion`, Contract-Tests und Dokumentation an.
   - `adr` erzeugt ein neues ADR aus der Vorlage mit der nächsten freien Nummer.
   - `evidence` sammelt die Nachweise eines Tasks im festen Format (siehe 1.3).
   - Einen neuen Skill schlägst du vor, sobald ich dir denselben Ablauf zum zweiten Mal erkläre.
-- **MCP-Server über `.mcp.json` im Projekt-Scope,** bewusst wenige, weil jeder Server Kontext kostet:
+- **MCP-Server,** bewusst wenige, weil jeder Server Kontext kostet. Für Claude Code stehen sie in `.mcp.json` im Projekt-Scope. Für Antigravity liegt unter `tools/antigravity/mcp_config.example.json` eine Vorlage mit denselben Servern. Antigravity erwartet die Konfiguration unter macOS in `~/.gemini/antigravity/mcp_config.json` und verlangt absolute Pfade; `make agent-setup` erzeugt die Datei aus der Vorlage.
   - ab sofort GitHub (Issues, PRs) und Context7 (aktuelle Bibliotheksdoku, vor allem für Fastify, KEDA, Argo CD, Terraform-Provider),
   - ab Phase 0 ein Docker-MCP (Container-Status, Logs, `exec`) und ein Redis-MCP (Streams, Consumer Groups, Pending-Einträge, Pub/Sub) für die Selbstverifikation,
   - ab Phase 1 Playwright MCP, um UI-Änderungen im echten Browser zu prüfen,
   - ab Phase 5 ein Kubernetes-MCP im Read-only-Modus für Cluster-Diagnose.
-  - Nur offizielle bzw. gut gepflegte Server, keine Produktions-Secrets in MCP-Konfigurationen. Tokens kommen aus Umgebungsvariablen und stehen nicht in `.mcp.json`.
+  - Nur offizielle bzw. gut gepflegte Server, keine Produktions-Secrets in MCP-Konfigurationen. Tokens kommen aus Umgebungsvariablen und stehen in keiner MCP-Konfiguration.
 
 ### 1.2 Ablauf pro Phase und Session-Disziplin
 
@@ -59,7 +61,7 @@ Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets):
 6. **Review.** Du lässt `reviewer` und `security-reviewer` laufen, zusätzlich `/code-review` und `/security-review`. Befunde werden behoben oder begründet zurückgestellt.
 7. **Übergabe.** Du öffnest den PR mit Zusammenfassung, Nachweisen und Hinweisen, wo ich beim Review genau hinschauen sollte, vor allem an den Schnittstellen zwischen Services. Weicht die Umsetzung von diesem Brief ab, sagst du das ausdrücklich und aktualisierst den Brief bzw. das ADR im selben PR.
 
-**Session-Disziplin:** Eine Session verfolgt ein zusammenhängendes Ziel, typischerweise ein Teilprojekt oder einen Task-Block. Ändert sich das Ziel, beginnt eine neue Session, die mit der `CLAUDE.md` und der Plan-Datei startet. In die `CLAUDE.md` gehört außerdem der Hinweis, bei etwa 60–70 % Kontextauslastung manuell `/compact` auszuführen, statt auf die automatische Kompaktierung zu warten. Fragst du bereits geklärte Punkte erneut ab, ist das das Signal für eine frische Session.
+**Session-Disziplin:** Eine Session verfolgt ein zusammenhängendes Ziel, typischerweise ein Teilprojekt oder einen Task-Block. Ändert sich das Ziel, beginnt eine neue Session, die mit der `AGENTS.md` und der Plan-Datei startet. Die Plan-Datei ist stets so aktuell, dass eine neue Session (auch in einem anderen Tool) ohne Rückfragen weitermachen kann: erledigte Tasks abgehakt, nächster Task benannt, offene Punkte notiert. In die `CLAUDE.md` gehört außerdem der Hinweis, bei etwa 60–70 % Kontextauslastung manuell `/compact` auszuführen, statt auf die automatische Kompaktierung zu warten. Fragst du bereits geklärte Punkte erneut ab, ist das das Signal für eine frische Session.
 
 ### 1.3 Beweise statt Behauptungen
 
@@ -73,6 +75,34 @@ Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets):
 
 Die Nachweise landen in der PR-Beschreibung und kompakt unter `docs/evidence/phase-N/`. Diese Selbstverifikation ergänzt die automatisierten Tests, ersetzt sie aber nicht. Ohne Artefakt gilt ein Task als nicht erledigt.
 
+### 1.4 Tool-Unabhängigkeit (Claude Code und Antigravity)
+
+Ich arbeite primär mit Claude Code in VS Code. Wenn mein Nutzungslimit erreicht ist, mache ich mit Google Antigravity weiter. Das Projekt muss deshalb so aufgebaut sein, dass beide Tools mit denselben Regeln arbeiten und die wichtigen Schutzmaßnahmen unabhängig vom Tool greifen.
+
+| Baustein | Tool-neutrale Quelle | Claude Code | Antigravity |
+|---|---|---|---|
+| Regeln | `AGENTS.md` (Root und pro Service) | `CLAUDE.md` mit `@AGENTS.md` plus Claude-Spezifika | liest `AGENTS.md` direkt; `GEMINI.md` nur bei Bedarf für Antigravity-Spezifika |
+| Skills | `.agents/skills/*/SKILL.md` | `.claude/skills` als Symlink | liest `.agents/skills` |
+| Review- und Rollen-Prompts | `.ai/prompts/*.md` | Subagents in `.claude/agents/`, die auf die Prompts verweisen | eigene Agenten bzw. Workflows mit denselben Prompts |
+| MCP-Server | Liste in `docs/ai-tooling.md` | `.mcp.json` | `~/.gemini/antigravity/mcp_config.json`, erzeugt aus `tools/antigravity/mcp_config.example.json` |
+| Plan und Stand | `.ai/plans/`, ADRs, Git-Historie | gleich | gleich |
+
+**Schutzmaßnahmen, die für jedes Tool gelten.** Agent-Hooks greifen nur in Claude Code. Alles, was wirklich zählt, wird deshalb zusätzlich über Git-Hooks (lefthook) und die CI erzwungen:
+
+- **Secrets:** Echte Secrets liegen nie im Repo-Ordner (siehe 15.1). Damit landen sie weder versehentlich im Agent-Kontext noch in einem Commit, egal welches Tool läuft.
+- **Pre-Commit (lefthook):** gitleaks, Formatierung, Lint, Typecheck, Unit-Tests der betroffenen Pakete und die Grenzprüfung aus 4.2 (siehe 13.3)
+- **Verträge:** Ein CI-Check schlägt fehl, wenn sich Dateien unter `packages/contracts/` ändern, ohne dass im selben PR ein neues oder geändertes ADR und eine höhere `schemaVersion` enthalten sind. Zusätzlich verlangt eine `CODEOWNERS`-Datei für `packages/contracts/`, `.github/`, `deploy/` und `infra/` mein Review.
+- **Branch-Protection** auf `main` gilt unabhängig davon, wer oder was die Commits erzeugt hat.
+
+**Übergabe zwischen den Tools:**
+
+1. Gewechselt wird nur an einem Review-Gate, nie mitten in einem Task.
+2. Vor dem Wechsel: Plan-Datei aktualisieren, Zwischenstand auf dem Feature-Branch committen (Commit-Präfix `wip:` ist erlaubt, wird beim Merge zusammengefasst).
+3. Die neue Session startet mit: „Lies `AGENTS.md` und `.ai/plans/phase-N-….md` und mach beim nächsten offenen Task weiter.“
+4. Im PR steht, welche Tasks mit welchem Tool entstanden sind, damit ich beim Review weiß, wo ich genauer hinschauen muss.
+
+`docs/ai-tooling.md` beschreibt die Einrichtung beider Tools auf einem neuen Rechner in wenigen Schritten.
+
 ## 2. Produktziel
 
 Wir bauen eine mobile-first Web-App (PWA), die ein Gespräch live über das Mikrofon mithört und transkribiert. Sie unterscheidet die Sprecher, erkennt prüfbare Tatsachenbehauptungen und bewertet sie per Web-Recherche und LLM. Die Ergebnisse erscheinen noch während des Gesprächs als Karten-Feed.
@@ -83,7 +113,7 @@ Die Gespräche finden primär auf Deutsch statt. Getestet wird auf dem iPhone (S
 
 ## 3. Nicht-Ziele (vorerst)
 
-- Keine native iOS-App (später ggf. per Capacitor)
+- Keine native iOS-App. Später ist eine per Capacitor möglich; dann kommen Appium-Tests dazu (siehe 13.6)
 - Kein Login und keine Multi-User-Verwaltung; ein einfacher Zugriffsschutz per Token reicht
 - Kein Deployment bei einem großen Hyperscaler und kein Managed Kubernetes. Das Zielbild ist: Docker Compose lokal, dann k3d auf dem Mac, dann ein selbst betriebener k3s-Cluster auf VMs, provisioniert per Terraform (siehe Abschnitt 14)
 - Keine Hintergrundaufnahme bei gesperrtem Bildschirm
@@ -240,21 +270,74 @@ Timeouts, die maximale Anzahl Seiten und die maximalen Tokens pro Quelle sind ko
   - Deshalb terminiert `caddy` TLS mit interner CA, für `localhost` und für die LAN-IP bzw. einen `*.local`-Namen.
   - Die README erklärt, wie ich das Root-Zertifikat auf dem iPhone installiere und ihm vertraue.
   - Als Alternative wird ein Tunnel (z. B. cloudflared) dokumentiert.
-- Ein `Makefile` bietet mindestens `up`, `up-local`, `dev`, `down`, `logs`, `test`, `test-e2e`, `lint`, `eval` und `scan`. Alle Ziele führen ihre Befehle in Containern aus.
-- Die `.env.example` enthält alle Variablen mit sinnvollen Defaults und Kommentaren; `.env` steht in `.gitignore`.
+- Ein `Makefile` bietet mindestens `up`, `up-local`, `dev`, `down`, `logs`, `lint`, `test-unit`, `test-integration` (Backend und Frontend), `test-api`, `test-e2e`, `test` (alle Stufen außer 5), `eval` und `scan`. Alle Ziele führen ihre Befehle in Containern aus.
+- Die `.env.example` enthält alle **nicht-geheimen** Variablen mit sinnvollen Defaults und Kommentaren; `.env` steht in `.gitignore`. Secrets stehen nie in `.env`, sondern nur im Secret-Verzeichnis außerhalb des Repos (siehe 15.1).
 - Zielplattform ist macOS mit Apple Silicon. Die Images müssen sich für `linux/arm64` bauen lassen, Multi-Arch wird vorbereitet.
 
-## 13. Qualität und Tests
+## 13. Teststrategie (Shift-Left) und Qualität
 
-- TypeScript strict, ESLint, Prettier, pnpm Workspaces.
-- **Unit-Tests** mit Vitest decken Adapter, Deduplizierung, Prompt-Rendering und Schema-Validierung ab.
-- **Contract-Tests** prüfen jedes veröffentlichte und konsumierte Event gegen das zod-Schema.
-- **Integrationstests** laufen mit Testcontainers (Redis) und testen die Pipeline Ende-zu-Ende mit `mock`-LLM und `mock`-STT.
-- **E2E-Tests mit Playwright** laufen auch mit iPhone-Geräteprofil. Das Mikrofon wird in Chromium über `--use-fake-ui-for-media-stream`, `--use-fake-device-for-media-stream` und `--use-file-for-fake-audio-capture` mit einer deutschen WAV-Fixture simuliert. So ist auch der Live-Modus reproduzierbar testbar.
-- Ein **Evaluations-Set** `evals/claims.de.jsonl` enthält ca. 30 deutsche Behauptungen mit erwartetem Urteil (klar wahr, klar falsch, übertrieben, Meinung). Das Skript `pnpm eval` lässt ein Provider-Setup dagegen laufen und gibt Trefferquote, Latenz und bei Claude die Kosten pro Behauptung aus. Damit vergleiche ich Claude mit lokalen Modellen.
-- Die Tests sind sauber strukturiert (Page Objects) und nutzen stabile `data-testid`-Selektoren.
-- Tests prüfen Verhalten, nicht die Implementierung des Mocks. Mocks gibt es nur an den Systemgrenzen (LLM, STT, Websuche), nicht zwischen internen Modulen.
-- Die Abhängigkeitsprüfung aus 4.2 läuft als eigener Check in Pre-Commit und CI.
+### 13.1 Grundsätze
+
+- **Shift-Left:** Fehler werden so früh und so billig wie möglich gefunden. Die meisten Tests liegen auf den unteren Stufen; sie sind schnell, deterministisch und laufen lokal wie in der CI. Weiter oben gibt es weniger Tests, dafür realistischere.
+- **Testpyramide:** sehr viele Unit-Tests, viele Integrationstests, wenige System- und E2E-Tests. Neue Logik kommt mit Unit-Tests im selben Commit. Einen Bug reproduzierst du zuerst mit einem Test auf der niedrigsten Stufe, auf der er sichtbar wird, und behebst ihn danach.
+- **Statische Prüfungen sind Stufe 0:** TypeScript strict, ESLint, Prettier und die Grenzprüfung aus 4.2; für Python (`stt-local`) ruff und mypy strict.
+- **Backend und Frontend sind getrennt,** mit eigenen Test-Suites, eigenen CI-Jobs und paralleler Ausführung.
+- **Mocks nur an Systemgrenzen:** im Backend LLM, STT und Websuche, im Frontend das Backend. Zwischen internen Modulen wird nicht gemockt. Tests prüfen Verhalten, nicht den Mock.
+- **Deterministisch:** keine echten API-Keys, keine Zugriffe auf externe Netze, feste Zeit (Fake-Timer) und feste Seeds. Echte Anbieter werden nur in den Evals angesprochen (13.5).
+- **Isoliert, damit parallel möglich:** Jeder Test nutzt eine eigene `sessionId` und pro Worker eigene Redis-Key-Präfixe bzw. Stream-Namen. Kein Test hängt von der Reihenfolge ab.
+- **Keine versteckten Flaky-Tests:** Retries gibt es nur in der CI und höchstens einmal. Ein Flaky-Test wird als Issue erfasst, mit `@quarantine` markiert und ursächlich behoben, nicht mit Wartezeiten zugedeckt.
+
+### 13.2 Teststufen
+
+| Stufe | Backend | Frontend | Werkzeuge |
+|---|---|---|---|
+| **0 Statisch** | Typecheck, Lint, Grenzprüfung | Typecheck, Lint | tsc, ESLint, dependency-cruiser, ruff, mypy |
+| **1 Unit** | Adapter, Deduplizierung, Prompt-Rendering, Schema-Validierung, Konfigurationsvalidierung, SSRF-Filter, Backoff-Logik | Stores (Zustand), Hooks, Formatierung der Urteile, WebSocket-Reconnect-Logik, Komponenten isoliert | Vitest, Testing Library, pytest |
+| **2a Integration Backend** | Ein Service mit echten Abhängigkeiten per Testcontainers (Redis, ab Phase 4 Postgres). Contract-Tests für jedes veröffentlichte und konsumierte Event. API-Tests eines einzelnen Service über HTTP bzw. WebSocket mit `mock`-Providern | — | Vitest, Testcontainers, Fastify `inject` |
+| **2b Integration Frontend** | — | Die komplette App im echten Browser gegen ein **gemocktes Backend**: REST per `page.route`, WebSocket per `page.routeWebSocket`, Mikrofon per Fake-Audio bzw. injiziertem MediaStream (siehe 13.6). Kein Login-Flow: Token und Laufzeitkonfiguration werden per Fixture injiziert. Dazu Accessibility-Prüfung mit axe | Playwright gegen `vite preview`, `@axe-core/playwright` |
+| **3 System/API Backend** | Kompletter Backend-Stack per Compose mit `mock`-Providern. API- und WebSocket-Tests über das `gateway`: Behauptung rein, Urteil raus; dazu Fehlerfälle, Auth, Rate Limits, Größenlimits, SSRF-Abwehr | — | Playwright `APIRequestContext` |
+| **4 E2E** | Frontend und Backend zusammen per Compose, weiterhin mit `mock`-Providern. Nur wenige kritische Nutzerwege: Textmodus, Live-Modus mit WAV-Fixture, Einwilligungsdialog, Reconnect nach Verbindungsabbruch | | Playwright |
+| **5 Qualität und Nicht-funktional** | Evals der LLM-Qualität, Mutationstests, ab Phase 5 Lasttests | Lighthouse (Performance, PWA) | `pnpm eval`, Stryker, k6, Lighthouse CI |
+| **Manuell** | — | Smoke-Test auf dem echten iPhone per Checkliste (13.6) | `docs/testing/iphone-smoke.md` |
+
+Tests liegen neben dem Code, den sie prüfen (`*.test.ts` für Unit, `*.int.test.ts` für Integration). System- und E2E-Tests liegen unter `tests/api/` und `tests/e2e/`, Frontend-Integrationstests unter `apps/web/tests/`. Die Playwright-Tests nutzen Page Objects, Fixtures und stabile `data-testid`-Selektoren.
+
+### 13.3 Wann welche Stufe läuft
+
+| Auslöser | Ort | Stufen | Zeitbudget |
+|---|---|---|---|
+| **Jeder Commit** | lokal, lefthook `pre-commit` im laufenden Dev-Container | 0 und 1, nur für die betroffenen Pakete; dazu gitleaks | unter 30 Sekunden |
+| **Jeder Push** (alle Branches) | CI | 0, 1, 2a und 2b für alle betroffenen Pakete | unter 10 Minuten |
+| **Jeder PR auf `main`** | CI, Pflicht-Checks für den Merge | zusätzlich Image-Build, Trivy, SAST, Stufe 3 und Stufe 4 | unter 15 Minuten |
+| **Nach dem Merge auf `main`** | CI | Stufe 3 und 4 noch einmal gegen die gebauten und gepushten Images (dieselben Images, die später deployt werden, Faktor V); ab Phase 5 Deployment per GitOps, ab Phase 6 E2E-Smoke gegen staging | unter 20 Minuten |
+| **Nightly bzw. manuell** | CI | Stufe 5, vollständige Browser-Matrix, erneuter Image- und Dependency-Scan | — |
+
+Die E2E-Tests laufen bewusst schon im PR und nicht erst nach dem Merge. Sonst würde ein Fehler erst entdeckt, wenn er bereits auf `main` liegt, und das widerspricht Shift-Left. Der zweite Lauf nach dem Merge prüft die tatsächlich ausgelieferten Images. Weil sich der lokale Pre-Commit mit `--no-verify` umgehen lässt, wiederholt die CI alle Stufen.
+
+### 13.4 Parallelisierung und Laufzeit
+
+- Backend- und Frontend-Jobs laufen parallel. Innerhalb davon gibt es eine Matrix pro betroffenem Paket bzw. Service (`pnpm --filter "...[origin/main]"` oder Turborepo).
+- Vitest läuft mit parallelen Workern. Jeder Integrations-Job startet eigene Testcontainers.
+- Playwright läuft mit `fullyParallel: true` und wird über mehrere CI-Jobs verteilt (`--shard=i/n`). Die Blob-Reports werden zu einem HTML-Report zusammengeführt und samt Traces als Artefakt abgelegt.
+- Gecacht werden der pnpm-Store, Docker-Layer (Buildx mit GitHub-Actions-Cache) und die Playwright-Browser.
+- **Fail fast:** Schnelle Stufen laufen zuerst, teure Jobs hängen per `needs` an ihnen. Veraltete Läufe desselben Branches werden per `concurrency` mit `cancel-in-progress` abgebrochen.
+- Im PR werden Images nur für `linux/amd64` gebaut, um schneller zu testen. Multi-Arch (`amd64` und `arm64`) wird erst auf `main` gebaut.
+- Überschreitet eine Stufe ihr Zeitbudget aus 13.3, wird die Optimierung als eigener Task eingeplant.
+- Testergebnisse erscheinen als JUnit-Reports in den GitHub-Checks; Coverage wird pro Paket berichtet.
+
+### 13.5 Qualitätstore, Coverage und Evals
+
+- Coverage-Schwelle für Stufe 1 und 2 zusammen: 80 % Zeilen und Branches für `packages/*` und die Service-Logik. Die Schwelle darf nie sinken; steigt die Coverage, wird die Schwelle nachgezogen.
+- Neue Logik ohne Tests meldet der `reviewer` als Befund.
+- Mutationstests (Stryker) laufen nightly für `contracts`, `providers` und die Deduplizierung. Sie zeigen, ob die Tests wirklich etwas prüfen.
+- Ein **Evaluations-Set** `evals/claims.de.jsonl` enthält ca. 30 deutsche Behauptungen mit erwartetem Urteil (klar wahr, klar falsch, übertrieben, Meinung). Das Skript `pnpm eval` lässt ein Provider-Setup dagegen laufen und gibt Trefferquote, Latenz und bei Claude die Kosten pro Behauptung aus. Damit vergleiche ich Claude mit lokalen Modellen. Die Evals laufen manuell oder wöchentlich mit einem eigenen, budgetbegrenzten API-Key, nie bei jedem Push.
+
+### 13.6 Plattform: erst Web-App, iPhone über WebKit
+
+- Wir bauen eine **PWA**, keine native App. Playwright testet in drei Projekten: Chromium Desktop, Chromium mit mobilem Viewport und **WebKit mit iPhone-Geräteprofil**. WebKit ist die Engine von Safari.
+- Die Flags für Fake-Audio (`--use-fake-ui-for-media-stream`, `--use-fake-device-for-media-stream`, `--use-file-for-fake-audio-capture`) gibt es nur in Chromium. Der Live-Modus mit WAV-Fixture läuft deshalb in Chromium. In WebKit ersetzt ein Init-Script `getUserMedia` durch einen synthetischen MediaStream, der die Fixture über WebAudio abspielt.
+- Playwrights WebKit ist nicht identisch mit Safari auf dem iPhone. Deshalb gibt es vor jedem Phasenabschluss ab Phase 2 einen kurzen manuellen Smoke-Test auf dem echten Gerät nach `docs/testing/iphone-smoke.md`: HTTPS-Zertifikat, Mikrofonfreigabe, Installation auf dem Home-Bildschirm, Verhalten bei Displaysperre und App-Wechsel.
+- **Appium** kommt nur dazu, falls später per Capacitor eine native App entsteht (eigenes ADR). Dann testet Appium mit dem XCUITest-Treiber auf dem Mac bzw. einem macOS-Runner nur die nativen Aspekte, etwa Berechtigungsdialoge und App-Lebenszyklus. Die Web-Logik bleibt bei Playwright.
 
 ## 14. Kubernetes, CI/CD und GitOps
 
@@ -271,13 +354,20 @@ Jeder Service erfüllt ab Phase 0 diese Punkte:
 
 Die Pipeline läuft mit GitHub Actions unter `.github/workflows/`. Sie entsteht in Phase 0 und wächst mit jeder Phase mit, statt am Ende in einem Schritt gebaut zu werden.
 
-Bei jedem PR laufen diese Stufen:
+Welche Teststufe wann läuft, legt Abschnitt 13.3 fest; die Parallelisierung beschreibt 13.4. Die Workflows sind danach geschnitten:
 
-1. Lint, Typecheck, Unit- und Contract-Tests, nur für die betroffenen Pakete (`pnpm --filter` bzw. affected-Logik)
-2. Secret-Scan (gitleaks), SAST (CodeQL, zusätzlich Semgrep) und Dockerfile-Lint (hadolint); ab Phase 5 auch Prüfung der Kubernetes-Manifeste (kubeconform und kube-linter oder Checkov)
-3. Image-Build pro Service mit Docker Buildx für `linux/amd64` und `linux/arm64`, mit Layer-Cache
-4. Trivy-Scan der Images; kritische Befunde brechen den Build ab
-5. Ab Phase 1 Integrationstests, ab Phase 2 Playwright-E2E gegen den per Compose gestarteten Stack. Beides läuft mit `mock`-Providern, die CI braucht also keine echten API-Keys. Playwright-Report und Traces werden als Artefakt abgelegt.
+- **`ci.yml` bei jedem Push:** Stufe 0 (inklusive gitleaks), Unit- und Integrationstests getrennt für Backend (1, 2a) und Frontend (1, 2b), alle Jobs parallel.
+- **`pr.yml` bei jedem PR auf `main`:**
+  - Image-Build pro Service (im PR nur `linux/amd64`, mit Layer-Cache)
+  - Trivy-Scan der Images; kritische Befunde brechen den Build ab
+  - SAST (CodeQL, zusätzlich Semgrep) und Dockerfile-Lint (hadolint); ab Phase 5 auch die Prüfung der Kubernetes-Manifeste (kubeconform und kube-linter oder Checkov)
+  - der Vertrags-Check aus 1.4
+  - System-/API-Tests (Stufe 3) und E2E-Tests (Stufe 4), gesharded, gegen den per Compose gestarteten Stack
+- **`main.yml` nach dem Merge:** Multi-Arch-Build (`linux/amd64` und `linux/arm64`), Push nach GHCR, Stufe 3 und 4 gegen die gepushten Images, ab Phase 5 Aktualisierung des Image-Tags im GitOps-Repo.
+- **`nightly.yml`:** Stufe 5, vollständige Browser-Matrix, erneuter Scan; die Evals zusätzlich per `workflow_dispatch`.
+- Doppelte Läufe desselben Commits (Push und PR) werden vermieden; wie genau, entscheidest du per ADR.
+
+Alle Testläufe nutzen `mock`-Provider; die CI braucht also keine echten API-Keys.
 
 Weitere Regeln:
 
@@ -333,7 +423,7 @@ Sicherheit gehört ab Phase 0 zur Definition of Done und ist kein späteres Them
 - Ein Secret landet **niemals** in Git, einem Docker-Image oder einem Build-Argument. Genauso wenig gehört es ins Frontend-Bundle, in die `/config.json`, in Logs, Fehlermeldungen, Metriken oder Traces.
 - **Least Privilege:** Jeder Service bekommt nur die Secrets, die er wirklich braucht. Nur `claim-extractor` und `fact-checker` kennen LLM-Keys, nur `transcription` kennt den STT-Key, und `web` kennt gar keine Secrets. Der Browser bzw. das iPhone sieht nie einen Key, weil Audio und alle Anfragen über das `gateway` laufen.
 - Services lesen Secrets wahlweise aus einer Env-Variable oder aus einer Datei (Konvention `<NAME>_FILE`, z. B. `ANTHROPIC_API_KEY_FILE`). So funktionieren Docker-Compose-Secrets und später Kubernetes-Secrets als gemountete Dateien ohne Code-Änderung.
-- **Lokal** liegen Secrets in `secrets/*.txt` (für Compose-Secrets) bzw. `.env`. Beide stehen in `.gitignore` und `.dockerignore` und haben die Dateirechte `600`. Das README zeigt optional, wie ich die Werte aus dem macOS-Schlüsselbund oder einem Passwortmanager-CLI lade, statt sie im Klartext abzulegen.
+- **Lokal** liegen Secrets **außerhalb des Repo-Ordners**, standardmäßig unter `~/.config/live-factcheck/secrets/` (eine Datei pro Secret, Verzeichnis `700`, Dateien `600`). Compose bindet sie als Compose-Secrets über `${SECRETS_DIR}` ein. Damit liegen sie außerhalb des Workspace, in dem Claude Code und Antigravity arbeiten. Kein Agent liest sie beim normalen Durchsuchen des Projekts mit ein, und keiner kann sie committen. Vollständig ausschließen lässt sich ein Zugriff per Terminal-Befehl nicht; deshalb bestätige ich nie Agent-Befehle, die dieses Verzeichnis berühren, und in beiden Tools ist für Terminal-Befehle eine Freigabe eingestellt. `make secrets-init` legt das Verzeichnis mit den richtigen Rechten und leeren Platzhalterdateien an; die Werte trage ich selbst ein. Das README zeigt optional, wie ich sie aus dem macOS-Schlüsselbund oder einem Passwortmanager-CLI befülle, statt sie im Klartext abzulegen.
 - Beim Start loggt jeder Service, *welche* Provider konfiguriert sind, aber nie die Keys selbst. Als zweite Absicherung schwärzt der Logger bekannte Secret-Felder (pino `redact`).
 - **Kubernetes (Phase 5):** Kubernetes-Secrets sind nur Base64-kodiert, nicht verschlüsselt. Deshalb liegen sie nie als Klartext-YAML im Repo, sondern werden per Sealed Secrets oder SOPS verwaltet (Entscheidung als ADR). Wo möglich, werden sie als Dateien gemountet statt als Env-Variablen übergeben.
 - `SECURITY.md` beschreibt die Key-Rotation und den Notfallablauf bei einem geleakten Key: widerrufen, neu erstellen, Nutzung und Logs prüfen.
@@ -341,7 +431,7 @@ Sicherheit gehört ab Phase 0 zur Definition of Done und ist kein späteres Them
 
 ### 15.2 Secret-Scanning und Supply Chain
 
-- gitleaks läuft als Pre-Commit-Hook (z. B. über lefthook) und in der CI.
+- gitleaks läuft als Pre-Commit-Hook über lefthook und in der CI.
 - `make scan` prüft die Container-Images mit Trivy auf Schwachstellen und versehentlich eingebaute Secrets.
 - Lockfiles werden committet, der Build nutzt `pnpm install --frozen-lockfile`. Ab Phase 1 übernimmt Renovate oder Dependabot die Updates.
 - Ab Phase 6 wird pro Image eine SBOM erzeugt.
@@ -403,35 +493,46 @@ live-factcheck/
 │  └─ terraform/          # ab Phase 6
 ├─ load-tests/            # k6, ab Phase 5
 ├─ evals/
-├─ tests/e2e/
+├─ tests/
+│  ├─ api/                # Stufe 3: System-/API-Tests Backend
+│  └─ e2e/                # Stufe 4: E2E (Frontend-Integrationstests liegen unter apps/web/tests/)
 ├─ .ai/
 │  ├─ plans/              # ein Plan pro Phase, mit Tasks und Review-Gates
+│  ├─ prompts/            # tool-neutrale Review- und Rollen-Prompts
 │  ├─ research/           # verdichtete Recherche zu externen Abhängigkeiten
 │  └─ summaries/          # Kurzbeschreibungen bestehender Codebereiche
 ├─ docs/
 │  ├─ adr/                # bewusst hier statt unter .ai/, damit sie im Portfolio sichtbar sind
 │  ├─ evidence/           # Nachweise pro Phase
+│  ├─ ai-tooling.md       # Einrichtung von Claude Code und Antigravity
+│  ├─ testing/            # u. a. iphone-smoke.md
 │  ├─ runbooks/           # ab Phase 6
 │  ├─ SECURITY.md
 │  └─ PROJECT_BRIEF.md    # dieses Dokument
-├─ secrets/               # nur lokal, in .gitignore und .dockerignore
 ├─ .devcontainer/
 ├─ .github/workflows/     # CI ab Phase 0
 ├─ .claude/
-│  ├─ agents/             # reviewer, security-reviewer, platform-engineer
-│  ├─ skills/             # new-service, new-event-contract, adr, evidence
-│  └─ settings.json       # Hooks
-├─ .mcp.json              # MCP-Server im Projekt-Scope, ohne Tokens
+│  ├─ agents/             # dünne Hüllen um .ai/prompts/
+│  ├─ skills -> ../.agents/skills
+│  └─ settings.json       # Agent-Hooks (Komfort, nicht die eigentliche Absicherung)
+├─ .agents/
+│  └─ skills/             # new-service, new-event-contract, adr, evidence
+├─ tools/
+│  └─ antigravity/        # mcp_config.example.json
+├─ .mcp.json              # MCP-Server für Claude Code, ohne Tokens
+├─ lefthook.yml           # Git-Hooks, gelten für jedes Tool
+├─ CODEOWNERS
 ├─ docker-compose.yml
 ├─ Makefile
 ├─ .env.example
 ├─ .dockerignore
-└─ CLAUDE.md              # Root-Regeln; jeder Service und jedes Paket hat zusätzlich eine eigene
+├─ AGENTS.md              # maßgebliche Root-Regeln; jeder Service und jedes Paket hat eine eigene
+└─ CLAUDE.md              # bindet @AGENTS.md ein, plus Claude-Spezifika
 ```
 
 ## 17. Phasenplan
 
-Jede Phase beginnt mit einer freigegebenen Plan-Datei (1.2). Sie endet mit grünen Tests, Nachweisen nach 1.3, aktualisierter README und `CLAUDE.md`-Dateien, einer Anleitung zum lokalen Testen und einem offenen PR. Danach hältst du an, bis ich gemergt habe.
+Jede Phase beginnt mit einer freigegebenen Plan-Datei (1.2). Sie endet mit grünen Tests, Nachweisen nach 1.3, aktualisierter README und `AGENTS.md`-Dateien, einer Anleitung zum lokalen Testen und einem offenen PR. Danach hältst du an, bis ich gemergt habe.
 
 **Phase 0: Fundament**
 Diese Phase legt das Grundgerüst an:
@@ -442,8 +543,9 @@ Diese Phase legt das Grundgerüst an:
 - `docker-compose.yml` mit Redis (mit Passwort), SearXNG und Caddy, getrennten Netzwerken und Compose-Secrets
 - Dev-Modus mit `docker compose watch` und `.devcontainer/`
 - `.env.example`, Makefile, gitleaks-Hook und `docs/SECURITY.md`
-- Lint- und Test-Setup sowie ein erster Playwright-Smoke-Test
-- Claude-Code-Setup nach Abschnitt 1.1 (Subagents, Hooks, `.mcp.json`)
+- Test-Setup für alle Stufen aus 13.2 mit je einem ersten Beispieltest, inklusive Playwright-Projekten für Chromium und WebKit (iPhone)
+- Agent-Setup nach 1.1 und 1.4: `AGENTS.md`/`CLAUDE.md`, Prompts, Skills, Agent-Hooks, `.mcp.json`, Antigravity-Vorlage, `docs/ai-tooling.md`
+- tool-unabhängige Absicherung: `lefthook.yml`, `CODEOWNERS`, Vertrags-Check in der CI, `make secrets-init`
 - CI-Grundpipeline nach 14.2, Stufen 1–4, dazu Branch-Protection-Empfehlung in der README
 
 *DoD:*
@@ -453,13 +555,16 @@ Diese Phase legt das Grundgerüst an:
 - Ein Test belegt, dass ein Service ohne Pflicht-Konfiguration mit klarer Fehlermeldung abbricht.
 - Ein Test belegt, dass ein gesetzter API-Key in keiner Logzeile auftaucht.
 - Der erste PR läuft grün durch die CI, und die README zeigt das Status-Badge.
+- Der Pre-Commit-Hook bleibt unter 30 Sekunden, und die Push-Pipeline führt Backend- und Frontend-Jobs parallel aus.
+- Im Repo-Ordner liegt kein Secret; ein Test bzw. Check belegt, dass die Services ihre Secrets aus `${SECRETS_DIR}` lesen.
+- Eine Antigravity-Session kann mit „Lies `AGENTS.md` und den aktuellen Plan“ den nächsten Task benennen, ohne Rückfragen zu stellen.
 
 **Phase 1: Faktencheck im Textmodus**
-LLM-Adapter (`anthropic`, `openai-compatible`, `mock`), Such-Adapter (`searxng`), vollständiger `fact-checker`, Textmodus im Frontend, Ergebnis-Karten, Eval-Set und `pnpm eval`. Die CI bekommt Integrationstests, und Renovate bzw. Dependabot wird aktiviert.
+LLM-Adapter (`anthropic`, `openai-compatible`, `mock`), Such-Adapter (`searxng`), vollständiger `fact-checker`, Textmodus im Frontend, Ergebnis-Karten, Eval-Set und `pnpm eval`. Dazu kommen Frontend-Integrationstests mit gemocktem Backend (2b), System-/API-Tests für den Textmodus (3), die Coverage-Schwellen aus 13.5 und Renovate bzw. Dependabot.
 *DoD:* Eine eingetippte Behauptung wird einmal mit Claude und einmal mit LM Studio bzw. Ollama geprüft, beides funktioniert, und ein Eval-Report liegt vor.
 
 **Phase 2: Live-Transkription**
-Audioaufnahme im Browser, WebSocket-Pfad, `transcription` mit einem Cloud-Adapter und dem lokalen Adapter (`stt-local`), `claim-extractor`, Live-Transkript im UI, Einwilligungsdialog und Test auf dem iPhone über HTTPS. Die CI führt ab jetzt die Playwright-E2E-Tests mit der WAV-Fixture aus.
+Audioaufnahme im Browser, WebSocket-Pfad, `transcription` mit einem Cloud-Adapter und dem lokalen Adapter (`stt-local`), `claim-extractor`, Live-Transkript im UI, Einwilligungsdialog und Test auf dem iPhone über HTTPS. Ab jetzt laufen die E2E-Tests mit WAV-Fixture in Chromium und mit synthetischem MediaStream in WebKit. Die iPhone-Smoke-Checkliste wird angelegt und einmal durchlaufen.
 *DoD:* Ich spreche ins iPhone, sehe das Transkript live und bekomme für eine falsche Behauptung innerhalb weniger Sekunden eine Karte.
 
 **Phase 3: Sprecher und UX**
