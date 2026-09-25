@@ -28,6 +28,9 @@
     },
     {
       "path": "./services/claim-extractor"
+    },
+    {
+      "path": "./services/fact-checker"
     }
   ]
 }
