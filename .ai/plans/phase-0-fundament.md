@@ -20,12 +20,12 @@ Am Ende steht ein grüner PR, der alle DoD-Punkte aus Abschnitt 17 belegt.
 | # | Frage | Entscheidung |
 |---|---|---|
 | 1 | GitHub-Repo | Marco legt das öffentliche Repo `live-factcheck` an, setzt `origin` und authentifiziert `gh`. **Vorbedingung vor Gate 2**, weil ab dort die CI läuft. |
-| 2 | Tool-Runtime | Ein dauerhaft laufender `toolbox`-Container (Compose-Profil `dev`). Agent-Hooks **und lefthook** rufen `docker compose exec -T toolbox …` auf. Dasselbe Image ist die Basis für `.devcontainer/`. |
+| 2 | Tool-Runtime | Ein dauerhaft laufender `toolbox`-Container (eigenes Compose-Projekt `compose.toolbox.yaml`, Aufruf über `scripts/tb`). Agent-Hooks **und lefthook** rufen `docker compose exec -T toolbox …` auf. Dasselbe Image ist die Basis für `.devcontainer/`. |
 | 3 | Vertragsformate | `schemaVersion: z.literal(1)`, IDs als UUID v4, Zeitstempel als ISO-8601-UTC, `language` als BCP-47, `startMs`/`endMs` als nicht-negative Integer. Dazu ein Envelope `{ type, schemaVersion, payload }`. Festgehalten in ADR 0002. |
 | 4 | MCP-Anbindung | MCP-Server laufen als Container (`docker run -i --rm`, offizielle Images), Context7 als Remote-HTTP-Server. Tokens kommen per `${ENV}`. Für Antigravity gibt es dieselben Server als Vorlage. |
 
 Weitere Festlegungen, über die ich selbst entschieden habe (jeweils im ADR begründet):
-- Node 24 (aktive LTS), pnpm 10 über corepack, ESM/NodeNext, TypeScript Project References. Paket-`exports` mit der Condition `development` → `src`, default → `dist`.
+- Node 24.21 (aktive LTS), pnpm 12.6 (global im Toolbox-Image), TypeScript 6.0.3 (TS 7 wird von typescript-eslint noch nicht unterstützt), ESLint 10, ESM/NodeNext, TypeScript Project References. Paket-`exports` mit der Condition `development` → `src`, default → `dist`.
 - Runtime-Images: `gcr.io/distroless/nodejs24-debian12:nonroot` und `nginxinc/nginx-unprivileged`. Healthchecks laufen per Node-Skript aus dem service-kit, ohne curl.
 - Grenzprüfung mit **dependency-cruiser**.
 - **lefthook ohne Host-Installation:** `make hooks-install` legt einen Shim `.git/hooks/pre-commit` an, der `docker compose exec -T toolbox pnpm exec lefthook run pre-commit` aufruft. gitleaks ist im Toolbox-Image enthalten.
@@ -34,7 +34,7 @@ Weitere Festlegungen, über die ich selbst entschieden habe (jeweils im ADR begr
 - `stt-local` ist nicht Teil von Phase 0. Das Profil `local-stt` wird vorbereitet und bleibt leer.
 - Gateway-Token-Auth, Rate Limiting und Redis-Streams-Helper kommen in Phase 1, sobald es die erste API-Route bzw. den ersten Stream-Konsumenten gibt (kein Überbau).
 
-Kürzel: `tb` = `docker compose --profile dev exec -T toolbox`.
+Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befehl darin aus).
 
 ---
 
@@ -45,20 +45,20 @@ Kürzel: `tb` = `docker compose --profile dev exec -T toolbox`.
 - Verifikation: `git check-ignore .env .DS_Store`
 
 **T1.2 pnpm-Workspace + TS-Basis**
-- Dateien: `package.json` (root; Scripts `lint`, `typecheck`, `test:unit`, `test:int`, `depcruise`, `format`), `pnpm-workspace.yaml` (`apps/*`, `services/*`, `packages/*`, `tests/*`), `tsconfig.base.json` (strict, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), `tsconfig.json` (references), `vitest.workspace.ts`
+- Dateien: `package.json` (root; Scripts `lint`, `typecheck`, `test:unit`, `test:int`, `depcruise`, `format`), `pnpm-workspace.yaml` (`apps/*`, `services/*`, `packages/*`, `tests/*`), `tsconfig.base.json` (strict, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), `tsconfig.json` (references). Vitest-Konfiguration pro Paket, die Root-Skripte delegieren per `pnpm -r`.
 - Verifikation: `tb pnpm install --frozen-lockfile && tb pnpm typecheck`
 
 **T1.3 Stufe 0: Lint, Format, Grenzen**
 - Dateien:
   - `eslint.config.js` (`typescript-eslint` strict-type-checked, `no-explicit-any`, `ban-ts-comment` nur mit Beschreibung)
-  - `.prettierrc`
+  - `.prettierrc.json`, `.prettierignore` (Markdown ausgenommen, weil aufgefüllte Tabellen Diffs unlesbar machen)
   - `.dependency-cruiser.cjs` mit den Regeln: kein `services/* → services/*` oder `apps/*`, keine Deep-Imports in `packages/*/src`, keine Zyklen
 - Verifikation: `tb pnpm lint && tb pnpm depcruise`. Dazu ein Negativtest mit einem temporären Verstoß; die Ausgabe kommt in die Evidence.
 
 **T1.4 Toolbox**
-- Dateien: `tools/toolbox/Dockerfile` (node:24-bookworm-slim, corepack, git, gitleaks-Binary per Checksum, Non-Root) und `compose.dev.yaml` (Service `toolbox`, Profil `dev`, Repo-Mount, pnpm-Store-Volume, Docker-Socket)
-- DevOps-Notiz: Das pnpm-Store-Volume hält Installs schnell und verhindert, dass auf dem Host ein `node_modules` mit falscher Architektur landet.
-- Verifikation: `make toolbox && tb node --version` meldet v24.x
+- Dateien: `tools/toolbox/Dockerfile` (node:24.21-bookworm-slim, pnpm, git, gitleaks-Binary per Checksum, Non-Root), `compose.toolbox.yaml` (eigenes Projekt `lfc-toolbox`, Repo-Mount, pnpm-Store-Volume, Docker-Socket mit `group_add: ["0"]`), `scripts/tb`
+- DevOps-Notiz: Die Toolbox ist ein eigenes Compose-Projekt, damit ihr Lebenszyklus unabhängig vom App-Stack ist (`make down` stoppt sie nicht). `node_modules` liegt im Bind-Mount, wird aber nur von Toolbox und Devcontainer benutzt.
+- Verifikation: `tb node --version` meldet v24.21.0
 
 **T1.5 Secrets außerhalb des Repos**
 - Dateien:
