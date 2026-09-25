@@ -147,13 +147,15 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
 
 - [x] Plan freigegeben (2026-09-25)
 - [x] Gate 1 freigegeben: PR #1 gemergt
-- Arbeitsweise ab Gate 2: **ein PR pro Gate**, Branch `phase-0/tpN-<thema>` (Brief 1: bei großen Phasen je Teilprojekt ein Branch)
-- Aktuell: TP2 auf `phase-0/tp2-contracts-service-kit`
-- Nächster Task: T2.1 `packages/contracts`
+- Arbeitsweise ab Gate 2: **ein PR pro Gate**, Branch `phase-0/tpN-<thema>`
+- [x] TP2 erledigt (T2.1–T2.4) auf `phase-0/tp2-contracts-service-kit`, Draft-PR #2, CI grün
+- Aktuelles Gate: **Gate 2 – wartet auf Marcos Review von PR #2**
+- Nächster Task nach Freigabe: T3.1 Recherche MCP-Server und Antigravity (Branch `phase-0/tp3-agent-setup`)
 - Offene Punkte:
-  - DoD „Pre-Commit < 30 s“ mit echten Paketen messen (TP2)
-  - ESLint-Negativtest (`any` ohne Begründung) in T2.1
-  - Branch-Schutz für `main` (Marco): Status-Checks als Pflicht, sobald `ci.yml` läuft (T2.3)
+  - Branch-Ruleset `main` (Marco, nach Merge): Pflicht-Checks `ci passed` und `pr passed`, „Require review from Code Owners“
+  - Pre-Commit-Messung mit Unit-Tests erneut als Datei sichern (TP4); gemessen: 5,0 s mit service-kit-Tests, 2,4 s ohne
+  - `ci.yml`: Test-Jobs hängen noch nicht per `needs` an `static` (heute billiger als das Warten); spätestens mit den teuren PR-Jobs in TP4 prüfen
+- Evidence: `docs/evidence/phase-0/` (t2.1-eslint-negative, t2.3-precommit-timing, t2.4-contract-check-scenarios, gate-2-ci)
 
 ## Session-Log` an. *Einschränkung:* Inhaltliche Erkenntnisse schreibt Claude selbst vor `/compact`; das regelt `CLAUDE.md`.
 - Verifikation: Read auf `.env` wird blockiert, ein Edit in contracts erzeugt eine Warnung. Die Ausgaben kommen in die Evidence.
