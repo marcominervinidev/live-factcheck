@@ -16,6 +16,7 @@ The brief asks for one repository with independently deployable services (factor
 - **Prettier** for code and config. Markdown is excluded because padded tables make review diffs unreadable.
 - **dependency-cruiser** enforces the module boundaries as its own check (pre-commit and CI): no service-to-service imports, no deep imports into packages, no cycles, no undeclared dependencies.
 - **Toolbox container** (`tools/toolbox`, `compose.toolbox.yaml`, `scripts/tb`) is the only place where Node tooling runs. It is its own Compose project so stopping the app stack does not stop it.
+- **pnpm supply-chain policies stay on.** pnpm 12 refuses packages younger than its `minimumReleaseAge` and denies dependency install scripts unless `allowBuilds` in `pnpm-workspace.yaml` allows them. We pin the newest release that passes the age check instead of adding exclusions, and every `allowBuilds` entry carries a comment explaining why the script is denied or allowed.
 - **lefthook** runs inside the toolbox. `make hooks-install` writes a small shim to `.git/hooks/pre-commit` instead of relying on lefthook's postinstall (which is denied via `allowBuilds`).
 
 ## Alternatives
