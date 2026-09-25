@@ -1,0 +1,8 @@
+$ make scan   # Trivy: CRITICAL vulnerabilities and embedded secrets fail
+== lfc/caddy:local
+== lfc/web:local
+== lfc/gateway:local
+== lfc/transcription:local
+== lfc/claim-extractor:local
+== lfc/fact-checker:local
+exit code: 0

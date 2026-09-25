@@ -1,0 +1,16 @@
+$ time git commit   # service-kit change: hook runs gitleaks, prettier, eslint, typecheck, affected unit tests, boundaries
+apps/web test:unit:       Tests  10 passed (10)
+packages/service-kit test:unit:       Tests  22 passed (22)
+services/transcription test:unit:       Tests  2 passed (2)
+services/gateway test:unit:       Tests  2 passed (2)
+services/claim-extractor test:unit:       Tests  4 passed (4)
+services/fact-checker test:unit:       Tests  4 passed (4)
+summary: (done in 10.64 seconds)
+✔️ prettier (0.48 seconds)
+✔️ gitleaks (0.53 seconds)
+✔️ boundaries (3.86 seconds)
+✔️ typecheck (4.35 seconds)
+✔️ eslint (6.83 seconds)
+✔️ unit (10.60 seconds)
+exit code: 0
+wall clock: 11.1 s (budget: 30 s)

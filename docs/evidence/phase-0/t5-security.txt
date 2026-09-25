@@ -1,0 +1,45 @@
+== Redis ACL (redis-cli inside the redis container; passwords from /run/secrets)
+default user, no auth  PING        -> NOAUTH Authentication required.
+app                    PING        -> PONG
+app                    XADD        -> 17… (stream id)
+app                    CONFIG GET  -> NOPERM User app has no permissions to run the 'config|get' command
+mcp                    XLEN        -> 1
+mcp                    XADD        -> NOPERM User mcp has no permissions to run the 'xadd' command
+mcp                    DEL         -> NOPERM User mcp has no permissions to run the 'del' command
+app password in plain text in /tmp/users.acl: 0 occurrences
+
+== environment variables that look like secrets (expected: only *_FILE paths)
+CHECKER_LLM_API_KEY_FILE=<path>
+EXTRACTOR_LLM_API_KEY_FILE=<path>
+REDIS_PASSWORD_FILE=<path>
+
+== container hardening
+/live-factcheck-caddy-1            user=1000:1000    read_only=true cap_drop=[ALL] cap_add=<no value> [no-new-privileges:true] mem=134217728 cpus=500000000
+/live-factcheck-claim-extractor-1  user=65532:65532  read_only=true cap_drop=[ALL] cap_add=<no value> [no-new-privileges:true] mem=268435456 cpus=500000000
+/live-factcheck-fact-checker-1     user=65532:65532  read_only=true cap_drop=[ALL] cap_add=<no value> [no-new-privileges:true] mem=268435456 cpus=500000000
+/live-factcheck-gateway-1          user=65532:65532  read_only=true cap_drop=[ALL] cap_add=<no value> [no-new-privileges:true] mem=268435456 cpus=500000000
+/live-factcheck-redis-1            user=999:1000     read_only=true cap_drop=[ALL] cap_add=<no value> [no-new-privileges:true] mem=268435456 cpus=500000000
+/live-factcheck-searxng-1          user=977:977      read_only=true cap_drop=[ALL] cap_add=<no value> [no-new-privileges:true] mem=536870912 cpus=1000000000
+/live-factcheck-transcription-1    user=65532:65532  read_only=true cap_drop=[ALL] cap_add=<no value> [no-new-privileges:true] mem=268435456 cpus=500000000
+/live-factcheck-web-1              user=101:101      read_only=true cap_drop=[ALL] cap_add=<no value> [no-new-privileges:true] mem=67108864 cpus=250000000
+
+== network segmentation
+internal -> internet (https://example.com)  : 000
+internal -> host.docker.internal:443        : 000
+edge     -> searxng:8080                    : 000
+edge     -> redis:6379                      : 000
+internal -> searxng JSON search (egress)    : "url": "https://www.dhm.de/lemo/kapitel/der-zweite-weltkrieg/kriegsverlauf/kriegsende-1945" "url": "https://www.lpb-bw.de/kriegsende" 
+(000 = no connection)
+
+== edge: HTTPS, redirect and security headers (from the host)
+HTTP/2 200 
+content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+cross-origin-opener-policy: same-origin
+permissions-policy: microphone=(self), camera=(), geolocation=(), payment=()
+referrer-policy: no-referrer
+strict-transport-security: max-age=31536000
+x-content-type-options: nosniff
+x-frame-options: DENY
+http://localhost:8081/claims -> 301 https://localhost/claims
+https://localhost/config.json -> {"gatewayUrl":"/api"}
+https://localhost/api/unknown -> 404 (routed to gateway)
