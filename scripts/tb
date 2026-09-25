@@ -1,0 +1,12 @@
+#!/bin/sh
+# Run a command inside the toolbox container, starting it if needed.
+# Usage: scripts/tb pnpm lint
+set -eu
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+COMPOSE="docker compose -f $ROOT/compose.toolbox.yaml --project-directory $ROOT"
+if [ -z "$($COMPOSE ps -q --status running toolbox 2>/dev/null)" ]; then
+  $COMPOSE up -d --wait toolbox >&2
+fi
+# Map the host working directory to the container path so relative paths keep working.
+REL=${PWD#"$ROOT"}
+exec $COMPOSE exec -T -w "/workspace$REL" toolbox "$@"
