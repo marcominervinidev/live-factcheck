@@ -143,8 +143,19 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
   - `warn-contracts.sh` (PreToolUse `Edit|Write`): **warnt** bei `packages/contracts/**`, blockiert aber nicht
   - `format-lint.sh` (PostToolUse): `tb prettier --write` + `eslint --fix` auf die Datei. Ohne laufende Toolbox gibt es nur eine Warnung.
   - `stop-tests.sh` (Stop): führt `tb pnpm --filter "...[main]" test:unit` aus; Exit 2 bei Rot, `stop_hook_active` verhindert Schleifen
-  - `session-start.sh`: gibt `## Status` der aktuellen Plan-Datei aus
-  - `pre-compact.sh`: hängt Zeitstempel, `git status` und `diff --stat` an `## Session-Log` an. *Einschränkung:* Inhaltliche Erkenntnisse schreibt Claude selbst vor `/compact`; das regelt `CLAUDE.md`.
+  - `session-start.sh`: gibt `## Status
+
+- [x] Plan freigegeben (2026-09-25)
+- [x] TP1 erledigt (T1.1–T1.7); T1.4 wurde vor T1.2 gezogen, weil pnpm nur in der Toolbox läuft
+- Aktuelles Gate: **Gate 1 – wartet auf Marcos Review**
+- Nächster Task nach Freigabe: T2.1 `packages/contracts`
+- Vorbedingung für Gate 2: öffentliches GitHub-Repo `live-factcheck`, `origin` gesetzt, `gh` authentifiziert
+- Offene Punkte:
+  - DoD „Pre-Commit < 30 s“ ist bisher nur ohne Code gemessen (0,7 s); der aussagekräftige Nachweis folgt in TP2 mit echten Paketen und Tests.
+  - Der ESLint-Negativtest (`any` ohne Begründung) folgt in T2.1, weil es vorher kein TS-Projekt gibt, das ESLint prüfen kann.
+  - Evidence bisher: `docs/evidence/phase-0/t1.3-depcruise-negative.txt`, `t1.5-secrets-init.txt`, `t1.6-precommit-leak-blocked.txt`, `gate-1-make-lint.txt`
+
+## Session-Log` an. *Einschränkung:* Inhaltliche Erkenntnisse schreibt Claude selbst vor `/compact`; das regelt `CLAUDE.md`.
 - Verifikation: Read auf `.env` wird blockiert, ein Edit in contracts erzeugt eine Warnung. Die Ausgaben kommen in die Evidence.
 
 **T3.5 MCP für beide Tools**
