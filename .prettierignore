@@ -1,0 +1,11 @@
+pnpm-lock.yaml
+dist/
+coverage/
+reports/
+playwright-report/
+blob-report/
+test-results/
+# Authored by the project owner; keep formatting as written.
+docs/PROJECT_BRIEF.md
+# Markdown is written by hand; padded tables make diffs hard to review.
+**/*.md

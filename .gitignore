@@ -1,0 +1,25 @@
+# Local configuration and secrets (secrets live outside the repo, see docs/SECURITY.md)
+.env
+.env.*
+!.env.example
+secrets/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+.pnpm-store/
+
+# Test output
+coverage/
+reports/
+playwright-report/
+blob-report/
+test-results/
+.stryker-tmp/
+.lighthouseci/

@@ -1,0 +1,19 @@
+$ git commit -m "test: leak"   # staged leak-test.txt contains a dummy Anthropic key
+╭──────────────────────────────────────────╮
+│ 🥊 lefthook  v2.1.14   hook:  pre-commit │
+╰──────────────────────────────────────────╯
+│  prettier (skip) no files for inspection
+│  eslint (skip) no files for inspection
+│  boundaries (skip) no matching staged files
+│  typecheck (skip) no matching staged files
+│  unit (skip) no matching staged files
+┃  gitleaks ❯ 
+5:45PM INF 0 commits scanned.
+5:45PM INF scanned ~127 bytes (127 bytes) in 112ms
+5:45PM WRN leaks found: 1
+
+exit status 1
+  ────────────────────────────────────
+summary: (done in 0.31 seconds)
+🥊 gitleaks (0.30 seconds)
+exit code: 1

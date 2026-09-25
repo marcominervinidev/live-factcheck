@@ -1,0 +1,19 @@
+# Build context allowlist style: exclude everything that must never reach an image.
+.git
+.github
+.ai
+.claude
+.agents
+.devcontainer
+docs
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+**/coverage
+**/playwright-report
+**/blob-report
+**/test-results
+.env
+.env.*
+secrets/
+.DS_Store

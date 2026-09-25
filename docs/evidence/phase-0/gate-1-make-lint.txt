@@ -1,0 +1,15 @@
+$ make lint
+scripts/tb pnpm typecheck
+$ tsc -b --pretty
+scripts/tb pnpm lint
+$ eslint . --max-warnings 0
+scripts/tb pnpm format:check
+$ prettier --check .
+Checking formatting...
+All matched files use Prettier code style!
+scripts/tb pnpm depcruise
+$ depcruise --config .dependency-cruiser.cjs .
+
+✔ no dependency violations found (0 modules, 0 dependencies cruised)
+
+exit code: 0

@@ -1,0 +1,33 @@
+# Dev toolbox: long-running container for pnpm, lint, tests and git hooks.
+# Separate compose project so its lifecycle is independent of the app stack.
+name: lfc-toolbox
+
+services:
+  toolbox:
+    build:
+      context: tools/toolbox
+    image: lfc-toolbox:local
+    working_dir: /workspace
+    init: true
+    volumes:
+      - .:/workspace
+      - pnpm-store:/pnpm-store
+      # Needed by Testcontainers (stage 2a). Root-equivalent on the Docker host;
+      # dev profile only, see docs/SECURITY.md.
+      - /var/run/docker.sock:/var/run/docker.sock
+    # The socket is root:root 0660 inside Docker Desktop's VM.
+    group_add: ['0']
+    environment:
+      # Testcontainers inside a container on Docker Desktop reaches mapped ports via the host gateway.
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 6g
+
+volumes:
+  pnpm-store:
