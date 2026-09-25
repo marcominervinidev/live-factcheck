@@ -24,7 +24,8 @@ pre-commit:
     - name: unit
       glob: '*.{ts,tsx}'
       # Unit tests (stage 1) of packages affected by uncommitted changes and their dependents.
-      run: pnpm --filter "...[HEAD]" --if-present test:unit
+      # The root package is excluded: its own test:unit script would run every package again.
+      run: pnpm --filter "...[HEAD]" --filter "!live-factcheck" --if-present test:unit
 
     - name: boundaries
       glob: '*.{ts,tsx,js,cjs,mjs,json}'
