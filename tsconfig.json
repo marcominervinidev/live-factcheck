@@ -10,5 +10,12 @@
     "types": ["node"]
   },
   "files": ["eslint.config.js"],
-  "references": []
+  "references": [
+    {
+      "path": "./packages/contracts"
+    },
+    {
+      "path": "./packages/service-kit"
+    }
+  ]
 }

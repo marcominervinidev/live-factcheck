@@ -1,0 +1,7 @@
+# Paths that always need the owner's review (brief 1.4). Enforced via the branch ruleset
+# ("Require review from Code Owners").
+/packages/contracts/  @marcominervinidev
+/.github/             @marcominervinidev
+/deploy/              @marcominervinidev
+/infra/               @marcominervinidev
+/CODEOWNERS           @marcominervinidev

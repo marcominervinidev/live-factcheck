@@ -1,0 +1,38 @@
+$ time git commit   # T2.3: push pipeline + coverage config, hook active
+╭──────────────────────────────────────────╮
+│ 🥊 lefthook  v2.1.14   hook:  pre-commit │
+╰──────────────────────────────────────────╯
+│  unit (skip) no matching staged files
+┃  prettier ❯ 
+Checking formatting...
+All matched files use Prettier code style!
+
+┃  gitleaks ❯ 
+6:31PM INF 0 commits scanned.
+6:31PM INF scanned ~10664 bytes (10.66 KB) in 153ms
+6:31PM INF no leaks found
+
+┃  typecheck ❯ 
+$ tsc -b --pretty
+
+┃  boundaries ❯ 
+$ depcruise --config .dependency-cruiser.cjs .
+
+✔ no dependency violations found (28 modules, 55 dependencies cruised)
+
+
+┃  eslint ❯ 
+
+  ────────────────────────────────────
+summary: (done in 2.00 seconds)
+✔️ prettier (0.40 seconds)
+✔️ gitleaks (0.46 seconds)
+✔️ typecheck (1.42 seconds)
+✔️ boundaries (1.58 seconds)
+✔️ eslint (1.97 seconds)
+[phase-0/tp2-contracts-service-kit ab9334a] ci: add push pipeline with parallel backend/frontend matrices
+ 6 files changed, 254 insertions(+), 1 deletion(-)
+ create mode 100644 .github/workflows/ci.yml
+ create mode 100644 docs/adr/0005-ci-workflow-layout.md
+ create mode 100644 scripts/ci/affected.mjs
+git commit -m   0.05s user 0.03s system 3% cpu 2.367 total

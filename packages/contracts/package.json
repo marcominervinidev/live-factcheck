@@ -1,0 +1,32 @@
+{
+  "name": "@lfc/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Versioned zod schemas for all events and API payloads (contract-first, brief 4.2 and 7).",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/testing"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test:unit": "vitest run --project unit"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "@vitest/coverage-v8": "5.0.1",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1"
+  }
+}

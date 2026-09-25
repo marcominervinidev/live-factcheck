@@ -1,0 +1,44 @@
+{
+  "name": "@lfc/service-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared runtime for all Node services: config, logging, HTTP ops endpoints, Redis, lifecycle.",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./healthcheck": {
+      "development": "./src/bin/healthcheck.ts",
+      "default": "./dist/bin/healthcheck.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/testing"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test:unit": "vitest run --project unit",
+    "test:int": "vitest run --project int"
+  },
+  "dependencies": {
+    "fastify": "5.12.5",
+    "ioredis": "6.0.0",
+    "pino": "10.3.1",
+    "prom-client": "15.1.3",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@testcontainers/redis": "12.1.0",
+    "@types/node": "24.13.6",
+    "@vitest/coverage-v8": "5.0.1",
+    "testcontainers": "12.1.0",
+    "tsx": "4.23.14",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1"
+  }
+}

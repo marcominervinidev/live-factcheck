@@ -1,0 +1,52 @@
+$ scripts/tb bash scripts/ci/contract-check-scenarios.sh
+
+### A: this branch vs main (new contracts package + ADR 0002)
+contract check: schema files changed:
+  packages/contracts/src/claim-checked.ts
+  packages/contracts/src/claim-detected.ts
+  packages/contracts/src/common.ts
+  packages/contracts/src/envelope.ts
+  packages/contracts/src/transcript-segment.ts
+  packages/contracts/src/claim-checked.ts: new schema (schemaVersion 1)
+  packages/contracts/src/claim-detected.ts: new schema (schemaVersion 1)
+  packages/contracts/src/common.ts: new shared building block
+  packages/contracts/src/envelope.ts: new schema (schemaVersion 1)
+  packages/contracts/src/transcript-segment.ts: new schema (schemaVersion 1)
+contract check: ok (ADR: docs/adr/0001-monorepo-and-toolchain.md docs/adr/0002-event-contract-format.md )
+exit code: 0
+
+### B: ClaimChecked changed, no ADR, no version bump
+contract check: schema files changed:
+  packages/contracts/src/claim-checked.ts
+contract check FAILED:
+  - no new or changed ADR under docs/adr/
+  - packages/contracts/src/claim-checked.ts: schema changed but schemaVersion stayed at 1
+See packages/contracts/AGENTS.md for how to change a contract.
+exit code: 1
+
+### C: ClaimChecked changed with ADR, schemaVersion unchanged
+contract check: schema files changed:
+  packages/contracts/src/claim-checked.ts
+contract check FAILED:
+  - packages/contracts/src/claim-checked.ts: schema changed but schemaVersion stayed at 1
+See packages/contracts/AGENTS.md for how to change a contract.
+exit code: 1
+
+### D: ClaimChecked changed with ADR and schemaVersion 1 -> 2
+contract check: schema files changed:
+  packages/contracts/src/claim-checked.ts
+  packages/contracts/src/claim-checked.ts: schemaVersion 1 -> 2
+contract check: ok (ADR: docs/adr/0099-test.md )
+exit code: 0
+
+### E: existing common.ts changed with ADR, no schemaVersion bump
+contract check: schema files changed:
+  packages/contracts/src/common.ts
+contract check FAILED:
+  - shared building blocks changed (packages/contracts/src/common.ts) without any schemaVersion bump
+See packages/contracts/AGENTS.md for how to change a contract.
+exit code: 1
+
+### F: only a contract test changed
+contract check: no schema changes
+exit code: 0

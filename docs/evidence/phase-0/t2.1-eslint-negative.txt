@@ -1,0 +1,23 @@
+$ eslint packages/contracts/src/zz-lint-probe.ts   # temporary file: any, bare @ts-ignore, disable without reason, disable with reason
+     1	export function probe(value: any): number {
+     2	  // @ts-ignore
+     3	  return value.length;
+     4	}
+     5	
+     6	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+     7	export const unexplained: any = 1;
+     8	
+     9	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- third-party typing gap, tracked in #12
+    10	export const explained: any = 1;
+
+
+/workspace/packages/contracts/src/zz-lint-probe.ts
+  1:30  error  Unexpected any. Specify a different type                                                                                                            @typescript-eslint/no-explicit-any
+  2:3   error  Include a description after the "@ts-ignore" directive to explain why the @ts-ignore is necessary. The description must be 10 characters or longer  @typescript-eslint/ban-ts-comment
+  3:3   error  Unsafe return of a value of type `any`                                                                                                              @typescript-eslint/no-unsafe-return
+  3:16  error  Unsafe member access .length on an `any` value                                                                                                      @typescript-eslint/no-unsafe-member-access
+  6:0   error  Unexpected undescribed directive comment. Include descriptions to explain why the comment is necessary                                              @eslint-community/eslint-comments/require-description
+
+✖ 5 problems (5 errors, 0 warnings)
+
+exit code: 1

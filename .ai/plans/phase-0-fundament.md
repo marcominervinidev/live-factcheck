@@ -146,14 +146,16 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
   - `session-start.sh`: gibt `## Status
 
 - [x] Plan freigegeben (2026-09-25)
-- [x] TP1 erledigt (T1.1–T1.7); T1.4 wurde vor T1.2 gezogen, weil pnpm nur in der Toolbox läuft
-- Aktuelles Gate: **Gate 1 – wartet auf Marcos Review**
-- Nächster Task nach Freigabe: T2.1 `packages/contracts`
-- Vorbedingung für Gate 2: öffentliches GitHub-Repo `live-factcheck`, `origin` gesetzt, `gh` authentifiziert
+- [x] Gate 1 freigegeben: PR #1 gemergt
+- Arbeitsweise ab Gate 2: **ein PR pro Gate**, Branch `phase-0/tpN-<thema>`
+- [x] TP2 erledigt (T2.1–T2.4) auf `phase-0/tp2-contracts-service-kit`, Draft-PR #2, CI grün
+- Aktuelles Gate: **Gate 2 – wartet auf Marcos Review von PR #2**
+- Nächster Task nach Freigabe: T3.1 Recherche MCP-Server und Antigravity (Branch `phase-0/tp3-agent-setup`)
 - Offene Punkte:
-  - DoD „Pre-Commit < 30 s“ ist bisher nur ohne Code gemessen (0,7 s); der aussagekräftige Nachweis folgt in TP2 mit echten Paketen und Tests.
-  - Der ESLint-Negativtest (`any` ohne Begründung) folgt in T2.1, weil es vorher kein TS-Projekt gibt, das ESLint prüfen kann.
-  - Evidence bisher: `docs/evidence/phase-0/t1.3-depcruise-negative.txt`, `t1.5-secrets-init.txt`, `t1.6-precommit-leak-blocked.txt`, `gate-1-make-lint.txt`
+  - Branch-Ruleset `main` (Marco, nach Merge): Pflicht-Checks `ci passed` und `pr passed`, „Require review from Code Owners“
+  - Pre-Commit-Messung mit Unit-Tests erneut als Datei sichern (TP4); gemessen: 5,0 s mit service-kit-Tests, 2,4 s ohne
+  - `ci.yml`: Test-Jobs hängen noch nicht per `needs` an `static` (heute billiger als das Warten); spätestens mit den teuren PR-Jobs in TP4 prüfen
+- Evidence: `docs/evidence/phase-0/` (t2.1-eslint-negative, t2.3-precommit-timing, t2.4-contract-check-scenarios, gate-2-ci)
 
 ## Session-Log` an. *Einschränkung:* Inhaltliche Erkenntnisse schreibt Claude selbst vor `/compact`; das regelt `CLAUDE.md`.
 - Verifikation: Read auf `.env` wird blockiert, ein Edit in contracts erzeugt eine Warnung. Die Ausgaben kommen in die Evidence.

@@ -8,3 +8,10 @@ packages:
 allowBuilds:
   # Git hooks are installed via `make hooks-install` (shim into the toolbox), not by postinstall.
   lefthook: false
+  # esbuild (via tsx) ships its binary as an optional dependency; the postinstall only verifies it.
+  esbuild: false
+  # Optional native speed-ups and a version check pulled in by testcontainers (dockerode);
+  # all have pure-JS fallbacks.
+  cpu-features: false
+  ssh2: false
+  protobufjs: false

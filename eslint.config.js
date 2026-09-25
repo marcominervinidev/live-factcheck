@@ -47,6 +47,11 @@ export default tseslint.config(
       '@eslint-community/eslint-comments/require-description': ['error', { ignore: [] }],
       '@eslint-community/eslint-comments/no-unlimited-disable': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
+      // Omitting a field via rest destructuring (`const { a: _a, ...rest } = x`) is intended.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { ignoreRestSiblings: true, argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
     },
   },
