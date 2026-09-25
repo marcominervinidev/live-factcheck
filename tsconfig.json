@@ -16,6 +16,9 @@
     },
     {
       "path": "./packages/service-kit"
+    },
+    {
+      "path": "./services/gateway"
     }
   ]
 }
