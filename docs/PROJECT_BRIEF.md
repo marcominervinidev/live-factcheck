@@ -1,0 +1,490 @@
+# Projekt-Brief: Live-Faktencheck (`live-factcheck`)
+
+> Dieses Dokument ist der Ausgangspunkt für die Claude-Code-Session. Lies es vollständig, bevor du irgendetwas anlegst.
+
+## 1. Deine Rolle und Arbeitsweise
+
+- Du arbeitest als Senior Full-Stack- und Platform-Engineer. Ich bin Senior Test Automation Engineer (TypeScript, Playwright, Docker, Jenkins) und baue gerade DevOps- und Kubernetes-Know-how auf. Erkläre DevOps-relevante Entscheidungen deshalb kurz. Grundlagen zu TypeScript oder Testing brauchst du mir nicht zu erklären.
+- Arbeite strikt in den Phasen aus Abschnitt 17 und nach dem Ablauf in Abschnitt 1.2. Ich führe die Architektur, du beschleunigst die Umsetzung. Die Verantwortung für Korrektheit, Sicherheit und Architektur bleibt bei mir.
+- Bevor du mit Phase 0 beginnst, stellst du mir maximal 5 Rückfragen zu Punkten, die wirklich unklar sind.
+- Lege zu Beginn eine Root-`CLAUDE.md` an (Stack, gemeinsame Befehle, übergreifende Konventionen, Architekturüberblick) und halte sie aktuell. Jeder Service und jedes Paket bekommt zusätzlich eine eigene `CLAUDE.md` neben seinem Code, mit dem, was nur dort gilt (Stack-Besonderheiten, Stolperfallen, Verträge). Das gilt besonders für `stt-local`, weil dort Python mit eigenen Konventionen läuft. Eine Regel gehört immer in den engsten passenden Scope. `CLAUDE.md` enthält Regeln, keine Schritt-für-Schritt-Anleitungen, keinen aktuellen Arbeitsstand und keine Secrets.
+- **Zweimal-Regel:** Korrigiere ich dich zum zweiten Mal beim selben Punkt, schlägst du vor, die Regel in die passende `CLAUDE.md`, einen Skill oder einen Subagent-Prompt aufzunehmen. Nutze dafür keine persönliche Memory, weil Projektregeln committet sein müssen.
+- Dokumentiere jede nicht-triviale Architekturentscheidung als ADR unter `docs/adr/NNNN-titel.md` (Kontext, Entscheidung, Alternativen, Konsequenzen).
+- **Du committest nicht auf `main` und mergst nie selbst.** Jede Phase (bei großen Phasen jedes Teilprojekt) läuft auf einem eigenen Feature-Branch. Commits sind klein und folgen dem Conventional-Commits-Format. Am Ende öffnest du einen PR. Gemergt wird erst, nachdem ich den Diff Datei für Datei gelesen habe. Automatische Reviews (Subagents, CI, AI-Review) sind ein erster Filter, kein Ersatz für meine Freigabe.
+- Code, Bezeichner und Kommentare schreibst du auf Englisch. Alle UI-Texte sind Deutsch und werden i18n-fähig abgelegt.
+- Secrets gehören niemals in Code, Commits oder das Frontend.
+- **Das Projekt ist mein öffentliches DevOps-Portfolio.** README, Pipeline-Historie, ADRs und Architekturdiagramme sollen für Recruiter und technische Interviewer ohne Erklärung nachvollziehbar sein. Die README bekommt deshalb Status-Badges, ein Architekturdiagramm (Mermaid) und einen Abschnitt „Was dieses Projekt zeigt“.
+
+### 1.1 Claude-Code-Setup im Repo
+
+Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets):
+
+- **Subagents unter `.claude/agents/`:**
+  - `reviewer` prüft Änderungen gegen diesen Brief: 12 Faktoren (4.1), Modulgrenzen und Verträge (4.2), Sicherheit (15), Tests (13) und Konventionen aus den `CLAUDE.md`-Dateien. Er achtet gezielt auf die typischen Agent-Fehler:
+    - aufgeweichte Typen (`any`-Äquivalente, nachträglich optionale Pflichtfelder, stille Default-Werte, die schlechte Eingaben verdecken)
+    - Grenzverletzungen (Importe oder Aufrufe über Service- bzw. Paketgrenzen hinweg)
+    - Drive-by-Änderungen, die nicht zum Task gehören
+    - erfundene Muster, obwohl es schon eine Abstraktion oder einen Helper gibt
+    - Tests, die den Mock testen statt das Verhalten
+    - Features oder Flags, die niemand verlangt hat
+    - Er meldet Befunde mit Datei und Zeile, schreibt aber keinen Code.
+  - `security-reviewer` legt den Fokus auf Secrets, SSRF, Prompt-Injection, Container-Härtung und Kubernetes-Manifeste.
+  - `platform-engineer` ist zuständig für Dockerfiles, Compose, Kubernetes-Manifeste, Terraform und Pipelines.
+- **Hooks in `.claude/settings.json`:**
+  - Nach Dateiänderungen laufen Formatierung und Lint für die betroffenen Pakete.
+  - Vor dem Abschluss einer Aufgabe (`Stop`) müssen die Tests des betroffenen Services grün sein.
+  - Ein Hook blockiert das Lesen und Schreiben von `.env`- und `secrets/`-Dateien.
+  - Ein Hook blockiert Änderungen unter `packages/contracts/`, solange ich sie nicht ausdrücklich freigegeben habe (siehe 4.2).
+  - Beim Sessionstart wird der Stand der aktuellen Phase aus `.ai/plans/` eingeblendet. Vor einer Kompaktierung (`PreCompact`) werden offene Punkte und Erkenntnisse in die Plan-Datei geschrieben.
+- **Skills unter `.claude/skills/`,** schmal und kombinierbar statt eines Mega-Skills:
+  - `new-service` legt einen Service nach Schema an: service-kit, Konfigurationsvalidierung, Health/Metrics, Dockerfile mit `dev`- und `runtime`-Stage, Compose-Eintrag, eigene `CLAUDE.md`, ab Phase 5 auch Kustomize-Manifeste.
+  - `new-event-contract` legt ein neues zod-Schema mit `schemaVersion`, Contract-Tests und Dokumentation an.
+  - `adr` erzeugt ein neues ADR aus der Vorlage mit der nächsten freien Nummer.
+  - `evidence` sammelt die Nachweise eines Tasks im festen Format (siehe 1.3).
+  - Einen neuen Skill schlägst du vor, sobald ich dir denselben Ablauf zum zweiten Mal erkläre.
+- **MCP-Server über `.mcp.json` im Projekt-Scope,** bewusst wenige, weil jeder Server Kontext kostet:
+  - ab sofort GitHub (Issues, PRs) und Context7 (aktuelle Bibliotheksdoku, vor allem für Fastify, KEDA, Argo CD, Terraform-Provider),
+  - ab Phase 0 ein Docker-MCP (Container-Status, Logs, `exec`) und ein Redis-MCP (Streams, Consumer Groups, Pending-Einträge, Pub/Sub) für die Selbstverifikation,
+  - ab Phase 1 Playwright MCP, um UI-Änderungen im echten Browser zu prüfen,
+  - ab Phase 5 ein Kubernetes-MCP im Read-only-Modus für Cluster-Diagnose.
+  - Nur offizielle bzw. gut gepflegte Server, keine Produktions-Secrets in MCP-Konfigurationen. Tokens kommen aus Umgebungsvariablen und stehen nicht in `.mcp.json`.
+
+### 1.2 Ablauf pro Phase und Session-Disziplin
+
+1. **Planen vor dem Code.** Zu Beginn jeder Phase legst du `.ai/plans/phase-N-<titel>.md` an. Der Plan zerlegt die Phase in Teilprojekte und Tasks, jeweils mit exakten Dateipfaden, erwarteter Code-Form und Verifikationsbefehl. Er enthält auch die Review-Gates, also nach welchen Tasks du anhältst. Offene Designfragen klärst du vorher mit mir; nicht-triviale Entscheidungen werden zum ADR. Code schreibst du erst nach meiner Freigabe des Plans.
+2. **Kontext vorbereiten.** Für neue oder komplexe Abhängigkeiten (z. B. STT-Anbieter, KEDA mit Redis Streams, Argo CD, SearXNG) erstellst du zuerst eine kompakte Zusammenfassung unter `.ai/research/`, gestützt auf Context7 und die offizielle Doku. Für bestehende Codebereiche, die eine Phase stark verändert, legst du eine Kurzbeschreibung unter `.ai/summaries/` an (Verantwortung, Datenfluss, zentrale Typen, Stolperfallen). Die Implementierung lädt diese Dateien statt der Rohquellen. Verweise auf Dateien, statt Inhalte in den Chat zu kopieren.
+3. **Umsetzen mit Orchestrator-Muster.** Bei Phasen, die mehrere Services berühren (vor allem Phase 2, 5 und 6), hält die Hauptsession Plan, Verträge und Entscheidungen. Jeder klar abgegrenzte Task geht an einen Subagent mit einem engen Briefing: die Dateien, der Vertrag, die erwartete Ausgabe und der Verifikationsbefehl. Du überprüfst und integrierst das Ergebnis, bevor der nächste Task startet.
+4. **Review-Gates einhalten.** Du arbeitest nur bis zum nächsten Gate im Plan und hältst dort an, auch mitten in einer Phase. Die Batch-Größe ist so gewählt, dass ich den Diff wirklich lesen kann.
+5. **Selbst verifizieren, mit Nachweisen** (siehe 1.3).
+6. **Review.** Du lässt `reviewer` und `security-reviewer` laufen, zusätzlich `/code-review` und `/security-review`. Befunde werden behoben oder begründet zurückgestellt.
+7. **Übergabe.** Du öffnest den PR mit Zusammenfassung, Nachweisen und Hinweisen, wo ich beim Review genau hinschauen sollte, vor allem an den Schnittstellen zwischen Services. Weicht die Umsetzung von diesem Brief ab, sagst du das ausdrücklich und aktualisierst den Brief bzw. das ADR im selben PR.
+
+**Session-Disziplin:** Eine Session verfolgt ein zusammenhängendes Ziel, typischerweise ein Teilprojekt oder einen Task-Block. Ändert sich das Ziel, beginnt eine neue Session, die mit der `CLAUDE.md` und der Plan-Datei startet. In die `CLAUDE.md` gehört außerdem der Hinweis, bei etwa 60–70 % Kontextauslastung manuell `/compact` auszuführen, statt auf die automatische Kompaktierung zu warten. Fragst du bereits geklärte Punkte erneut ab, ist das das Signal für eine frische Session.
+
+### 1.3 Beweise statt Behauptungen
+
+„Fertig“, „Tests sind grün“ oder „funktioniert“ sind Behauptungen, keine Nachweise. Jeder abgeschlossene Task liefert Artefakte:
+
+- **Tests und Checks:** die tatsächliche Ausgabe der Test-, Lint- und Scan-Befehle, inklusive übersprungener Tests (und warum)
+- **Backend:** echte HTTP-Anfragen gegen den laufenden Stack mit Request und Response, dazu der Zustand in Redis über den Redis-MCP. Beispiel: Eine eingetippte Behauptung erscheint nacheinander in `claims.detected` und `claims.checked`, die Consumer Groups haben keine hängenden Einträge.
+- **Frontend:** Durchlauf des betroffenen Nutzerflusses per Playwright-MCP, Screenshots an den Entscheidungspunkten, Konsolenfehler
+- **Service-übergreifend:** der komplette Pfad, belegt durch Stream-Einträge und Logauszüge der beteiligten Container über den Docker-MCP
+- **Infrastruktur (ab Phase 5):** `kubectl`-Ausgaben, Argo-CD-Sync-Status und Grafana-Screenshots
+
+Die Nachweise landen in der PR-Beschreibung und kompakt unter `docs/evidence/phase-N/`. Diese Selbstverifikation ergänzt die automatisierten Tests, ersetzt sie aber nicht. Ohne Artefakt gilt ein Task als nicht erledigt.
+
+## 2. Produktziel
+
+Wir bauen eine mobile-first Web-App (PWA), die ein Gespräch live über das Mikrofon mithört und transkribiert. Sie unterscheidet die Sprecher, erkennt prüfbare Tatsachenbehauptungen und bewertet sie per Web-Recherche und LLM. Die Ergebnisse erscheinen noch während des Gesprächs als Karten-Feed.
+
+Ein Beispiel: Jemand sagt „Der Zweite Weltkrieg ist erst 20 Jahre vorbei.“ Die App zeigt daraufhin eine Karte mit ❌ falsch, Konfidenz hoch, der Begründung „Der Zweite Weltkrieg endete 1945, also vor über 80 Jahren.“ und den Quellen.
+
+Die Gespräche finden primär auf Deutsch statt. Getestet wird auf dem iPhone (Safari/PWA) und im Desktop-Browser.
+
+## 3. Nicht-Ziele (vorerst)
+
+- Keine native iOS-App (später ggf. per Capacitor)
+- Kein Login und keine Multi-User-Verwaltung; ein einfacher Zugriffsschutz per Token reicht
+- Kein Deployment bei einem großen Hyperscaler und kein Managed Kubernetes. Das Zielbild ist: Docker Compose lokal, dann k3d auf dem Mac, dann ein selbst betriebener k3s-Cluster auf VMs, provisioniert per Terraform (siehe Abschnitt 14)
+- Keine Hintergrundaufnahme bei gesperrtem Bildschirm
+
+## 4. Architekturprinzipien
+
+- **Ein Service pro Verantwortung, ein Container pro Service.** Jeder Service lässt sich einzeln bauen, starten und skalieren.
+- **Stateless Services.** Zustand liegt in Redis (Streams, Cache, Session-State) und später in Postgres. Jede Instanz ist jederzeit ersetzbar.
+- **Event-getriebene Pipeline** über Redis Streams mit Consumer Groups. So skalieren die Worker horizontal: Mehrere Replicas teilen sich die Arbeit.
+- **12-Factor-App.** Die gesamte Software folgt konsequent den zwölf Faktoren (Details in Abschnitt 4.1). Abweichungen sind nur mit ADR erlaubt.
+- **Alles läuft von Anfang an in Containern**, auch in der Entwicklung (Details in Abschnitt 12).
+- **Security by Design.** Sicherheit gehört ab Phase 0 zur Definition of Done (Details in Abschnitt 15).
+- **Adapter-Pattern für alle externen Abhängigkeiten** (LLM, Speech-to-Text, Websuche). Anbieter sind per Konfiguration austauschbar. Das gilt auch für lokale Alternativen und einen Mock-Provider für Tests.
+- **Contract-first.** Alle Events und API-Payloads sind zod-Schemas in einem Shared-Package; die Typen werden daraus abgeleitet. Verträge entstehen vor der Implementierung und sind danach verbindlich (Details in Abschnitt 4.2).
+- **Betriebsfähigkeit von Anfang an.** Jeder Service bietet `/healthz` (Liveness), `/readyz` (Readiness mit Prüfung der Abhängigkeiten) und `/metrics` (Prometheus). Er loggt strukturiert als JSON und fährt bei SIGTERM sauber herunter, indem er laufende Arbeit abschließt oder zurückgibt.
+- **Kubernetes-ready, Kubernetes selbst aber erst in Phase 5.** Bis dahin wird nichts eingebaut, was nur in Kubernetes funktioniert.
+
+### 4.1 Die zwölf Faktoren in diesem Projekt
+
+| Faktor | Umsetzung |
+|---|---|
+| I. Codebase | Ein Git-Repo (Monorepo). Jeder Service ist eine eigenständig deploybare App mit eigenem Image, gebaut aus demselben Commit. |
+| II. Abhängigkeiten | Explizit deklariert und gelockt (`pnpm-lock.yaml`, für Python z. B. `uv.lock`). Keine Annahmen über systemweit installierte Tools; alles Nötige steckt im Image. Base-Images mit fester Version, ab Phase 6 per Digest gepinnt. |
+| III. Konfiguration | Ausschließlich Umgebungsvariablen (Secrets zusätzlich als Datei, siehe 15.1). Jeder Service validiert seine Konfiguration beim Start mit zod und bricht mit klarer Fehlermeldung ab, wenn etwas fehlt oder ungültig ist (fail fast). Keine umgebungsspezifischen Config-Dateien im Code. |
+| IV. Unterstützende Dienste | Redis, Postgres, SearXNG sowie LLM- und STT-Anbieter sind angehängte Ressourcen, erreichbar nur über URL und Zugangsdaten aus der Konfiguration. Ein Wechsel (z. B. LM Studio → Claude oder lokales → verwaltetes Redis) braucht keine Code-Änderung. |
+| V. Build, Release, Run | Ein Image wird einmal gebaut und mit dem Git-SHA getaggt. Dasselbe Image läuft in Compose und in Kubernetes, nur die Konfiguration unterscheidet sich. Zur Build-Zeit fließen weder Secrets noch Umgebungswerte ein. |
+| VI. Prozesse | Stateless und share-nothing. Kein lokaler Zustand in Dateisystem oder Speicher, der einen Neustart überleben muss. |
+| VII. Port-Bindung | Jeder Service bringt seinen eigenen HTTP-Server mit und lauscht auf `PORT`. |
+| VIII. Nebenläufigkeit | Skaliert wird über Prozesstypen (`web`, `gateway`, `transcription`, Worker) und die Anzahl der Replicas, nicht über größere Instanzen. |
+| IX. Einweggebrauch | Schneller Start, sauberes Herunterfahren bei SIGTERM. Da Redis Streams at-least-once liefern, verarbeiten die Worker idempotent: `XACK` erst nach Erfolg, liegengebliebene Nachrichten per `XAUTOCLAIM` übernehmen, doppelte Verarbeitung über `claimId` erkennen. |
+| X. Dev-Prod-Parität | Entwicklung läuft in denselben Containern mit denselben unterstützenden Diensten, also echtes Redis statt In-Memory-Ersatz. Compose und Kubernetes bilden dieselbe Topologie ab. |
+| XI. Logs | Logs sind Event-Streams auf stdout, eine JSON-Zeile pro Event. Keine Logdateien und keine Log-Rotation im Service. |
+| XII. Admin-Prozesse | Einmalige Aufgaben (DB-Migrationen, Eval-Läufe, Seed-Daten) laufen als eigene Kommandos im selben Image, lokal per `docker compose run --rm`, später als Kubernetes-Jobs. |
+
+**Sonderfall Frontend:** Vite schreibt `VITE_*`-Variablen zur Build-Zeit fest ins Bundle, was Faktor III und V verletzt. Deshalb enthält das Frontend-Image keine Umgebungswerte. Die Laufzeitkonfiguration (z. B. die Gateway-URL) generiert der nginx-Container beim Start aus Umgebungsvariablen und liefert sie als `/config.json` aus. Secrets gehören dort nie hinein.
+
+### 4.2 Modulgrenzen und Verträge
+
+- **Verträge sind für dich read-only.** Die Implementierung richtet sich nach `packages/contracts`, nicht umgekehrt. Passt ein Vertrag nicht, hältst du an und schlägst die Änderung mit Begründung vor. Jede freigegebene Vertragsänderung bekommt ein ADR, eine höhere `schemaVersion` und angepasste Contract-Tests, und zwar in einem eigenen Commit.
+- **Services importieren nie voneinander.** Erlaubt sind nur Importe aus `packages/*`, und das nur über die explizit deklarierten `exports` der Pakete, nicht über interne Pfade. Services kommunizieren ausschließlich über die definierten Events und HTTP- bzw. WebSocket-Schnittstellen.
+- **Durchgesetzt wird das technisch,** nicht nur per Konvention: mit TypeScript Project References, expliziten `exports` in jeder `package.json` und einer Abhängigkeitsprüfung (dependency-cruiser oder eslint-plugin-boundaries) in Pre-Commit und CI. `any` und `@ts-ignore` sind per Lint verboten; Ausnahmen brauchen einen begründeten Kommentar.
+- **Keine Abkürzungen, um einen Test grün zu bekommen.** Pflichtfelder werden nicht optional gemacht, Typen nicht erweitert, Fehler nicht durch stille Defaults verdeckt. Blockiert dich eine Grenze oder ein Typ, meldest du das.
+- **Kein Überbau.** Du baust keine Abstraktionen, Flags oder Features, die weder im Brief noch im freigegebenen Plan stehen. Gute Ideen notierst du als Vorschlag im PR.
+- **Neue Services orientieren sich am besten bestehenden Service** und übernehmen dessen Struktur und Qualitätsniveau (über den Skill `new-service`).
+
+## 5. Services
+
+| Service | Technologie | Aufgabe | Skalierung |
+|---|---|---|---|
+| `web` | React, Vite, TypeScript, Tailwind, Zustand; ausgeliefert über nginx | PWA-Frontend | beliebig (statisch) |
+| `gateway` | Node.js (aktuelle LTS), TypeScript, Fastify, `@fastify/websocket` | Einziger öffentlicher API-Einstieg (REST + WebSocket). Verwaltet Sessions, leitet Audio an `transcription` weiter und pusht Ergebnisse an den Client | horizontal; WebSocket-Sessions brauchen Session-Affinität oder Fan-out über Redis Pub/Sub (siehe ADR) |
+| `transcription` | Node.js/TS | Streaming-Speech-to-Text über Adapter (Cloud) oder Weiterleitung an `stt-local`. Veröffentlicht Transkript-Segmente mit Sprecher-Label | nach Anzahl aktiver Sessions |
+| `stt-local` (optional, Compose-Profil `local-stt`) | Python, FastAPI, faster-whisper | Vollständig lokale Transkription, in der ersten Version ohne Diarization | CPU-/GPU-gebunden |
+| `claim-extractor` | Node.js/TS Worker | Liest Segmente, erkennt prüfbare Tatsachenbehauptungen per LLM und dedupliziert sie | horizontal über Consumer Group |
+| `fact-checker` | Node.js/TS Worker | Recherchiert pro Behauptung (Websuche + Seitenabruf), lässt das LLM auf Basis der Quellen urteilen und veröffentlicht das Ergebnis | horizontal über Consumer Group; teuerster Teil |
+| `redis` | Redis (offizielles Image) | Streams, Pub/Sub, Cache | — |
+| `searxng` | SearXNG (offizielles Image) | Selbst gehostete Metasuche ohne API-Key für den lokalen Modus | — |
+| `caddy` | Caddy | Lokaler Reverse Proxy mit HTTPS; entspricht später dem Ingress | — |
+| `postgres` (ab Phase 4) | PostgreSQL | Sitzungsverlauf, Behauptungen, Urteile | — |
+
+Wenn dir ein anderer Schnitt sinnvoller erscheint (z. B. `transcription` und `gateway` zusammenlegen), schlag ihn mit Begründung als ADR vor, bevor du ihn umsetzt.
+
+## 6. Datenfluss
+
+1. Der Client öffnet eine WebSocket-Verbindung zum `gateway` (`/ws/session`) und erhält eine `sessionId`.
+2. Der Client nimmt Audio per AudioWorklet auf. Er sendet PCM16, mono, 16 kHz in Frames von ca. 100 ms als Binärnachrichten. Steuernachrichten (start, stop, Sprecher umbenennen) gehen als JSON.
+3. Das `gateway` leitet den Audiostream über einen internen WebSocket an `transcription` weiter.
+4. `transcription` streamt an den konfigurierten STT-Anbieter und schreibt finale Segmente in den Stream `transcript.segments`. Zwischenergebnisse (interim) gehen nur per Pub/Sub an den Client, nicht in die Pipeline.
+5. `claim-extractor` sammelt pro Session ein rollierendes Fenster der letzten Segmente, extrahiert Behauptungen und schreibt sie nach `claims.detected`. Dedupliziert wird über einen normalisierten Hash und einen Abgleich mit den bereits erkannten Behauptungen der Session.
+6. `fact-checker` recherchiert, bewertet und schreibt das Ergebnis nach `claims.checked`.
+7. Alle für den Client relevanten Events landen zusätzlich auf dem Pub/Sub-Kanal `session:{sessionId}:events`. Die `gateway`-Instanz mit der offenen Verbindung pusht sie an den Client.
+8. Zusätzlich gibt es einen Textmodus: `POST /api/claims/check` nimmt eine eingetippte Behauptung entgegen, die direkt in `claims.detected` landet. Er dient für Phase 1 und zum Testen.
+
+## 7. Event-Verträge (Shared-Package `packages/contracts`)
+
+Mindestens diese Schemas, jeweils mit `schemaVersion` versioniert:
+
+```ts
+TranscriptSegment { sessionId, segmentId, speaker: string, text, startMs, endMs, isFinal, language }
+ClaimDetected     { sessionId, claimId, speaker, text, normalizedText, sourceSegmentIds[], detectedAt }
+ClaimChecked      { sessionId, claimId, speaker, claim, verdict, confidence, explanation,
+                    sources: { title, url, snippet? }[], checkedAt,
+                    provider: { llm, model, search } }
+
+verdict:     "stimmt" | "groesstenteils_richtig" | "uebertrieben" | "falsch" | "nicht_pruefbar"
+confidence:  "hoch" | "mittel" | "niedrig"
+explanation: max. 2 Sätze, Deutsch
+```
+
+Das Hauptergebnis ist keine Prozentangabe, weil LLM-Prozentwerte nicht kalibriert sind. Stattdessen gibt es Kategorie, Konfidenz und Quellen.
+
+## 8. LLM-Abstraktion (muss mit lokalen Modellen funktionieren)
+
+- Es gibt ein gemeinsames Interface `LlmProvider` mit einer Methode für strukturierte Antworten: Prompt und zod-Schema rein, validiertes Objekt raus.
+- Implementierungen:
+  - `anthropic` über das offizielle SDK `@anthropic-ai/sdk`
+  - `openai-compatible` über das `openai`-SDK mit konfigurierbarer `baseURL`. Das deckt **LM Studio** (Standard `http://localhost:1234/v1`) und **Ollama** (Standard `http://localhost:11434/v1`) ab, später auch vLLM o. Ä.
+  - `mock` mit deterministischen Antworten für Tests
+- Die Konfiguration ist **pro Aufgabe getrennt**, damit z. B. die Extraktion lokal und das Urteil über Claude laufen kann: `EXTRACTOR_LLM_PROVIDER`, `EXTRACTOR_LLM_BASE_URL`, `EXTRACTOR_LLM_MODEL`, `EXTRACTOR_LLM_API_KEY` und analog `CHECKER_LLM_*`.
+- Modellnamen werden nie hart codiert, sondern nur konfiguriert. Die `.env.example` enthält sinnvolle Beispiele: für Claude ein schnelles, günstiges Modell für die Extraktion und ein stärkeres für das Urteil.
+- Robustheit bei lokalen Modellen:
+  - Den JSON-Modus nutzen, wo der Server ihn unterstützt.
+  - Die Antwort immer mit zod validieren.
+  - Bei einem Fehler genau einen Reparaturversuch machen, mit der Fehlermeldung im Prompt.
+  - Scheitert auch der, lautet das Ergebnis `nicht_pruefbar`, statt dass der Service abstürzt.
+  - Timeouts und Retries sind konfigurierbar.
+- **Netzwerk-Hinweis für macOS:** LM Studio und Ollama laufen nativ auf dem Mac, weil Docker unter macOS keinen GPU-/Metal-Zugriff hat. Aus Containern heraus sind sie über `http://host.docker.internal:<port>/v1` erreichbar. Das muss in `.env.example` und README dokumentiert sein.
+- Prompts liegen als eigene, versionierte Dateien mit Platzhaltern unter `services/*/prompts/*.md` und nicht als Strings im Code verstreut.
+
+## 9. Recherche (unabhängig vom LLM-Anbieter)
+
+Lokale Modelle haben keine eingebaute Websuche. Deshalb recherchiert der `fact-checker` selbst:
+
+1. Er leitet aus der Behauptung 1–3 Suchanfragen ab (per LLM oder Heuristik).
+2. Die Suche läuft über den Adapter `SearchProvider`: `searxng` ist der Standard (lokal, ohne Key), `brave` und `tavily` sind optional per API-Key.
+3. Er ruft die Top-N-Ergebnisse ab, extrahiert den Haupttext (z. B. mit `@mozilla/readability` + `jsdom`), kürzt ihn und versieht ihn mit Quellen-IDs.
+4. Das LLM urteilt **nur** auf Basis der übergebenen Quellen und darf nur diese zitieren. Reicht die Evidenz nicht, lautet das Urteil `nicht_pruefbar`.
+5. Die Ergebnisse werden pro normalisierter Behauptung in Redis gecacht, mit konfigurierbarer TTL.
+6. Optional gibt es den Modus `CHECKER_RESEARCH_MODE=native`. Er nutzt bei Anthropic das serverseitige Web-Search-Tool der Claude API, statt selbst zu recherchieren. Standard ist `pipeline`.
+
+Timeouts, die maximale Anzahl Seiten und die maximalen Tokens pro Quelle sind konfigurierbar. Der Service setzt einen eigenen User-Agent und respektiert robots.txt.
+
+## 10. Transkription
+
+- Der Adapter `SttProvider` hat ein Streaming-Interface: Audio rein, Segmente mit Sprecher-Label raus.
+- Cloud-Adapter gibt es für Deepgram und AssemblyAI. Prüfe bei beiden Streaming, Deutsch und Diarization und halte im ADR fest, welcher der Standard wird.
+- Der lokale Adapter leitet an `stt-local` weiter. Dort arbeitet faster-whisper mit VAD-basierten Chunks, also als „Pseudo-Streaming“ mit etwas höherer Latenz. Die erste Version hat keine Diarization, alle Segmente bekommen `speaker: "A"`. Lokale Diarization (z. B. pyannote) ist ein späteres Thema.
+- `stt-local` soll auch nativ auf dem Mac startbar sein, weil das schneller ist. Die URL ist per `LOCAL_STT_URL` konfigurierbar.
+- Ein Mock-Adapter spielt eine WAV-Datei oder ein Skript mit vorgegebenen Segmenten ab.
+
+## 11. Frontend (`web`)
+
+- Mobile-first mit dem iPhone-Viewport als erstem Ziel, dazu PWA-Manifest und Icons (installierbar über „Zum Home-Bildschirm“).
+- **Vor jeder Aufnahme erscheint ein Einwilligungsdialog.** Er weist darauf hin, dass alle Gesprächsteilnehmer informiert sein und zustimmen müssen (Vertraulichkeit des gesprochenen Wortes, DSGVO). Ohne Bestätigung startet keine Aufnahme.
+- Es gibt einen Start/Stopp-Button, eine Anzeige für Verbindungs- und Aufnahmestatus und ein Live-Transkript mit Sprecher-Labels (interim grau, final schwarz).
+- Der Karten-Feed zeigt die geprüften Behauptungen, die neueste oben. Die Karten sind nach Urteil farbcodiert und zeigen die Konfidenz, eine aufklappbare Begründung und die Quellen-Links. Sobald eine Behauptung erkannt ist, erscheint sie mit dem Zwischenstatus „wird geprüft …“.
+- Sprecher lassen sich umbenennen (A → „Marco“).
+- Im Textmodus kann man eine Behauptung eintippen und prüfen lassen.
+- Eine Einstellungsseite zeigt, welche Provider aktiv sind. Sie dient nur der Anzeige, die Konfiguration bleibt serverseitig.
+- Der WebSocket-Client verbindet sich automatisch neu, mit Backoff.
+- Barrierearm: Farbe ist nie das einzige Merkmal, jede Karte zeigt zusätzlich Icon und Text.
+
+## 12. Lokale Entwicklung und Test auf dem iPhone
+
+- `docker compose up` startet den Standard-Stack. Weitere Profile sind `local-stt` (lokale Transkription) und ab Phase 5 optional `observability`.
+- **Auch die Entwicklung läuft in Containern.**
+  - Der Dev-Modus nutzt `docker compose watch` (`develop.watch` in der Compose-Datei) mit Hot Reload. Quellcode-Änderungen werden in die laufenden Container synchronisiert, Änderungen an Abhängigkeiten lösen einen Rebuild aus.
+  - Dev- und Runtime-Image entstehen aus demselben Dockerfile als unterschiedliche Stages (`dev` und `runtime`).
+  - Tests, Lint und Evals laufen ebenfalls in Containern, Playwright im offiziellen Playwright-Image.
+  - Für die IDE-Unterstützung (Typen, Autovervollständigung) gibt es eine Dev-Container-Konfiguration für VS Code (`.devcontainer/`).
+  - Auf dem Host brauche ich nur Docker, Git, VS Code und Claude Code; Node und Python müssen nicht lokal installiert sein.
+- Die einzige Ausnahme sind LM Studio, Ollama und optional `stt-local`. Sie dürfen nativ auf dem Mac laufen, weil sie die GPU brauchen (siehe Abschnitt 8).
+- **Für das Mikrofon auf dem iPhone ist HTTPS Pflicht.** Safari erlaubt `getUserMedia` nur in einem Secure Context. `http://localhost` funktioniert am Mac, `http://192.168.x.x` vom iPhone aus dagegen nicht.
+  - Deshalb terminiert `caddy` TLS mit interner CA, für `localhost` und für die LAN-IP bzw. einen `*.local`-Namen.
+  - Die README erklärt, wie ich das Root-Zertifikat auf dem iPhone installiere und ihm vertraue.
+  - Als Alternative wird ein Tunnel (z. B. cloudflared) dokumentiert.
+- Ein `Makefile` bietet mindestens `up`, `up-local`, `dev`, `down`, `logs`, `test`, `test-e2e`, `lint`, `eval` und `scan`. Alle Ziele führen ihre Befehle in Containern aus.
+- Die `.env.example` enthält alle Variablen mit sinnvollen Defaults und Kommentaren; `.env` steht in `.gitignore`.
+- Zielplattform ist macOS mit Apple Silicon. Die Images müssen sich für `linux/arm64` bauen lassen, Multi-Arch wird vorbereitet.
+
+## 13. Qualität und Tests
+
+- TypeScript strict, ESLint, Prettier, pnpm Workspaces.
+- **Unit-Tests** mit Vitest decken Adapter, Deduplizierung, Prompt-Rendering und Schema-Validierung ab.
+- **Contract-Tests** prüfen jedes veröffentlichte und konsumierte Event gegen das zod-Schema.
+- **Integrationstests** laufen mit Testcontainers (Redis) und testen die Pipeline Ende-zu-Ende mit `mock`-LLM und `mock`-STT.
+- **E2E-Tests mit Playwright** laufen auch mit iPhone-Geräteprofil. Das Mikrofon wird in Chromium über `--use-fake-ui-for-media-stream`, `--use-fake-device-for-media-stream` und `--use-file-for-fake-audio-capture` mit einer deutschen WAV-Fixture simuliert. So ist auch der Live-Modus reproduzierbar testbar.
+- Ein **Evaluations-Set** `evals/claims.de.jsonl` enthält ca. 30 deutsche Behauptungen mit erwartetem Urteil (klar wahr, klar falsch, übertrieben, Meinung). Das Skript `pnpm eval` lässt ein Provider-Setup dagegen laufen und gibt Trefferquote, Latenz und bei Claude die Kosten pro Behauptung aus. Damit vergleiche ich Claude mit lokalen Modellen.
+- Die Tests sind sauber strukturiert (Page Objects) und nutzen stabile `data-testid`-Selektoren.
+- Tests prüfen Verhalten, nicht die Implementierung des Mocks. Mocks gibt es nur an den Systemgrenzen (LLM, STT, Websuche), nicht zwischen internen Modulen.
+- Die Abhängigkeitsprüfung aus 4.2 läuft als eigener Check in Pre-Commit und CI.
+
+## 14. Kubernetes, CI/CD und GitOps
+
+### 14.1 Kubernetes-Readiness (ab Phase 0)
+
+Jeder Service erfüllt ab Phase 0 diese Punkte:
+
+- Multi-Stage-Dockerfile mit kleinem Runtime-Image und Non-Root-User, ohne Build-Tools im Runtime-Image
+- Konfiguration nur über Env, Secrets getrennt von normaler Konfiguration
+- `/healthz`, `/readyz` und `/metrics`, Graceful Shutdown bei SIGTERM
+- Logs als JSON auf stdout (pino) mit `sessionId` und `claimId` als Korrelations-IDs
+
+### 14.2 Continuous Integration (ab Phase 0)
+
+Die Pipeline läuft mit GitHub Actions unter `.github/workflows/`. Sie entsteht in Phase 0 und wächst mit jeder Phase mit, statt am Ende in einem Schritt gebaut zu werden.
+
+Bei jedem PR laufen diese Stufen:
+
+1. Lint, Typecheck, Unit- und Contract-Tests, nur für die betroffenen Pakete (`pnpm --filter` bzw. affected-Logik)
+2. Secret-Scan (gitleaks), SAST (CodeQL, zusätzlich Semgrep) und Dockerfile-Lint (hadolint); ab Phase 5 auch Prüfung der Kubernetes-Manifeste (kubeconform und kube-linter oder Checkov)
+3. Image-Build pro Service mit Docker Buildx für `linux/amd64` und `linux/arm64`, mit Layer-Cache
+4. Trivy-Scan der Images; kritische Befunde brechen den Build ab
+5. Ab Phase 1 Integrationstests, ab Phase 2 Playwright-E2E gegen den per Compose gestarteten Stack. Beides läuft mit `mock`-Providern, die CI braucht also keine echten API-Keys. Playwright-Report und Traces werden als Artefakt abgelegt.
+
+Weitere Regeln:
+
+- Nach dem Merge auf `main` werden die Images mit Git-SHA-Tag in die GitHub Container Registry (GHCR) gepusht. Ab Phase 6 werden sie signiert (cosign, keyless) und bekommen SBOM und Provenance-Attestation.
+- `main` ist per Branch-Protection geschützt: Änderungen nur per PR, grüne Checks sind Pflicht.
+- Jeder Workflow setzt minimale `permissions:`. Actions werden per Commit-SHA gepinnt. Secrets kommen nur aus GitHub-Secrets bzw. per OIDC.
+- Ab Phase 1 hält Renovate oder Dependabot die Abhängigkeiten aktuell, auch Actions, Base-Images und Helm-Charts.
+- Die README zeigt Status-Badges für die Pipeline.
+- Optional kann die Claude-Code-GitHub-Action ein AI-Review als zusätzlichen Kommentar schreiben, nur für eigene PRs und nie als Pflicht-Check. Sie nutzt einen eigenen API-Key mit Budget-Limit, weil sie nicht gegen Prompt-Injection gehärtet ist.
+
+### 14.3 Lokaler Cluster und GitOps (Phase 5)
+
+- Der lokale Cluster läuft mit **k3d** (k3s in Docker): 1 Server und 2 Agents, reproduzierbar per Config-Datei (`make cluster-up`, `make cluster-down`), mit lokaler Registry für schnelle Iteration.
+- `deploy/k8s/` nutzt Kustomize mit `base` und `overlays/local`, später `overlays/staging` und `overlays/prod`.
+- Dazu kommen Deployments, Services, ConfigMaps und ein Ingress mit WebSocket-Unterstützung. k3s bringt Traefik mit; ob Traefik bleibt oder ingress-nginx kommt, entscheidest du per ADR.
+- Pflicht in jedem Manifest: Resource Requests/Limits, Liveness/Readiness Probes, PodDisruptionBudgets und ein SecurityContext mit `runAsNonRoot`, `readOnlyRootFilesystem`, `capabilities.drop: [ALL]` und `seccompProfile: RuntimeDefault`. Die Namespaces erzwingen per Pod Security Admission das Profil `restricted`.
+- NetworkPolicies nach dem Prinzip default deny; nur die benötigten Verbindungen werden erlaubt.
+- Skalierung: HPA (CPU) für `gateway` und `web`. Für `claim-extractor` und `fact-checker` KEDA-ScaledObjects auf die offenen Einträge der Redis-Streams, damit die Worker mit der Last hoch- und bis auf ein Minimum herunterskalieren.
+- Die Strategie für Session-Affinität bzw. Fan-out der WebSockets im `gateway` ist dokumentiert und getestet.
+- Ein ADR legt fest, wie Redis und Postgres im Cluster laufen (Operator, Helm-Chart oder einfaches StatefulSet für lokal).
+- Secrets werden per Sealed Secrets oder SOPS verwaltet (siehe 15.1).
+- **GitOps mit Argo CD:**
+  - Argo CD läuft im Cluster und synchronisiert den gewünschten Zustand aus Git. Das Deployment ist pull-basiert; die Pipeline führt nie `kubectl apply` aus.
+  - Nach erfolgreichem Build aktualisiert die CI nur das Image-Tag im passenden Overlay, per Commit oder PR.
+  - Ob die Manifeste in diesem Repo oder in einem separaten Config-Repo liegen, entscheidest du per ADR. Meine Tendenz ist ein separates Repo `live-factcheck-gitops`, damit App- und Deployment-Historie getrennt bleiben.
+  - Die Umgebungen werden per App-of-Apps oder ApplicationSet verwaltet.
+- Ein kleines Lasttest-Skript (z. B. k6) simuliert mehrere Sessions. Dokumentiert wird, wie KEDA die Worker hoch- und wieder herunterfährt.
+
+### 14.4 Echter Cluster mit k3s und Terraform (Phase 6)
+
+- `infra/terraform/` provisioniert die VMs für einen k3s-Cluster (1 Control Plane, 2 Worker). Die Zielumgebung legt ein ADR fest: entweder meine lokalen Rocky-Linux-VMs oder günstige Cloud-VMs bei einem europäischen Anbieter.
+- Der Terraform-State liegt nie im Repo, sondern in einem Remote-State mit Locking.
+- Die k3s-Installation ist reproduzierbar, per cloud-init oder Ansible (ADR). Der Bootstrap installiert Argo CD, danach übernimmt GitOps alles Weitere.
+- staging und prod laufen als eigene Namespaces oder Cluster (ADR). Die Promotion von staging nach prod erfolgt per PR mit manueller Freigabe.
+- cert-manager stellt die TLS-Zertifikate aus.
+- Postgres-Backups und k3s-Datastore-Snapshots sind eingerichtet; die Wiederherstellung wird einmal getestet und dokumentiert.
+- `docs/runbooks/` enthält Runbooks für Deployment, Rollback, Key-Rotation und den Neuaufbau des Clusters.
+
+### 14.5 Observability (Phase 5 lokal, Phase 6 im echten Cluster)
+
+- Prometheus und Grafana (z. B. über kube-prometheus-stack) mit Dashboards für die Pipeline-Latenz (Segment bis Urteil), Queue-Länge, Fehlerquote und LLM-Kosten pro Stunde.
+- Alerts für Fehlerquote, Queue-Stau und Budget-Überschreitung.
+- Tracing mit OpenTelemetry über alle Services, korreliert über `sessionId` und `claimId`. Log-Aggregation mit Loki ist optional.
+- Mindestens ein SLO, z. B. „95 % der Behauptungen sind innerhalb von 10 Sekunden bewertet“, sichtbar im Dashboard.
+
+## 15. Sicherheit und Datenschutz
+
+Sicherheit gehört ab Phase 0 zur Definition of Done und ist kein späteres Thema. Lege dazu `docs/SECURITY.md` mit einem kurzen Threat Model an: Was schützen wir, wer könnte angreifen, und was passiert, wenn ein Key leakt?
+
+### 15.1 API-Keys und Secrets
+
+- Secrets sind strikt von normaler Konfiguration getrennt. Dazu gehören die API-Keys für Anthropic, Deepgram/AssemblyAI und Brave/Tavily sowie das Gateway-Token und die Passwörter für Redis und Postgres.
+- Ein Secret landet **niemals** in Git, einem Docker-Image oder einem Build-Argument. Genauso wenig gehört es ins Frontend-Bundle, in die `/config.json`, in Logs, Fehlermeldungen, Metriken oder Traces.
+- **Least Privilege:** Jeder Service bekommt nur die Secrets, die er wirklich braucht. Nur `claim-extractor` und `fact-checker` kennen LLM-Keys, nur `transcription` kennt den STT-Key, und `web` kennt gar keine Secrets. Der Browser bzw. das iPhone sieht nie einen Key, weil Audio und alle Anfragen über das `gateway` laufen.
+- Services lesen Secrets wahlweise aus einer Env-Variable oder aus einer Datei (Konvention `<NAME>_FILE`, z. B. `ANTHROPIC_API_KEY_FILE`). So funktionieren Docker-Compose-Secrets und später Kubernetes-Secrets als gemountete Dateien ohne Code-Änderung.
+- **Lokal** liegen Secrets in `secrets/*.txt` (für Compose-Secrets) bzw. `.env`. Beide stehen in `.gitignore` und `.dockerignore` und haben die Dateirechte `600`. Das README zeigt optional, wie ich die Werte aus dem macOS-Schlüsselbund oder einem Passwortmanager-CLI lade, statt sie im Klartext abzulegen.
+- Beim Start loggt jeder Service, *welche* Provider konfiguriert sind, aber nie die Keys selbst. Als zweite Absicherung schwärzt der Logger bekannte Secret-Felder (pino `redact`).
+- **Kubernetes (Phase 5):** Kubernetes-Secrets sind nur Base64-kodiert, nicht verschlüsselt. Deshalb liegen sie nie als Klartext-YAML im Repo, sondern werden per Sealed Secrets oder SOPS verwaltet (Entscheidung als ADR). Wo möglich, werden sie als Dateien gemountet statt als Env-Variablen übergeben.
+- `SECURITY.md` beschreibt die Key-Rotation und den Notfallablauf bei einem geleakten Key: widerrufen, neu erstellen, Nutzung und Logs prüfen.
+- Übernimm diese Empfehlung ins README: Für dieses Projekt einen eigenen API-Key in einem eigenen Workspace der Claude Console anlegen, mit Ausgabenlimit. Dasselbe gilt für die STT- und Suchanbieter.
+
+### 15.2 Secret-Scanning und Supply Chain
+
+- gitleaks läuft als Pre-Commit-Hook (z. B. über lefthook) und in der CI.
+- `make scan` prüft die Container-Images mit Trivy auf Schwachstellen und versehentlich eingebaute Secrets.
+- Lockfiles werden committet, der Build nutzt `pnpm install --frozen-lockfile`. Ab Phase 1 übernimmt Renovate oder Dependabot die Updates.
+- Ab Phase 6 wird pro Image eine SBOM erzeugt.
+
+### 15.3 Container-Härtung
+
+- Die Container laufen als Non-Root-User mit read-only Root-Dateisystem; beschreibbar sind nur explizite `tmpfs`-Pfade.
+- Gesetzt sind außerdem `no-new-privileges` und `cap_drop: [ALL]`.
+- Jeder Container hat Ressourcenlimits für CPU und Speicher, auch in Compose.
+- Die Base-Images sind minimal. Im Runtime-Image gibt es möglichst keine Shell-Tools.
+
+### 15.4 Netzwerk
+
+- Nur `caddy` veröffentlicht Ports auf dem Host (443, ggf. 80 für den Redirect). Alle anderen Services haben keine Host-Ports; Redis, Postgres und SearXNG sind von außen nicht erreichbar.
+- Es gibt getrennte Compose-Netzwerke: `edge` für `caddy`, `web` und `gateway`, `internal` für alles andere. Nur die Services, die ins Internet müssen, bekommen ausgehenden Zugriff. In Kubernetes wird das später über NetworkPolicies abgebildet.
+- Redis läuft mit Passwort (ACL), Postgres mit einem eigenen, eingeschränkten DB-User.
+- LM Studio und Ollama werden nur an `localhost` bzw. den Docker-Host gebunden und nicht ins LAN freigegeben.
+
+### 15.5 Anwendungssicherheit
+
+- Das `gateway` ist per Token aus der Konfiguration geschützt (Header bzw. WebSocket-Handshake), damit die App im LAN nicht offen ist. Tokens stehen nie in URLs, weil sie dort in Logs landen.
+- Caddy setzt strikte CORS-Regeln, eine Content-Security-Policy und Security-Header.
+- Nachrichten und Audioframes haben Größenlimits. Alle Payloads werden mit zod validiert.
+- Rate Limiting, eine maximale Session-Dauer und ein Tages-Budget für Cloud-LLM- und STT-Aufrufe verhindern, dass ein Fehler oder Missbrauch eine hohe Rechnung erzeugt.
+- **SSRF-Schutz im `fact-checker`:** Er ruft URLs aus Suchergebnissen ab, also Adressen, die Fremde bestimmen. Deshalb gilt:
+  - Erlaubt sind nur `http` und `https`.
+  - Die DNS-Auflösung wird geprüft. Private, Loopback-, Link-Local- und Metadaten-Adressbereiche sowie interne Hostnamen (`redis`, `postgres`, `host.docker.internal` usw.) sind blockiert, auch nach Redirects.
+  - Jeder Abruf hat ein Größen- und Zeitlimit.
+- **Prompt-Injection:** Webseiten können Anweisungen an das LLM enthalten. Abgerufene Inhalte werden deshalb klar als Daten markiert und abgegrenzt. Das LLM bekommt keine Tools mit Seiteneffekten, und jede Antwort muss das zod-Schema erfüllen. Quellen-URLs im Ergebnis müssen aus der tatsächlich abgerufenen Liste stammen, sonst wird das Ergebnis verworfen.
+
+### 15.6 Datenschutz
+
+- Vor jeder Aufnahme erscheint der Einwilligungsdialog (siehe Abschnitt 11).
+- Audio wird standardmäßig **nicht** gespeichert. Transkripte werden nur gespeichert, wenn das aktiviert ist (Default `PERSIST_TRANSCRIPTS=false`), mit konfigurierbarer Aufbewahrungsdauer.
+- Transkript-Inhalte werden nicht geloggt (Default `LOG_TRANSCRIPTS=false`).
+- Die Einstellungsseite zeigt, welche Daten an welche externen Anbieter gehen. Im vollständig lokalen Modus (lokales LLM, `stt-local`, SearXNG) verlassen nur Suchanfragen und Seitenabrufe das eigene Netzwerk.
+
+## 16. Repo-Struktur (Vorschlag)
+
+```
+live-factcheck/
+├─ apps/
+│  └─ web/
+├─ services/
+│  ├─ gateway/
+│  ├─ transcription/
+│  ├─ stt-local/          # Python
+│  ├─ claim-extractor/
+│  └─ fact-checker/
+├─ packages/
+│  ├─ contracts/          # zod-Schemas, Event-Typen
+│  ├─ providers/          # LLM-, STT-, Search-Adapter
+│  └─ service-kit/        # Logging, Health, Metrics, Redis-Streams-Helper, Shutdown
+├─ deploy/
+│  ├─ compose/            # Caddyfile, SearXNG-Config
+│  ├─ k3d/                # Cluster-Config, ab Phase 5
+│  └─ k8s/                # Kustomize base + overlays, ab Phase 5 (ggf. separates GitOps-Repo, siehe 14.3)
+├─ infra/
+│  └─ terraform/          # ab Phase 6
+├─ load-tests/            # k6, ab Phase 5
+├─ evals/
+├─ tests/e2e/
+├─ .ai/
+│  ├─ plans/              # ein Plan pro Phase, mit Tasks und Review-Gates
+│  ├─ research/           # verdichtete Recherche zu externen Abhängigkeiten
+│  └─ summaries/          # Kurzbeschreibungen bestehender Codebereiche
+├─ docs/
+│  ├─ adr/                # bewusst hier statt unter .ai/, damit sie im Portfolio sichtbar sind
+│  ├─ evidence/           # Nachweise pro Phase
+│  ├─ runbooks/           # ab Phase 6
+│  ├─ SECURITY.md
+│  └─ PROJECT_BRIEF.md    # dieses Dokument
+├─ secrets/               # nur lokal, in .gitignore und .dockerignore
+├─ .devcontainer/
+├─ .github/workflows/     # CI ab Phase 0
+├─ .claude/
+│  ├─ agents/             # reviewer, security-reviewer, platform-engineer
+│  ├─ skills/             # new-service, new-event-contract, adr, evidence
+│  └─ settings.json       # Hooks
+├─ .mcp.json              # MCP-Server im Projekt-Scope, ohne Tokens
+├─ docker-compose.yml
+├─ Makefile
+├─ .env.example
+├─ .dockerignore
+└─ CLAUDE.md              # Root-Regeln; jeder Service und jedes Paket hat zusätzlich eine eigene
+```
+
+## 17. Phasenplan
+
+Jede Phase beginnt mit einer freigegebenen Plan-Datei (1.2). Sie endet mit grünen Tests, Nachweisen nach 1.3, aktualisierter README und `CLAUDE.md`-Dateien, einer Anleitung zum lokalen Testen und einem offenen PR. Danach hältst du an, bis ich gemergt habe.
+
+**Phase 0: Fundament**
+Diese Phase legt das Grundgerüst an:
+
+- Monorepo, `contracts` und `service-kit` mit Konfigurationsvalidierung beim Start, Secret-Laden per `_FILE`-Konvention und Log-Schwärzung
+- alle Node-Services als lauffähige Skelette mit Health, Metrics und Shutdown
+- Dockerfiles mit `dev`- und `runtime`-Stage, gehärtet nach 15.3
+- `docker-compose.yml` mit Redis (mit Passwort), SearXNG und Caddy, getrennten Netzwerken und Compose-Secrets
+- Dev-Modus mit `docker compose watch` und `.devcontainer/`
+- `.env.example`, Makefile, gitleaks-Hook und `docs/SECURITY.md`
+- Lint- und Test-Setup sowie ein erster Playwright-Smoke-Test
+- Claude-Code-Setup nach Abschnitt 1.1 (Subagents, Hooks, `.mcp.json`)
+- CI-Grundpipeline nach 14.2, Stufen 1–4, dazu Branch-Protection-Empfehlung in der README
+
+*DoD:*
+- `make up` startet alles, `https://localhost` zeigt die leere App, und alle `/readyz` sind grün.
+- Außer Caddy veröffentlicht kein Container einen Host-Port.
+- `make scan` meldet keine kritischen Befunde.
+- Ein Test belegt, dass ein Service ohne Pflicht-Konfiguration mit klarer Fehlermeldung abbricht.
+- Ein Test belegt, dass ein gesetzter API-Key in keiner Logzeile auftaucht.
+- Der erste PR läuft grün durch die CI, und die README zeigt das Status-Badge.
+
+**Phase 1: Faktencheck im Textmodus**
+LLM-Adapter (`anthropic`, `openai-compatible`, `mock`), Such-Adapter (`searxng`), vollständiger `fact-checker`, Textmodus im Frontend, Ergebnis-Karten, Eval-Set und `pnpm eval`. Die CI bekommt Integrationstests, und Renovate bzw. Dependabot wird aktiviert.
+*DoD:* Eine eingetippte Behauptung wird einmal mit Claude und einmal mit LM Studio bzw. Ollama geprüft, beides funktioniert, und ein Eval-Report liegt vor.
+
+**Phase 2: Live-Transkription**
+Audioaufnahme im Browser, WebSocket-Pfad, `transcription` mit einem Cloud-Adapter und dem lokalen Adapter (`stt-local`), `claim-extractor`, Live-Transkript im UI, Einwilligungsdialog und Test auf dem iPhone über HTTPS. Die CI führt ab jetzt die Playwright-E2E-Tests mit der WAV-Fixture aus.
+*DoD:* Ich spreche ins iPhone, sehe das Transkript live und bekomme für eine falsche Behauptung innerhalb weniger Sekunden eine Karte.
+
+**Phase 3: Sprecher und UX**
+Diarization über den Cloud-Adapter, Sprecher umbenennen, verfeinerte Deduplizierung, Latenz messen und optimieren, PWA-Feinschliff.
+
+**Phase 4: Persistenz**
+Postgres, Sitzungsverlauf ansehen und löschen, Aufbewahrungsregeln, Export einer Sitzung als Markdown.
+
+**Phase 5: Kubernetes lokal und GitOps**
+Umsetzung von 14.3 und 14.5 im lokalen k3d-Cluster, mit Argo CD, KEDA, NetworkPolicies, Pod Security und Monitoring. Die CI prüft zusätzlich die Manifeste.
+*DoD:*
+- Ein Merge auf `main` führt ohne manuellen Eingriff zu einem neuen Image in GHCR, und Argo CD rollt es im k3d-Cluster aus.
+- Ein Rollback per Git-Revert ist demonstriert.
+- Der Lasttest zeigt, wie KEDA die Worker hoch- und wieder herunterfährt, sichtbar im Grafana-Dashboard.
+
+**Phase 6: Echter Cluster und Supply-Chain-Sicherheit**
+Umsetzung von 14.4: VMs per Terraform, k3s, Argo CD-Bootstrap, staging und prod mit Freigabe, cert-manager, Backups und Runbooks. Dazu signierte Images mit SBOM und Provenance, Digest-Pinning der Base-Images sowie Alerts und SLO aus 14.5.
+*DoD:*
+- Der Cluster lässt sich per Terraform und GitOps von null aus reproduzierbar aufbauen; der Ablauf ist im Runbook dokumentiert.
+- Eine Änderung durchläuft PR, CI, staging und nach Freigabe prod.
+- Eine Backup-Wiederherstellung ist einmal getestet.
+
+## 18. Deine erste Aufgabe
+
+1. Lies dieses Dokument vollständig.
+2. Stelle mir bis zu 5 Rückfragen zu wirklich offenen Punkten.
+3. Lege dann `.ai/plans/phase-0-fundament.md` nach Abschnitt 1.2 an: Teilprojekte, Tasks mit Dateipfaden und Verifikationsbefehlen sowie Review-Gates. Schreib noch keinen Code.
+4. Warte auf meine Freigabe des Plans. Danach arbeitest du auf dem Branch `phase-0-fundament` bis zum ersten Review-Gate.
