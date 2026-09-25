@@ -1,6 +1,7 @@
 // @ts-check
 import eslint from '@eslint/js';
 import comments from '@eslint-community/eslint-plugin-eslint-comments/configs';
+import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -54,6 +55,12 @@ export default tseslint.config(
       ],
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
     },
+  },
+  {
+    // Frontend: browser globals and the rules of hooks.
+    files: ['apps/web/**/*.{ts,tsx}'],
+    ...reactHooks.configs.flat['recommended-latest'],
+    languageOptions: { globals: { ...globals.browser } },
   },
   {
     // Plain JS config files are not part of any TS project.
