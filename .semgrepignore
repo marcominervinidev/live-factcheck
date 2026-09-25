@@ -1,0 +1,6 @@
+# Tests contain deliberate fake secrets to prove log redaction; they never ship in an image
+# (package "files" exclude them). CodeQL and gitleaks still scan these paths.
+**/*.test.ts
+**/src/testing/
+node_modules/
+dist/
