@@ -146,14 +146,14 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
   - `session-start.sh`: gibt `## Status
 
 - [x] Plan freigegeben (2026-09-25)
-- [x] TP1 erledigt (T1.1–T1.7); T1.4 wurde vor T1.2 gezogen, weil pnpm nur in der Toolbox läuft
-- Aktuelles Gate: **Gate 1 – wartet auf Marcos Review**
-- Nächster Task nach Freigabe: T2.1 `packages/contracts`
-- Vorbedingung für Gate 2: öffentliches GitHub-Repo `live-factcheck`, `origin` gesetzt, `gh` authentifiziert
+- [x] Gate 1 freigegeben: PR #1 gemergt
+- Arbeitsweise ab Gate 2: **ein PR pro Gate**, Branch `phase-0/tpN-<thema>` (Brief 1: bei großen Phasen je Teilprojekt ein Branch)
+- Aktuell: TP2 auf `phase-0/tp2-contracts-service-kit`
+- Nächster Task: T2.1 `packages/contracts`
 - Offene Punkte:
-  - DoD „Pre-Commit < 30 s“ ist bisher nur ohne Code gemessen (0,7 s); der aussagekräftige Nachweis folgt in TP2 mit echten Paketen und Tests.
-  - Der ESLint-Negativtest (`any` ohne Begründung) folgt in T2.1, weil es vorher kein TS-Projekt gibt, das ESLint prüfen kann.
-  - Evidence bisher: `docs/evidence/phase-0/t1.3-depcruise-negative.txt`, `t1.5-secrets-init.txt`, `t1.6-precommit-leak-blocked.txt`, `gate-1-make-lint.txt`
+  - DoD „Pre-Commit < 30 s“ mit echten Paketen messen (TP2)
+  - ESLint-Negativtest (`any` ohne Begründung) in T2.1
+  - Branch-Schutz für `main` (Marco): Status-Checks als Pflicht, sobald `ci.yml` läuft (T2.3)
 
 ## Session-Log` an. *Einschränkung:* Inhaltliche Erkenntnisse schreibt Claude selbst vor `/compact`; das regelt `CLAUDE.md`.
 - Verifikation: Read auf `.env` wird blockiert, ein Edit in contracts erzeugt eine Warnung. Die Ausgaben kommen in die Evidence.
