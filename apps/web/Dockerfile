@@ -27,7 +27,8 @@ RUN chown -R 1000:1000 /repo
 USER 1000:1000
 WORKDIR /repo/apps/web
 EXPOSE 5173
-CMD ["pnpm", "run", "dev"]
+# Call vite directly: `pnpm run` would re-verify and reinstall the whole workspace at start.
+CMD ["node_modules/.bin/vite", "--host", "0.0.0.0", "--port", "5173"]
 
 FROM deps AS build
 RUN pnpm --filter @lfc/web run build
