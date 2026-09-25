@@ -25,6 +25,9 @@
     },
     {
       "path": "./services/transcription"
+    },
+    {
+      "path": "./services/claim-extractor"
     }
   ]
 }
