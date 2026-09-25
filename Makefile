@@ -4,7 +4,7 @@ SHELL := /bin/sh
 TB := scripts/tb
 SECRETS_DIR ?= $(HOME)/.config/live-factcheck/secrets
 
-.PHONY: help toolbox toolbox-down install lint typecheck secrets-init hooks-install
+.PHONY: help toolbox toolbox-down install lint secrets-init hooks-install
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -26,3 +26,7 @@ lint: ## Stage 0: typecheck, lint, format check, boundaries
 
 secrets-init: ## Create SECRETS_DIR outside the repo with empty placeholders (0700/0600)
 	@scripts/secrets-init.sh "$(SECRETS_DIR)"
+
+hooks-install: ## Install the git pre-commit shim (runs lefthook in the toolbox)
+	@install -m 0755 scripts/git-pre-commit.sh "$$(git rev-parse --git-path hooks)/pre-commit"
+	@echo "pre-commit hook installed -> scripts/git-pre-commit.sh"

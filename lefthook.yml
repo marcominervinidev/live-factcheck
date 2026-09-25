@@ -1,0 +1,31 @@
+# Git hooks for every tool (Claude Code, Antigravity, manual commits).
+# Runs inside the toolbox via the shim installed by `make hooks-install`.
+# Budget: under 30 seconds (brief 13.3). CI repeats every check, because --no-verify skips this.
+no_auto_install: true
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: gitleaks
+      run: gitleaks git --pre-commit --staged --redact --no-banner .
+
+    - name: prettier
+      glob: '*.{ts,tsx,js,cjs,mjs,json,yaml,yml,css,html}'
+      run: pnpm exec prettier --check {staged_files}
+
+    - name: eslint
+      glob: '*.{ts,tsx,js,cjs,mjs}'
+      run: pnpm exec eslint --max-warnings 0 {staged_files}
+
+    - name: typecheck
+      glob: '*.{ts,tsx,js,cjs,mjs,json}'
+      run: pnpm typecheck
+
+    - name: unit
+      glob: '*.{ts,tsx}'
+      # Unit tests (stage 1) of packages affected by uncommitted changes and their dependents.
+      run: pnpm --filter "...[HEAD]" --if-present test:unit
+
+    - name: boundaries
+      glob: '*.{ts,tsx,js,cjs,mjs,json}'
+      run: pnpm depcruise
