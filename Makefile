@@ -6,6 +6,7 @@ COMPOSE := docker compose
 DEV := $(COMPOSE) -f docker-compose.yml -f compose.dev.yaml
 SECRETS_DIR ?= $(HOME)/.config/live-factcheck/secrets
 TRIVY := aquasec/trivy:0.74.0
+PLAYWRIGHT := docker run --rm --ipc=host -e CI -v $(CURDIR):/workspace mcr.microsoft.com/playwright:v1.63.0-noble
 IMAGES := caddy web gateway transcription claim-extractor fact-checker
 
 .PHONY: help up up-local dev down logs ready check-ports lint test test-unit test-integration \
@@ -49,8 +50,9 @@ lint: ## Stage 0: typecheck, lint, format check, boundaries, MCP config parity
 test-unit: ## Stage 1: unit tests of all workspaces
 	$(TB) pnpm test:unit
 
-test-integration: ## Stage 2a: integration tests with Testcontainers (backend); 2b follows in TP6
-	$(TB) pnpm test:int
+test-integration: ## Stages 2a (backend, Testcontainers) and 2b (frontend, Playwright, mocked backend)
+	$(TB) pnpm --filter '!@lfc/web' -r --if-present test:int
+	$(PLAYWRIGHT) sh -c 'cd /workspace/apps/web && node_modules/.bin/playwright test -c tests/playwright.config.ts'
 
 test-api: ## Stage 3: system/API tests against the stack (arrive in TP6)
 	@echo "No API tests yet: tests/api arrives in TP6 of phase 0."
