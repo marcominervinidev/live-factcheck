@@ -1,0 +1,19 @@
+# Stage 5 setup (brief 13.5): run nightly, not on every push
+
+## Lighthouse CI against the running stack (https://lfc.local:8443, isolated verification stack)
+$ lhci autorun --config=lighthouserc.json   # in the Playwright image, CHROME_PATH=bundled Chromium
+performance: 100
+accessibility: 100
+best-practices: 100
+assertions: accessibility >= 95 (error), best-practices >= 90 (error), performance >= 80 (warn) -> all passed
+
+## Stryker mutation testing of packages/contracts
+$ stryker run
+mutants: 85, killed: 38, survived: 47
+mutation score: 44.71 %  (NOT trustworthy, see below; break threshold disabled)
+
+Known issue: Stryker reports e.g. the ClaimChecked sources rule (claim-checked.ts:63, mutant "() => true")
+as survived. Applying exactly that mutation by hand makes "rejects any other verdict without sources" fail:
+  × rejects any other verdict without sources
+  Tests  1 failed | 42 passed (43)
+Tried without effect: flat vitest config, coverageAnalysis "off". Investigation moved to phase 1.

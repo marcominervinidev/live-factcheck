@@ -10,7 +10,8 @@
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test:unit": "vitest run --project unit",
-    "test:int": "playwright test -c tests/playwright.config.ts"
+    "test:int": "playwright test -c tests/playwright.config.ts",
+    "lighthouse": "lhci autorun --config=lighthouserc.json"
   },
   "dependencies": {
     "react": "19.3.0",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
+    "@lhci/cli": "0.15.1",
     "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/dom": "10.4.2",
