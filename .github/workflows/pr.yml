@@ -1,0 +1,40 @@
+# PR pipeline (brief 13.3, 14.2): only stages that ci.yml does not run.
+# Grows per gate: images, Trivy, SAST and API/E2E tests follow in TP4 and TP6. See ADR 0005.
+name: pr
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  contract-check:
+    name: contract check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - run: scripts/check-contract-change.sh "origin/${{ github.base_ref }}"
+
+  # Single required check for branch protection (see ci.yml `ci passed`).
+  pr-passed:
+    name: pr passed
+    needs: [contract-check]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - run: |
+          echo '${{ toJSON(needs) }}' | node -e "
+            const needs = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+            const bad = Object.entries(needs).filter(([, v]) => !['success', 'skipped'].includes(v.result));
+            if (bad.length) { console.error('failed:', bad.map(([k, v]) => k + '=' + v.result).join(', ')); process.exit(1); }
+            console.log('all stages green');"
