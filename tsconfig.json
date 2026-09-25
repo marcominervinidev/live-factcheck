@@ -18,6 +18,9 @@
       "path": "./packages/service-kit"
     },
     {
+      "path": "./packages/providers"
+    },
+    {
       "path": "./services/gateway"
     }
   ]
