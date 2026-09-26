@@ -30,8 +30,10 @@ flowchart LR
   subgraph client[iPhone / browser]
     web[PWA<br/>React + Vite]
   end
-  subgraph edge[edge network]
+  subgraph edge[edge network: published ports]
     caddy[caddy<br/>TLS, headers]
+  end
+  subgraph frontend[frontend network]
     webc[web<br/>nginx]
     gw[gateway<br/>REST + WebSocket]
   end

@@ -25,7 +25,7 @@ Security is part of the definition of done from phase 0 (brief 15). This documen
 ## Secrets
 
 - **Where they live:** one file per secret in `SECRETS_DIR`, by default `~/.config/live-factcheck/secrets` (directory `0700`, files `0600`), outside the repository and outside every agent's workspace. `make secrets-init` creates the directory: internal secrets (Redis passwords, SearXNG key, gateway token) get random values, and external API keys stay empty for you to fill in.
-- **How services get them:** as Compose secrets mounted under `/run/secrets/<name>`. Services read `<NAME>_FILE` (service-kit `loadConfig`); no secret value appears in any container's environment (`docs/evidence/phase-0/t5-security.txt`).
+- **How services get them:** as Compose secrets mounted under `/run/secrets/<name>`. Services read `<NAME>_FILE` (service-kit `loadConfig`); no secret value appears in the environment of any app container (`docs/evidence/phase-0/t5-security.txt`). The MCP server containers are the exception, see known risks.
 - **Least privilege:** gateway and transcription get the Redis password, the two LLM workers additionally get the LLM key, and web gets nothing. Redis uses ACL users: services connect as `app` (no admin or dangerous commands), the Redis MCP server as the read-only `mcp` user, and `default` is disabled.
 - **Never:** in git, in an image or build argument, in the frontend bundle or `/config.json`, in logs, errors, metrics or traces. Logs redact secret fields by name and additionally scrub every known secret value from each line (`packages/service-kit/src/logger.ts`, tested).
 - **Recommended:** use a dedicated Anthropic API key in its own Claude Console workspace with a spending limit, and do the same with the STT and search providers. For the GitHub MCP server, prefer a fine-grained token limited to this repository (`GITHUB_MCP_TOKEN`) over the broad `gh` login.
@@ -52,18 +52,20 @@ Security is part of the definition of done from phase 0 (brief 15). This documen
 ## Container and network hardening
 
 - All containers run as numeric non-root users with a read-only root filesystem, `cap_drop: [ALL]`, `no-new-privileges`, CPU and memory limits and a healthcheck. Node runtime images are distroless with no shell, and the app code is root-owned, so the process cannot modify it.
-- Networks: `edge` (Caddy, web, gateway), `internal` (no internet, no host access), `egress` (only for services that need the internet). Only Caddy publishes host ports.
+- Networks: `edge` (Caddy only, carries the published ports), `frontend` (Caddy, web, gateway; internal), `internal` (services and Redis; no internet, no host access), `egress` (only for services that need the internet, today SearXNG). Only Caddy publishes host ports; web and gateway cannot reach the internet or the host.
 - Caddy sets HSTS, a strict CSP (`script-src 'self'`, no `eval`; zod runs `jitless` for that reason), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and a `Permissions-Policy` that allows only the microphone for the app itself. It sends no CORS headers.
 
 ## Known risks and trade-offs
 
 | Risk | Why it is accepted | Mitigation |
 |---|---|---|
-| The dev toolbox mounts the Docker socket (root-equivalent on the Docker host) | Testcontainers needs it | dev only; never in runtime images or CI jobs other than tests |
+| A dev container with the Docker socket (root-equivalent on the Docker host) | Testcontainers needs it | only the separate `toolbox-docker` container has it, started on demand by `make test-integration`; the toolbox used by agent hooks and lefthook, which run code without asking, has no socket |
 | Docker Desktop lets non-root containers read `0600` secret files; Linux hosts do not | local dev convenience | in CI the throwaway secrets are `0644`; Kubernetes (phase 5) mounts secrets with explicit modes |
 | Trivy in PRs ignores critical CVEs without an available fix | nothing we can change blocks every PR otherwise | `nightly.yml` reports HIGH and CRITICAL including unfixed ones |
 | The GitHub MCP server falls back to the `gh` token, which has broad scopes | convenience | set a fine-grained `GITHUB_MCP_TOKEN` |
-| The agent-side secrets guard is a regex over tool input | comfort and early warning only | real secrets are outside the repo; gitleaks, CI and review are the enforcing layers |
+| MCP server containers get their token or password as an environment variable (visible via `docker inspect` while they run) | the official images accept credentials only via env | fine-grained GitHub token; the Redis MCP connects as the read-only `mcp` ACL user (no admin, no writes) |
+| The edge-facing images (nginx, Caddy on Alpine) contain a BusyBox shell | upstream ships it; there are no distroless variants | both run non-root, read-only, without capabilities; web has no internet access, Caddy only the published ports |
+| The agent-side secrets guard is a regex over the whole tool input (it also blocks in-container secret paths, but cannot catch every indirection, and it also blocks harmless text that merely mentions them) | comfort and early warning only | real secrets are outside the repo; gitleaks, CI and review are the enforcing layers |
 
 ## Reporting a vulnerability
 

@@ -33,4 +33,4 @@ The brief asks for one repository with independently deployable services (factor
 - Every Node command goes through `scripts/tb`; the first call after a reboot takes a few seconds to start the container.
 - `node_modules` sits in the bind-mounted repo but is only used by the toolbox and the devcontainer, never by host tools.
 - Upgrading TypeScript to 7 is a tracked follow-up once typescript-eslint supports it.
-- The toolbox mounts the Docker socket for Testcontainers. That is root-equivalent on the Docker host and documented in `docs/SECURITY.md`; it is limited to the dev toolbox.
+- Testcontainers needs the Docker socket, which is root-equivalent on the Docker host. Only a separate `toolbox-docker` container started by `make test-integration` has it; the toolbox used by hooks does not (`docs/SECURITY.md`).

@@ -88,7 +88,7 @@ services/<name>/
 
 | Stage | Where | How | State |
 |---|---|---|---|
-| Local | Docker Compose on macOS (Apple Silicon) | `make up`; networks `edge` / `internal` / `egress`; only Caddy publishes ports; Compose secrets from a directory outside the repo ([ADR 0004](adr/0004-compose-network-topology.md)) | running |
+| Local | Docker Compose on macOS (Apple Silicon) | `make up`; networks `edge` / `frontend` / `internal` / `egress`; only Caddy publishes ports; Compose secrets from a directory outside the repo ([ADR 0004](adr/0004-compose-network-topology.md)) | running |
 | Local cluster | k3d (1 server, 2 agents) | Kustomize base + overlays, Argo CD, KEDA on stream lag, NetworkPolicies, Pod Security `restricted` | planned (phase 5) |
 | Real cluster | k3s on VMs via Terraform | staging and prod, cert-manager, backups, signed images with SBOM | planned (phase 6) |
 
@@ -114,7 +114,7 @@ A nightly workflow adds mutation testing, Lighthouse, Firefox and a full image s
 
 - Secrets only as files or env, never in git, images, the frontend bundle, `/config.json` or logs. Each service gets only the secrets it needs.
 - Hardened containers: non-root, read-only root filesystem, `cap_drop: [ALL]`, `no-new-privileges`, resource limits.
-- Network segmentation: only Caddy is reachable from the host; Redis and SearXNG are internal.
+- Network segmentation: only Caddy is reachable from the host; web and gateway sit on an internal `frontend` network without internet or host access; Redis and SearXNG are internal.
 - From phase 1: gateway token in headers only, SSRF guard for every fetched URL, fetched pages treated as data (prompt injection), LLM output validated against the schema.
 
 Threat model, secret handling, key rotation and the leak procedure: [SECURITY.md](SECURITY.md).
