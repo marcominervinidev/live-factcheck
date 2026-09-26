@@ -20,14 +20,26 @@ export const validSegment = (): TranscriptSegment => ({
 });
 
 export const validDetected = (): ClaimDetected => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   sessionId: SESSION_ID,
   claimId: CLAIM_ID,
   speaker: 'A',
-  text: 'Der Zweite Weltkrieg ist erst 20 Jahre vorbei.',
-  normalizedText: 'zweiter weltkrieg ist erst 20 jahre vorbei',
+  originalText: 'Der ist doch erst 20 Jahre vorbei.',
+  standaloneText: 'Der Zweite Weltkrieg ist erst 20 Jahre vorbei.',
+  normalizedText: 'der zweite weltkrieg ist erst 20 jahre vorbei',
+  checkworthiness: 0.93,
   sourceSegmentIds: [SEGMENT_ID],
   detectedAt: '2026-09-25T10:00:04.000Z',
+  provider: { classifier: 'llm', model: 'example-model' },
+});
+
+/** A claim typed in text mode (brief 6.8, ADR 0010). */
+export const validTextModeDetected = (): ClaimDetected => ({
+  ...validDetected(),
+  originalText: 'Der Zweite Weltkrieg ist erst 20 Jahre vorbei.',
+  checkworthiness: 1,
+  sourceSegmentIds: [],
+  provider: { classifier: 'text-mode', model: 'none' },
 });
 
 export const validChecked = (): ClaimChecked => ({
