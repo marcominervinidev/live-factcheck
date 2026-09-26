@@ -13,13 +13,16 @@
   },
   "files": [
     "dist",
-    "!dist/**/*.test.*"
+    "prompts",
+    "!dist/**/*.test.*",
+    "!dist/testing"
   ],
   "scripts": {
     "build": "tsc -b",
     "test:unit": "vitest run --project unit"
   },
   "dependencies": {
+    "@lfc/contracts": "workspace:*",
     "@anthropic-ai/sdk": "0.128.0",
     "@typesafe-ai/sdk": "0.6.0",
     "openai": "7.23.0",

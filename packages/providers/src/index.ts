@@ -48,3 +48,28 @@ export {
   privacyModeShape,
 } from './privacy.js';
 export type { ExternalUse, PrivacyMode } from './privacy.js';
+export { resolveClassifierConfig } from './classifier/config.js';
+export type { ResolvedClassifierConfig } from './classifier/config.js';
+export { answersFor, confidenceOf, normalize } from './classifier/answers.js';
+export type { RawAnswer } from './classifier/answers.js';
+export { confidenceLevel, createClassifier } from './classifier/factory.js';
+export type { CreateClassifierOptions } from './classifier/factory.js';
+export type { MockClassifierHandler } from './classifier/mock.js';
+export { ClassifierError } from './classifier/types.js';
+export type {
+  AnswerFor,
+  Answers,
+  BoolAnswer,
+  BoolQuestion,
+  ChoiceAnswer,
+  ChoiceQuestion,
+  ClassifierErrorKind,
+  ClassifierProvider,
+  ClassifierResult,
+  ClassifierState,
+  JsonValue,
+  Question,
+  Questions,
+  ScoreAnswer,
+  ScoreQuestion,
+} from './classifier/types.js';

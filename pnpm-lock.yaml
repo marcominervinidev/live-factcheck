@@ -291,6 +291,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: 0.128.0
         version: 0.128.0(zod@4.6.5)
+      '@lfc/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@typesafe-ai/sdk':
         specifier: 0.6.0
         version: 0.6.0
