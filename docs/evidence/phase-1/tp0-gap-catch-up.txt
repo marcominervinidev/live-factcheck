@@ -34,7 +34,46 @@ make scan IMAGES=explainer      -> exit 0 (no CRITICAL vulnerabilities, no embed
 ## Playwright MCP
 initialize over stdio -> {"serverInfo":{"name":"Playwright","version":"1.64.0-alpha-…"}}
 
-## Not done in TP0 (named in the PR)
-Isolated stack run (make up/ready/check-ports with the new explainer container): needs
-SECRETS_DIR=<throwaway dir> in the command, which the secrets guard blocks by design.
-Waiting for the owner's decision at gate 0 (run it yourself, or allow one isolated run).
+## Isolated stack run (approved by the owner, 2026-09-26)
+Compose project lfc-verify on host ports 8082/8444, throwaway secrets directory (random internal
+secrets, empty API keys), torn down afterwards (down -v, directory removed). The owner's project
+live-factcheck was not touched.
+
+== make up (isolated project lfc-verify)
+ Container lfc-verify-transcription-1 Healthy 
+ Container lfc-verify-fact-checker-1 Healthy 
+ Container lfc-verify-caddy-1 Healthy 
+== make ready
+gateway            200 {"status":"ready","checks":{"redis":"ok"}}
+transcription      200 {"status":"ready","checks":{"redis":"ok"}}
+claim-extractor    200 {"status":"ready","checks":{"redis":"ok"}}
+fact-checker       200 {"status":"ready","checks":{"redis":"ok"}}
+explainer          200 {"status":"ready","checks":{"redis":"ok"}}
+web                200 ok
+
+searxng            200 OK
+caddy -> web       200 https://localhost/
+== make check-ports
+caddy: 0.0.0.0:8082->8080, :::8082->8080, 0.0.0.0:8444->8443, :::8444->8443
+ok: only caddy publishes host ports
+== containers
+caddy	Up 16 seconds (healthy)
+claim-extractor	Up 21 seconds (healthy)
+explainer	Up 21 seconds (healthy)
+fact-checker	Up 21 seconds (healthy)
+gateway	Up 21 seconds (healthy)
+redis	Up 27 seconds (healthy)
+searxng	Up 27 seconds (healthy)
+transcription	Up 21 seconds (healthy)
+web	Up 27 seconds (healthy)
+== networks of the phase 1 workers
+fact-checker: lfc-verify_egress lfc-verify_internal 
+explainer: lfc-verify_egress lfc-verify_internal 
+gateway: lfc-verify_frontend lfc-verify_internal 
+web: lfc-verify_frontend 
+== mounted secrets per worker (names only)
+fact-checker: anthropic_api_key google_factcheck_api_key redis_password typesafe_api_key 
+explainer: anthropic_api_key redis_password 
+== startup log lines
+{"service":"explainer","privacyMode":"cloud","llm":{"provider":"mock","model":"mock"},"classifier":null}
+{"service":"fact-checker","privacyMode":"cloud","llm":{"provider":"mock","model":"mock"},"classifier":{"provider":"mock","high":0.75,"low":0.45}}

@@ -216,10 +216,9 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
   - [x] T0.5 `services/explainer`, `packages/research` + `config/source-tiers.yaml`, `evals/README.md` + `SOURCES.md`
   - [x] T0.6 Klassifikator-Config, `EXPLAINER`, `PRIVACY_MODE`, Secrets je Service, `egress`, `.env.example`
 - Aktuelles Gate: **Gate 0 – wartet auf Marcos Review** (ADR 0007–0009 annehmen?)
-- Offen an Gate 0:
-  - isolierter Stack-Lauf mit dem neuen `explainer` (`make up/ready/check-ports`) fehlt: braucht `SECRETS_DIR=<tmp>` im Befehl, das blockiert der Secrets-Guard. Marco führt ihn aus oder erlaubt einen Lauf.
-  - Zusatzfelder `usage`/`reason` in `ClaimChecked` v2: Bestätigung an Gate 1
-  - ADR-Nummern 0010/0011 sind für TP1/TP5 reserviert
+- [x] isolierter Stack-Lauf mit `explainer` (von Marco erlaubt): alle `/readyz` 200, nur Caddy mit Host-Ports, Netze und Secrets je Service wie geplant
+- [x] Brief auf die vereinbarten Entscheidungen zurückgesetzt (Rücknahme war unbeabsichtigt)
+- Offen an Gate 0: Annahme von ADR 0007–0009; Zusatzfelder `usage`/`reason` in `ClaimChecked` v2 (Gate 1); ADR-Nummern 0010/0011 reserviert für TP1/TP5
 - Erkenntnis: nie zwei Edits parallel auf dieselbe Datei (Format-Hook hat `docker-compose.yml` dabei abgeschnitten; sofort aus dem Commit wiederhergestellt)
 - Voraussetzung für den Merge: PR #5, #6, #7 zuerst
 - Nächster Task nach Freigabe: T1.1 (Verträge)
