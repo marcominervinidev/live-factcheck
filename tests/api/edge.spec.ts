@@ -16,10 +16,11 @@ test('serves the app over HTTPS with the security headers', async ({ request }) 
   expect(headers['server']).toBeUndefined();
 });
 
-test('redirects plain HTTP to HTTPS on the default port', async ({ request }) => {
-  const response = await request.get('http://lfc.local:8080/some/path?x=1', { maxRedirects: 0 });
+test('redirects plain HTTP to HTTPS on the default port', async ({ request, baseURL }) => {
+  const host = new URL(baseURL ?? '').hostname;
+  const response = await request.get(`http://${host}:8080/some/path?x=1`, { maxRedirects: 0 });
   expect(response.status()).toBe(301);
-  expect(response.headers()['location']).toBe('https://lfc.local/some/path?x=1');
+  expect(response.headers()['location']).toBe(`https://${host}/some/path?x=1`);
 });
 
 test('serves the runtime config without caching and without secrets', async ({ request }) => {

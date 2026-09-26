@@ -1,5 +1,5 @@
 # Test overlay (brief 13.2 stages 3 and 4): runs the Playwright suites as containers inside the
-# stack networks. Caddy gets the alias lfc.local (its LAN name), so TLS works via SNI.
+# stack networks. Caddy gets its LAN name (LAN_HOST, default lfc.local) as alias, so TLS works via SNI.
 #   make test-api   make test-e2e
 
 x-playwright: &playwright
@@ -10,7 +10,8 @@ x-playwright: &playwright
     - .:/workspace
   environment:
     CI: ${CI:-false}
-    BASE_URL: https://lfc.local:8443
+    # Caddy only serves localhost and LAN_HOST, so the tests use the same name (SNI).
+    BASE_URL: https://${LAN_HOST:-lfc.local}:8443
     # Extra CLI arguments, e.g. '--shard=1/2 --project=webkit-iphone' in CI.
     PLAYWRIGHT_ARGS: ${PLAYWRIGHT_ARGS:-}
 
@@ -18,7 +19,7 @@ services:
   caddy:
     networks:
       edge:
-        aliases: [lfc.local]
+        aliases: ['${LAN_HOST:-lfc.local}']
 
   api-tests:
     <<: *playwright

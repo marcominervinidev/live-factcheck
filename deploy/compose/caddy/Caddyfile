@@ -19,7 +19,7 @@
 		Referrer-Policy "no-referrer"
 		Permissions-Policy "microphone=(self), camera=(), geolocation=(), payment=()"
 		Cross-Origin-Opener-Policy "same-origin"
-		Content-Security-Policy "default-src 'self'; script-src {$CSP_SCRIPT_SRC:'self'}; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src {$CSP_SCRIPT_SRC:'self'}; style-src {$CSP_STYLE_SRC:'self'}; img-src 'self' data:; font-src 'self'; connect-src 'self' wss:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 		-Server
 	}
 }

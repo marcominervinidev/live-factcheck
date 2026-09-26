@@ -114,5 +114,7 @@ services:
   caddy:
     environment:
       WEB_UPSTREAM: web:5173
-      # The React refresh preamble of the Vite dev server is an inline script.
+      # The React refresh preamble of the Vite dev server is an inline script, and Vite injects
+      # CSS as <style> elements. Production keeps both at 'self'.
       CSP_SCRIPT_SRC: "'self' 'unsafe-inline'"
+      CSP_STYLE_SRC: "'self' 'unsafe-inline'"
