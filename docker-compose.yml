@@ -92,7 +92,10 @@ services:
       <<: *redis-env
       PORT: '8080'
       LOG_LEVEL: ${LOG_LEVEL:-info}
-    secrets: [redis_password]
+      GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
+      PRIVACY_MODE: ${PRIVACY_MODE:-cloud}
+      RATE_LIMIT_CHECKS_PER_MINUTE: ${RATE_LIMIT_CHECKS_PER_MINUTE:-20}
+    secrets: [redis_password, gateway_token]
     networks: [frontend, internal]
     depends_on:
       redis: { condition: service_healthy }
@@ -273,6 +276,8 @@ secrets:
     file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/redis_mcp_password
   searxng_secret:
     file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/searxng_secret
+  gateway_token:
+    file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/gateway_token
   anthropic_api_key:
     file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/anthropic_api_key
   typesafe_api_key:
