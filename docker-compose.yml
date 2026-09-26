@@ -190,6 +190,7 @@ services:
       EXPLAINER_LLM_MODEL: ${EXPLAINER_LLM_MODEL:-mock}
       EXPLAINER_LLM_BASE_URL: ${EXPLAINER_LLM_BASE_URL:-}
       EXPLAINER_LLM_API_KEY_FILE: /run/secrets/anthropic_api_key
+      CLOUD_DAILY_BUDGET_USD: ${CLOUD_DAILY_BUDGET_USD:-2}
     # Only the LLM key, never the classifier or search keys (brief 15.1, ADR 0009).
     secrets: [redis_password, anthropic_api_key]
     networks: [internal, egress]

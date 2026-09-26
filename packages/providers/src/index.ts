@@ -14,6 +14,7 @@ export type {
   ResolvedLlmConfig,
 } from './llm/config.js';
 export { createLlmProvider } from './llm/factory.js';
+export { createMockLlmProvider } from './llm/mock.js';
 export type { CreateLlmOptions } from './llm/factory.js';
 export { loadPromptTemplate, renderPrompt } from './llm/prompt.js';
 export type { PromptTemplate } from './llm/prompt.js';
