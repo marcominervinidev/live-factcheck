@@ -23,3 +23,6 @@ blob-report/
 test-results/
 .stryker-tmp/
 .lighthouseci/
+
+# Playwright MCP screenshots and traces (copy what you need into docs/evidence/)
+.playwright-mcp/
