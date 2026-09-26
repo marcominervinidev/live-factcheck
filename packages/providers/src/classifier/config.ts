@@ -15,6 +15,8 @@ interface Keys<T extends ClassifierTask> {
   model: `${T}_CLASSIFIER_MODEL`;
   high: `${T}_CONFIDENCE_HIGH`;
   low: `${T}_CONFIDENCE_LOW`;
+  timeout: `${T}_CLASSIFIER_TIMEOUT_MS`;
+  retries: `${T}_CLASSIFIER_MAX_RETRIES`;
 }
 
 const providerField = () => z.enum(CLASSIFIER_PROVIDERS);
@@ -23,6 +25,9 @@ const modelField = () => z.string().min(1).optional();
 const highField = () => z.coerce.number().gt(0).lt(1).default(0.75);
 const lowField = () => z.coerce.number().gt(0).lt(1).default(0.45);
 const apiKeyField = () => z.string().min(1).optional();
+// Per attempt; Jev answers in 70–500 ms from the US west coast (vendor figure), so 10 s is generous.
+const timeoutField = () => z.coerce.number().int().positive().default(10_000);
+const retriesField = () => z.coerce.number().int().min(0).max(5).default(2);
 
 export type ClassifierConfigShape<T extends ClassifierTask> = Record<
   Keys<T>['provider'],
@@ -31,6 +36,8 @@ export type ClassifierConfigShape<T extends ClassifierTask> = Record<
   Record<Keys<T>['model'], ReturnType<typeof modelField>> &
   Record<Keys<T>['high'], ReturnType<typeof highField>> &
   Record<Keys<T>['low'], ReturnType<typeof lowField>> &
+  Record<Keys<T>['timeout'], ReturnType<typeof timeoutField>> &
+  Record<Keys<T>['retries'], ReturnType<typeof retriesField>> &
   Record<typeof TYPESAFE_API_KEY, ReturnType<typeof apiKeyField>>;
 
 export type ClassifierConfig<T extends ClassifierTask> = z.infer<
@@ -43,6 +50,8 @@ function keys<T extends ClassifierTask>(task: T): Keys<T> {
     model: `${task}_CLASSIFIER_MODEL`,
     high: `${task}_CONFIDENCE_HIGH`,
     low: `${task}_CONFIDENCE_LOW`,
+    timeout: `${task}_CLASSIFIER_TIMEOUT_MS`,
+    retries: `${task}_CLASSIFIER_MAX_RETRIES`,
   };
 }
 
@@ -58,6 +67,8 @@ export function classifierConfigShape<T extends ClassifierTask>(task: T): Classi
     [k.model]: modelField(),
     [k.high]: highField(),
     [k.low]: lowField(),
+    [k.timeout]: timeoutField(),
+    [k.retries]: retriesField(),
     [TYPESAFE_API_KEY]: apiKeyField(),
   } as ClassifierConfigShape<T>;
 }
@@ -110,5 +121,35 @@ export function describeClassifierConfig<T extends ClassifierTask>(
     ...(model === undefined ? {} : { model }),
     high: values[k.high] as number,
     low: values[k.low] as number,
+  };
+}
+
+/** The validated settings of one task, read by the factory and the verdict logic. */
+export interface ResolvedClassifierConfig {
+  readonly provider: ClassifierProviderName;
+  readonly model?: string;
+  readonly apiKey?: string;
+  readonly high: number;
+  readonly low: number;
+  readonly timeoutMs: number;
+  readonly maxRetries: number;
+}
+
+export function resolveClassifierConfig<T extends ClassifierTask>(
+  task: T,
+  config: ClassifierConfig<T>,
+): ResolvedClassifierConfig {
+  const k = keys(task);
+  const values = config as Record<string, unknown>;
+  const model = values[k.model] as string | undefined;
+  const apiKey = values[TYPESAFE_API_KEY] as string | undefined;
+  return {
+    provider: values[k.provider] as ClassifierProviderName,
+    ...(model === undefined ? {} : { model }),
+    ...(apiKey === undefined ? {} : { apiKey }),
+    high: values[k.high] as number,
+    low: values[k.low] as number,
+    timeoutMs: values[k.timeout] as number,
+    maxRetries: values[k.retries] as number,
   };
 }
