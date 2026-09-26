@@ -1,4 +1,5 @@
 export { HttpUrl, IsoDateTimeUtc, LanguageTag, OffsetMs, Speaker, Uuid } from './common.js';
+export { TopicDetected } from './topic-detected.js';
 export { TranscriptSegment } from './transcript-segment.js';
 export { ClaimDetected } from './claim-detected.js';
 export {

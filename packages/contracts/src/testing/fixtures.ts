@@ -3,6 +3,7 @@ import type { ClaimChecked } from '../claim-checked.js';
 import type { ClaimDetected } from '../claim-detected.js';
 import type { ClaimExplained } from '../claim-explained.js';
 import type { Evidence } from '../evidence.js';
+import type { TopicDetected } from '../topic-detected.js';
 import type { TranscriptSegment } from '../transcript-segment.js';
 
 export const SESSION_ID = '6f1c1e9a-3b1f-4c55-9a53-2f4a9c1d7e10';
@@ -100,4 +101,15 @@ export const validExplained = (): ClaimExplained => ({
   claimId: CLAIM_ID,
   explanation: 'Der Zweite Weltkrieg endete 1945, also vor über 80 Jahren.',
   provider: { llm: 'anthropic', model: 'example-model' },
+});
+
+export const TOPIC_ID = '3d2c1b0a-9f8e-4d7c-8b6a-5f4e3d2c1b0a';
+
+export const validTopic = (): TopicDetected => ({
+  schemaVersion: 1,
+  sessionId: SESSION_ID,
+  topicId: TOPIC_ID,
+  label: 'Zweiter Weltkrieg',
+  keywords: ['Kriegsende', '1945'],
+  detectedAt: '2026-09-25T10:00:02.000Z',
 });
