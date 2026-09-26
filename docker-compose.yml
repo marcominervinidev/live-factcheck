@@ -124,6 +124,7 @@ services:
       <<: *redis-env
       PORT: '8080'
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      PRIVACY_MODE: ${PRIVACY_MODE:-cloud}
       EXTRACTOR_LLM_PROVIDER: ${EXTRACTOR_LLM_PROVIDER:-mock}
       EXTRACTOR_LLM_MODEL: ${EXTRACTOR_LLM_MODEL:-mock}
       EXTRACTOR_LLM_BASE_URL: ${EXTRACTOR_LLM_BASE_URL:-}
@@ -144,12 +145,43 @@ services:
       <<: *redis-env
       PORT: '8080'
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      PRIVACY_MODE: ${PRIVACY_MODE:-cloud}
       CHECKER_LLM_PROVIDER: ${CHECKER_LLM_PROVIDER:-mock}
       CHECKER_LLM_MODEL: ${CHECKER_LLM_MODEL:-mock}
       CHECKER_LLM_BASE_URL: ${CHECKER_LLM_BASE_URL:-}
       CHECKER_LLM_API_KEY_FILE: /run/secrets/anthropic_api_key
+      CHECKER_CLASSIFIER_PROVIDER: ${CHECKER_CLASSIFIER_PROVIDER:-mock}
+      CHECKER_CLASSIFIER_MODEL: ${CHECKER_CLASSIFIER_MODEL:-}
+      CHECKER_CONFIDENCE_HIGH: ${CHECKER_CONFIDENCE_HIGH:-0.75}
+      CHECKER_CONFIDENCE_LOW: ${CHECKER_CONFIDENCE_LOW:-0.45}
+      TYPESAFE_API_KEY_FILE: /run/secrets/typesafe_api_key
+    # Least privilege (brief 15.1): LLM, classifier and fact-check API keys; nothing else.
+    secrets: [redis_password, anthropic_api_key, typesafe_api_key, google_factcheck_api_key]
+    # egress: page fetches, fact-check/Wikipedia APIs, cloud LLMs, LM Studio/Ollama on the host.
+    # The SSRF guard keeps fetched URLs away from internal targets (ADR 0004 amendment).
+    networks: [internal, egress]
+    depends_on:
+      redis: { condition: service_healthy }
+
+  explainer:
+    <<: *node-service
+    build:
+      context: .
+      dockerfile: services/explainer/Dockerfile
+      target: runtime
+    image: ${LFC_REGISTRY:-lfc}/explainer:${LFC_TAG:-local}
+    environment:
+      <<: *redis-env
+      PORT: '8080'
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PRIVACY_MODE: ${PRIVACY_MODE:-cloud}
+      EXPLAINER_LLM_PROVIDER: ${EXPLAINER_LLM_PROVIDER:-mock}
+      EXPLAINER_LLM_MODEL: ${EXPLAINER_LLM_MODEL:-mock}
+      EXPLAINER_LLM_BASE_URL: ${EXPLAINER_LLM_BASE_URL:-}
+      EXPLAINER_LLM_API_KEY_FILE: /run/secrets/anthropic_api_key
+    # Only the LLM key, never the classifier or search keys (brief 15.1, ADR 0009).
     secrets: [redis_password, anthropic_api_key]
-    networks: [internal]
+    networks: [internal, egress]
     depends_on:
       redis: { condition: service_healthy }
 
@@ -214,7 +246,7 @@ networks:
   # Service-to-service traffic; no route to the internet or the host.
   internal:
     internal: true
-  # Outbound internet access for services that need it (SearXNG now, LLM/STT clients later).
+  # Outbound internet access for services that need it (SearXNG, fact-checker, explainer).
   egress: {}
 
 volumes:
@@ -231,3 +263,7 @@ secrets:
     file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/searxng_secret
   anthropic_api_key:
     file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/anthropic_api_key
+  typesafe_api_key:
+    file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/typesafe_api_key
+  google_factcheck_api_key:
+    file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/google_factcheck_api_key
