@@ -11,7 +11,7 @@ ARG TARGETARCH
 
 # hadolint ignore=DL3008
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl git \
+ && apt-get install -y --no-install-recommends ca-certificates curl git procps \
  && rm -rf /var/lib/apt/lists/*
 
 # Fail a RUN if any command in a pipe fails (the checksum check below uses a pipe).

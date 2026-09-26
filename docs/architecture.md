@@ -21,9 +21,9 @@ This document describes how live-factcheck is put together. The requirements are
 | `stt-local` | Python, FastAPI, faster-whisper | fully local transcription (optional profile) | CPU/GPU bound | planned (phase 2) |
 | `claim-extractor` | Node.js worker | rolling window per session, claim extraction via LLM, deduplication | consumer group | skeleton |
 | `fact-checker` | Node.js worker | search, fetch, LLM verdict on the fetched sources only | consumer group; most expensive | skeleton |
-| `redis` | Redis 8 | streams, Pub/Sub, cache | – | planned (gate 5) |
-| `searxng` | SearXNG | self-hosted meta search without API key | – | planned (gate 5) |
-| `caddy` | Caddy | TLS termination, security headers; later the Ingress | – | planned (gate 5) |
+| `redis` | Redis 8 | streams, Pub/Sub, cache (ACL users `app`, read-only `mcp`) | – | running (Compose) |
+| `searxng` | SearXNG | self-hosted meta search without API key | – | running (Compose) |
+| `caddy` | Caddy | TLS termination, security headers; later the Ingress | – | running (Compose) |
 | `postgres` | PostgreSQL | session history, claims, verdicts | – | planned (phase 4) |
 
 Shared packages: `@lfc/contracts` (schemas), `@lfc/service-kit` (config, logging, ops endpoints, Redis, lifecycle), `@lfc/providers` (adapters; LLM config in phase 0).
@@ -88,7 +88,7 @@ services/<name>/
 
 | Stage | Where | How | State |
 |---|---|---|---|
-| Local | Docker Compose on macOS (Apple Silicon) | `make up`; networks `edge` / `internal` / `egress`; only Caddy publishes ports; Compose secrets from a directory outside the repo | planned (gate 5) |
+| Local | Docker Compose on macOS (Apple Silicon) | `make up`; networks `edge` / `frontend` / `internal` / `egress`; only Caddy publishes ports; Compose secrets from a directory outside the repo ([ADR 0004](adr/0004-compose-network-topology.md)) | running |
 | Local cluster | k3d (1 server, 2 agents) | Kustomize base + overlays, Argo CD, KEDA on stream lag, NetworkPolicies, Pod Security `restricted` | planned (phase 5) |
 | Real cluster | k3s on VMs via Terraform | staging and prod, cert-manager, backups, signed images with SBOM | planned (phase 6) |
 
@@ -99,22 +99,22 @@ The same image runs in every environment; only configuration differs (factor V).
 ```mermaid
 flowchart LR
   push[push to any branch] --> ci[ci.yml<br/>stage 0 + unit + integration<br/>backend ∥ frontend, affected only]
-  pr[pull request to main] --> prw[pr.yml<br/>contract check, hadolint, Semgrep,<br/>image build amd64 + Trivy]
+  pr[pull request to main] --> prw[pr.yml<br/>contract check, hadolint, Semgrep,<br/>image build amd64 + Trivy,<br/>API + E2E on the Compose stack]
   pr --> codeql[codeql.yml]
   ci --> gate{ci passed ∧ pr passed}
   prw --> gate
   gate --> review[owner review, merge]
-  review --> main[main.yml – planned<br/>multi-arch build, push to GHCR]
+  review --> main[main.yml<br/>multi-arch build, push to GHCR,<br/>stack tests on pushed images]
   main --> gitops[GitOps via Argo CD – phase 5]
 ```
 
-Layout and de-duplication of push and PR runs: [ADR 0005](adr/0005-ci-workflow-layout.md).
+A nightly workflow adds mutation testing, Lighthouse, Firefox and a full image scan. Layout and de-duplication of push and PR runs: [ADR 0005](adr/0005-ci-workflow-layout.md).
 
 ## Security architecture (summary)
 
 - Secrets only as files or env, never in git, images, the frontend bundle, `/config.json` or logs. Each service gets only the secrets it needs.
 - Hardened containers: non-root, read-only root filesystem, `cap_drop: [ALL]`, `no-new-privileges`, resource limits.
-- Network segmentation: only Caddy is reachable from the host; Redis and SearXNG are internal.
+- Network segmentation: only Caddy is reachable from the host; web and gateway sit on an internal `frontend` network without internet or host access; Redis and SearXNG are internal.
 - From phase 1: gateway token in headers only, SSRF guard for every fetched URL, fetched pages treated as data (prompt injection), LLM output validated against the schema.
 
-The full threat model will be in `docs/SECURITY.md` (end of phase 0).
+Threat model, secret handling, key rotation and the leak procedure: [SECURITY.md](SECURITY.md).

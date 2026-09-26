@@ -1,0 +1,36 @@
+$ make up   # SECRETS_DIR=<throwaway test secrets>, LFC_HTTP_PORT=8081 (macOS Apache holds :80)
+ Container live-factcheck-caddy-1 Healthy 
+ Container live-factcheck-claim-extractor-1 Healthy 
+ Container live-factcheck-fact-checker-1 Healthy 
+ Container live-factcheck-gateway-1 Healthy 
+ Container live-factcheck-redis-1 Healthy 
+ Container live-factcheck-searxng-1 Healthy 
+ Container live-factcheck-transcription-1 Healthy 
+ Container live-factcheck-web-1 Healthy 
+exit code: 0  (took 3 s)
+
+SERVICE           IMAGE                                 STATUS                    PORTS
+caddy             lfc/caddy:local                       Up 26 seconds (healthy)   0.0.0.0:8081->8080/tcp, [::]:8081->8080/tcp, 0.0.0.0:443->8443/tcp, [::]:443->8443/tcp
+claim-extractor   lfc/claim-extractor:local             Up 32 seconds (healthy)   
+fact-checker      lfc/fact-checker:local                Up 32 seconds (healthy)   
+gateway           lfc/gateway:local                     Up 32 seconds (healthy)   
+redis             redis:8.10.2-alpine                   Up 38 seconds (healthy)   6379/tcp
+searxng           searxng/searxng:2026.9.23-3cd69d30e   Up 38 seconds (healthy)   8080/tcp
+transcription     lfc/transcription:local               Up 32 seconds (healthy)   
+web               lfc/web:local                         Up 37 seconds (healthy)   8080/tcp
+
+$ make ready
+gateway            200 {"status":"ready","checks":{"redis":"ok"}}
+transcription      200 {"status":"ready","checks":{"redis":"ok"}}
+claim-extractor    200 {"status":"ready","checks":{"redis":"ok"}}
+fact-checker       200 {"status":"ready","checks":{"redis":"ok"}}
+web                200 ok
+
+searxng            200 OK
+caddy -> web       200 https://localhost/
+exit code: 0
+
+$ make check-ports
+caddy: 0.0.0.0:8081->8080, :::8081->8080, 0.0.0.0:443->8443, :::443->8443
+ok: only caddy publishes host ports
+exit code: 0

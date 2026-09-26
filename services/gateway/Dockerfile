@@ -32,7 +32,8 @@ ENV SERVICE=${SERVICE}
 RUN chown -R 1000:1000 /repo
 USER 1000:1000
 WORKDIR /repo/services/${SERVICE}
-CMD ["pnpm", "run", "dev"]
+# Call tsx directly: `pnpm run` would re-verify and reinstall the whole workspace at start.
+CMD ["node_modules/.bin/tsx", "watch", "--conditions=development", "src/main.ts"]
 
 FROM deps AS build
 ARG SERVICE

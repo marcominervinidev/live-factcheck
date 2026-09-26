@@ -13,7 +13,7 @@ The product is the vehicle; the project is primarily a **DevOps and platform eng
 
 | Phase | Scope | State |
 |---|---|---|
-| 0 – Foundation | monorepo, contracts, service skeletons, hardened images, Compose stack, CI, agent tooling | **in progress** (gate 4 of 7) |
+| 0 – Foundation | monorepo, contracts, service skeletons, hardened images, Compose stack, CI, agent tooling | **in review** (gate 7 of 7) |
 | 1 – Text mode | LLM and search adapters, fact-checker, result cards, eval set | planned |
 | 2 – Live transcription | audio capture, WebSocket path, STT adapters, claim extraction, iPhone over HTTPS | planned |
 | 3 – Speakers and UX | diarization, speaker names, latency | planned |
@@ -30,8 +30,10 @@ flowchart LR
   subgraph client[iPhone / browser]
     web[PWA<br/>React + Vite]
   end
-  subgraph edge[edge network]
+  subgraph edge[edge network: published ports]
     caddy[caddy<br/>TLS, headers]
+  end
+  subgraph frontend[frontend network]
     webc[web<br/>nginx]
     gw[gateway<br/>REST + WebSocket]
   end
@@ -74,7 +76,7 @@ Every service is stateless and scales horizontally; workers share load through R
   - fast push checks, with backend and frontend running in parallel on affected workspaces only
   - PR stages: image build, Trivy, Semgrep, CodeQL, hadolint and the contract check
   - Actions pinned by SHA, minimal permissions, one aggregate check per workflow for branch protection
-- **Shift-left testing.** Static checks, unit tests and Testcontainers integration tests run today. API and E2E tests with Playwright, including a WebKit/iPhone profile, follow later in phase 0. Pre-commit takes about 5 s.
+- **Shift-left testing.** Every stage of the test pyramid exists and runs where it is cheapest (table below). Pre-commit stays around 10 s, the PR pipeline around 5 minutes.
 - **AI-assisted engineering with guardrails.** Claude Code and Antigravity work from the same rules, prompts and skills. Git hooks, CI and branch protection are the real guards, not the agent ([docs/ai-tooling.md](docs/ai-tooling.md), [ADR 0006](docs/adr/0006-agent-tooling-layout.md)).
 - **Evidence over claims.** Every task leaves proof (command output, CI runs, screenshots) in [docs/evidence/](docs/evidence/).
 
@@ -84,10 +86,26 @@ Every service is stateless and scales horizontally; workers share load through R
 apps/web/            PWA frontend (React, Vite, Tailwind, Zustand; nginx in production)
 services/            gateway, transcription, claim-extractor, fact-checker (Node.js, TypeScript)
 packages/            contracts (zod schemas), service-kit (runtime), providers (adapters)
-.github/workflows/   ci (push), pr, codeql
-docs/                brief, ADRs, architecture, evidence, AI tooling
+tests/               api (stage 3) and e2e (stage 4) suites against the running stack
+deploy/compose/      Caddy, Redis and SearXNG configuration for the local stack
+.github/workflows/   ci (push), pr, main, nightly, codeql, stack-tests (reusable)
+docs/                brief, ADRs, architecture, security, evidence, AI tooling
 tools/toolbox/       dev container: the only place Node tooling runs
 ```
+
+## Testing
+
+| Stage | What | Where | When |
+|---|---|---|---|
+| 0 static | TypeScript strict, ESLint, Prettier, module boundaries, gitleaks | whole repo | pre-commit, every push |
+| 1 unit | Vitest, Testing Library | next to the code (`*.test.ts`) | pre-commit (affected), every push |
+| 2a integration (backend) | services against a real Redis (Testcontainers) | `*.int.test.ts` | every push |
+| 2b integration (frontend) | the app in Chromium and WebKit/iPhone against a mocked backend, axe | `apps/web/tests/` | every push |
+| 3 API | every service's ops endpoints, TLS, headers, routing | `tests/api/` | every PR, after merge |
+| 4 E2E | user journeys through Caddy in Chromium, WebKit/iPhone (Firefox nightly) | `tests/e2e/` | every PR (sharded), after merge |
+| 5 quality | Lighthouse, mutation testing (Stryker) | `apps/web/lighthouserc.json`, `packages/contracts` | nightly |
+
+`make test` runs stages 0–4 locally, everything in containers.
 
 ## Getting started
 
@@ -95,11 +113,34 @@ Host requirements: Docker, Git, VS Code. Node and Python are not installed on th
 
 ```sh
 make toolbox install hooks-install   # dev container, dependencies, pre-commit hook
-make lint                            # typecheck, lint, format, module boundaries
-scripts/tb pnpm test:unit            # unit tests of all workspaces
+make secrets-init                    # ~/.config/live-factcheck/secrets: internal secrets generated,
+                                     # external API keys empty (only needed for real providers)
+make up                              # build and start the stack, wait until healthy
+make ready                           # /readyz of every service + the app through Caddy
+open https://localhost               # the app (Caddy's local CA; trust it once)
 ```
 
-The full stack (`make up`, `https://localhost`) arrives with gate 5 of phase 0.
+Everything runs with `mock` providers by default, so no API key is needed. Other targets: `make dev` (hot reload), `make test`, `make scan`, `make check-ports`, `make logs`, `make down`; `make help` lists them all. If macOS Apache already uses port 80, set `LFC_HTTP_PORT=8081` in `.env` (copy it from `.env.example`).
+
+### Trusting the local certificate
+
+Caddy issues certificates from its own local CA. Trust that CA once and browsers stop warning:
+
+```sh
+docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./lfc-root.crt
+```
+
+- **Mac:** open `lfc-root.crt`, add it to the "System" keychain, then in Keychain Access set "Caddy Local Authority" → Trust → *Always Trust*.
+- **iPhone** (the microphone needs HTTPS, brief 12):
+  1. Put the Mac and the iPhone in the same Wi-Fi. Use the Mac's Bonjour name as `LAN_HOST` in `.env` (e.g. `marcos-mac.local`, see System Settings → General → Sharing) and restart with `make up`.
+  2. Send `lfc-root.crt` to the iPhone (AirDrop or mail) and install the profile under Settings → General → VPN & Device Management.
+  3. Enable full trust under Settings → General → About → Certificate Trust Settings → "Caddy Local Authority".
+  4. Open `https://<LAN_HOST>` in Safari; "Add to Home Screen" installs the PWA.
+- **Alternative without a local CA:** a tunnel gives the app a public HTTPS URL, e.g. `cloudflared tunnel --url https://localhost --no-tls-verify` (Cloudflare quick tunnel). Anyone with the URL reaches the app, so use it only briefly; the gateway token protects the API from phase 1 on.
+
+### API keys for real providers
+
+Use a dedicated API key in its own [Claude Console](https://console.anthropic.com) workspace with a spending limit, and do the same for the speech-to-text and search providers. Put keys only into the files in `~/.config/live-factcheck/secrets/`, never into `.env`. Rotation and the procedure for a leaked key: [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Recommended branch protection
 

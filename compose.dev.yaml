@@ -1,0 +1,120 @@
+# Dev mode (brief 12): `make dev` = docker-compose.yml + this file, with `docker compose watch`.
+# Dev images run the TypeScript sources with tsx (services) or Vite (web); source changes are
+# synced into the containers, dependency changes trigger a rebuild. The root filesystem is
+# writable here because watch syncs files into the container; everything else stays hardened.
+
+x-node-dev: &node-dev
+  read_only: false
+  healthcheck:
+    # Dev images have no built dist/, so the check runs inline.
+    test:
+      [
+        'CMD',
+        'node',
+        '-e',
+        "fetch('http://127.0.0.1:'+process.env.PORT+'/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+      ]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+    start_period: 20s
+  deploy:
+    resources:
+      limits: { cpus: '1.00', memory: 512M }
+
+x-package-sync: &package-sync
+  action: sync
+  path: ./packages
+  target: /repo/packages
+  ignore: [node_modules/, dist/, reports/]
+
+services:
+  gateway:
+    <<: *node-dev
+    build: { target: dev }
+    image: lfc/gateway:dev
+    develop:
+      watch:
+        - { action: sync, path: ./services/gateway/src, target: /repo/services/gateway/src }
+        - *package-sync
+        - { action: rebuild, path: ./services/gateway/package.json }
+        - { action: rebuild, path: ./pnpm-lock.yaml }
+
+  transcription:
+    <<: *node-dev
+    build: { target: dev }
+    image: lfc/transcription:dev
+    develop:
+      watch:
+        - {
+            action: sync,
+            path: ./services/transcription/src,
+            target: /repo/services/transcription/src,
+          }
+        - *package-sync
+        - { action: rebuild, path: ./services/transcription/package.json }
+        - { action: rebuild, path: ./pnpm-lock.yaml }
+
+  claim-extractor:
+    <<: *node-dev
+    build: { target: dev }
+    image: lfc/claim-extractor:dev
+    develop:
+      watch:
+        - {
+            action: sync,
+            path: ./services/claim-extractor/src,
+            target: /repo/services/claim-extractor/src,
+          }
+        - *package-sync
+        - { action: rebuild, path: ./services/claim-extractor/package.json }
+        - { action: rebuild, path: ./pnpm-lock.yaml }
+
+  fact-checker:
+    <<: *node-dev
+    build: { target: dev }
+    image: lfc/fact-checker:dev
+    develop:
+      watch:
+        - {
+            action: sync,
+            path: ./services/fact-checker/src,
+            target: /repo/services/fact-checker/src,
+          }
+        - *package-sync
+        - { action: rebuild, path: ./services/fact-checker/package.json }
+        - { action: rebuild, path: ./pnpm-lock.yaml }
+
+  web:
+    read_only: false
+    build: { target: dev }
+    image: lfc/web:dev
+    environment:
+      WEB_GATEWAY_URL: /api
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:5173/').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    develop:
+      watch:
+        - { action: sync, path: ./apps/web/src, target: /repo/apps/web/src }
+        - { action: sync, path: ./apps/web/index.html, target: /repo/apps/web/index.html }
+        - { action: rebuild, path: ./apps/web/package.json }
+        - { action: rebuild, path: ./apps/web/vite.config.ts }
+        - { action: rebuild, path: ./pnpm-lock.yaml }
+
+  caddy:
+    environment:
+      WEB_UPSTREAM: web:5173
+      # The React refresh preamble of the Vite dev server is an inline script, and Vite injects
+      # CSS as <style> elements. Production keeps both at 'self'.
+      CSP_SCRIPT_SRC: "'self' 'unsafe-inline'"
+      CSP_STYLE_SRC: "'self' 'unsafe-inline'"

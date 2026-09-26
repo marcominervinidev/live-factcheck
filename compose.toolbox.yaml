@@ -1,33 +1,45 @@
-# Dev toolbox: long-running container for pnpm, lint, tests and git hooks.
+# Dev toolbox: long-running container for pnpm, lint, unit tests and git hooks.
 # Separate compose project so its lifecycle is independent of the app stack.
 name: lfc-toolbox
 
+x-toolbox: &toolbox
+  build:
+    context: tools/toolbox
+  image: lfc-toolbox:local
+  working_dir: /workspace
+  init: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop: [ALL]
+  deploy:
+    resources:
+      limits:
+        cpus: '4'
+        memory: 6g
+
 services:
+  # Used by scripts/tb, lefthook and the agent hooks, which run code without asking.
+  # Deliberately without the Docker socket (see docs/SECURITY.md).
   toolbox:
-    build:
-      context: tools/toolbox
-    image: lfc-toolbox:local
-    working_dir: /workspace
-    init: true
+    <<: *toolbox
     volumes:
       - .:/workspace
       - pnpm-store:/pnpm-store
-      # Needed by Testcontainers (stage 2a). Root-equivalent on the Docker host;
-      # dev profile only, see docs/SECURITY.md.
+
+  # Only for Testcontainers (stage 2a), started on demand by `make test-integration`:
+  # the Docker socket is root-equivalent on the Docker host.
+  toolbox-docker:
+    <<: *toolbox
+    profiles: [docker]
+    volumes:
+      - .:/workspace
+      - pnpm-store:/pnpm-store
       - /var/run/docker.sock:/var/run/docker.sock
     # The socket is root:root 0660 inside Docker Desktop's VM.
     group_add: ['0']
     environment:
       # Testcontainers inside a container on Docker Desktop reaches mapped ports via the host gateway.
       TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
-    security_opt:
-      - no-new-privileges:true
-    cap_drop: [ALL]
-    deploy:
-      resources:
-        limits:
-          cpus: '4'
-          memory: 6g
 
 volumes:
   pnpm-store:

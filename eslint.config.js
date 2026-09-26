@@ -15,6 +15,8 @@ export default tseslint.config(
       '**/playwright-report/**',
       '**/blob-report/**',
       '**/test-results/**',
+      '**/.stryker-tmp/**',
+      '**/.lighthouseci/**',
     ],
   },
   eslint.configs.recommended,
@@ -57,8 +59,8 @@ export default tseslint.config(
     },
   },
   {
-    // Frontend: browser globals and the rules of hooks.
-    files: ['apps/web/**/*.{ts,tsx}'],
+    // Frontend sources: browser globals and the rules of hooks (Playwright tests are Node code).
+    files: ['apps/web/src/**/*.{ts,tsx}'],
     ...reactHooks.configs.flat['recommended-latest'],
     languageOptions: { globals: { ...globals.browser } },
   },

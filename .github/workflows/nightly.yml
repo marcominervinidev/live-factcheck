@@ -1,0 +1,89 @@
+# Nightly and on demand (brief 13.3, 13.5): stage 5 and everything too slow or too noisy for
+# every PR — mutation testing, Lighthouse, the full browser matrix (incl. Firefox) and a full
+# image scan that also reports vulnerabilities without an available fix.
+# LLM evals (pnpm eval) are added here as workflow_dispatch in phase 1.
+name: nightly
+
+on:
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+jobs:
+  mutation:
+    name: mutation testing (contracts)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @lfc/contracts
+      - run: pnpm --filter @lfc/contracts run test:mutation
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: mutation-report-contracts
+          path: packages/contracts/reports/mutation
+          retention-days: 14
+
+  stack:
+    name: full browser matrix + Lighthouse
+    uses: ./.github/workflows/stack-tests.yml
+    permissions:
+      contents: read
+      checks: write
+      packages: read
+    with:
+      shards: '[1, 2]'
+      lighthouse: true
+
+  images-matrix:
+    name: images to scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      images: ${{ steps.list.outputs.images }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: list
+        run: node scripts/ci/images.mjs
+
+  image-scan:
+    name: full scan · ${{ matrix.image.name }}
+    needs: images-matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.images-matrix.outputs.images) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.image.dockerfile }}
+          target: ${{ matrix.image.target }}
+          platforms: linux/amd64
+          tags: lfc/${{ matrix.image.name }}:nightly
+          load: true
+          cache-from: type=gha,scope=${{ matrix.image.name }}
+      - name: trivy (HIGH and CRITICAL, including unfixed; report only)
+        env:
+          IMAGE: lfc/${{ matrix.image.name }}:nightly
+        run: >-
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+          image --scanners vuln,secret --severity HIGH,CRITICAL --exit-code 0
+          --no-progress --table-mode detailed "$IMAGE" | tee -a "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,233 @@
+# Local stack (brief 12, 15). Topology and hardening: docs/adr/0004-compose-network-topology.md
+#   make up      build and start everything, wait until healthy
+#   make ready   check /readyz of every service
+# Only caddy publishes host ports. Secrets come from SECRETS_DIR outside the repo.
+# Images: lfc/<service>:local by default; CI sets LFC_REGISTRY/LFC_TAG to test pushed images.
+name: live-factcheck
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  init: true
+  restart: unless-stopped
+  tmpfs:
+    - /tmp:size=16m,mode=1777
+
+x-node-service: &node-service
+  <<: *hardening
+  healthcheck:
+    test: ['CMD', '/nodejs/bin/node', 'node_modules/@lfc/service-kit/dist/bin/healthcheck.js']
+    interval: 10s
+    timeout: 3s
+    retries: 3
+    start_period: 10s
+  deploy:
+    resources:
+      limits: { cpus: '0.50', memory: 256M }
+
+x-redis-env: &redis-env
+  REDIS_URL: redis://redis:6379
+  REDIS_USERNAME: app
+  REDIS_PASSWORD_FILE: /run/secrets/redis_password
+
+services:
+  caddy:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: deploy/compose/caddy/Dockerfile
+    image: ${LFC_REGISTRY:-lfc}/caddy:${LFC_TAG:-local}
+    # Host ports are configurable because macOS may already run Apache on 80 (LFC_HTTP_PORT).
+    # The HTTP port only redirects; keep HTTPS on 443 so redirects and iPhone URLs need no port.
+    ports:
+      - '${LFC_HTTP_PORT:-80}:8080'
+      - '${LFC_HTTPS_PORT:-443}:8443'
+    environment:
+      LAN_HOST: ${LAN_HOST:-lfc.local}
+      WEB_UPSTREAM: web:8080
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [edge, frontend]
+    depends_on:
+      web: { condition: service_healthy }
+      gateway: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits: { cpus: '0.50', memory: 128M }
+
+  web:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: runtime
+    image: ${LFC_REGISTRY:-lfc}/web:${LFC_TAG:-local}
+    environment:
+      WEB_GATEWAY_URL: /api
+    networks: [frontend]
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits: { cpus: '0.25', memory: 64M }
+
+  gateway:
+    <<: *node-service
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+      target: runtime
+    image: ${LFC_REGISTRY:-lfc}/gateway:${LFC_TAG:-local}
+    environment:
+      <<: *redis-env
+      PORT: '8080'
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    secrets: [redis_password]
+    networks: [frontend, internal]
+    depends_on:
+      redis: { condition: service_healthy }
+
+  transcription:
+    <<: *node-service
+    build:
+      context: .
+      dockerfile: services/transcription/Dockerfile
+      target: runtime
+    image: ${LFC_REGISTRY:-lfc}/transcription:${LFC_TAG:-local}
+    environment:
+      <<: *redis-env
+      PORT: '8080'
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    secrets: [redis_password]
+    networks: [internal]
+    depends_on:
+      redis: { condition: service_healthy }
+
+  claim-extractor:
+    <<: *node-service
+    build:
+      context: .
+      dockerfile: services/claim-extractor/Dockerfile
+      target: runtime
+    image: ${LFC_REGISTRY:-lfc}/claim-extractor:${LFC_TAG:-local}
+    environment:
+      <<: *redis-env
+      PORT: '8080'
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      EXTRACTOR_LLM_PROVIDER: ${EXTRACTOR_LLM_PROVIDER:-mock}
+      EXTRACTOR_LLM_MODEL: ${EXTRACTOR_LLM_MODEL:-mock}
+      EXTRACTOR_LLM_BASE_URL: ${EXTRACTOR_LLM_BASE_URL:-}
+      EXTRACTOR_LLM_API_KEY_FILE: /run/secrets/anthropic_api_key
+    secrets: [redis_password, anthropic_api_key]
+    networks: [internal]
+    depends_on:
+      redis: { condition: service_healthy }
+
+  fact-checker:
+    <<: *node-service
+    build:
+      context: .
+      dockerfile: services/fact-checker/Dockerfile
+      target: runtime
+    image: ${LFC_REGISTRY:-lfc}/fact-checker:${LFC_TAG:-local}
+    environment:
+      <<: *redis-env
+      PORT: '8080'
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      CHECKER_LLM_PROVIDER: ${CHECKER_LLM_PROVIDER:-mock}
+      CHECKER_LLM_MODEL: ${CHECKER_LLM_MODEL:-mock}
+      CHECKER_LLM_BASE_URL: ${CHECKER_LLM_BASE_URL:-}
+      CHECKER_LLM_API_KEY_FILE: /run/secrets/anthropic_api_key
+    secrets: [redis_password, anthropic_api_key]
+    networks: [internal]
+    depends_on:
+      redis: { condition: service_healthy }
+
+  redis:
+    <<: *hardening
+    image: redis:8.10.2-alpine
+    user: '999:1000'
+    entrypoint: ['/bin/sh', '/opt/lfc/start.sh']
+    volumes:
+      - ./deploy/compose/redis/start.sh:/opt/lfc/start.sh:ro
+      - redis-data:/data
+    secrets: [redis_password, redis_mcp_password]
+    networks: [internal]
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'REDISCLI_AUTH="$$(sed -e ''s/^[[:space:]]*//'' -e ''s/[[:space:]]*$$//'' /run/secrets/redis_password | tr -d ''\r\n'')" redis-cli --no-auth-warning --user app ping | grep -q PONG',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits: { cpus: '0.50', memory: 256M }
+
+  searxng:
+    <<: *hardening
+    image: searxng/searxng:2026.9.23-3cd69d30e
+    user: '977:977'
+    # The secret key comes from the Compose secret; refuse to start without it.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        test -s /run/secrets/searxng_secret || { echo 'searxng_secret missing (make secrets-init)' >&2; exit 1; };
+        SEARXNG_SECRET="$$(cat /run/secrets/searxng_secret)" exec /usr/local/searxng/entrypoint.sh
+    volumes:
+      - ./deploy/compose/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /var/cache/searxng:size=64m,uid=977,gid=977
+    secrets: [searxng_secret]
+    # Needs the internet for its upstream search engines; reachable only from the internal network.
+    networks: [internal, egress]
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits: { cpus: '1.00', memory: 512M }
+
+networks:
+  # Caddy only: carries the published host ports (a published network cannot be internal).
+  edge: {}
+  # Caddy <-> web and gateway. Internal, so the edge-facing services have no internet or host access.
+  frontend:
+    internal: true
+  # Service-to-service traffic; no route to the internet or the host.
+  internal:
+    internal: true
+  # Outbound internet access for services that need it (SearXNG now, LLM/STT clients later).
+  egress: {}
+
+volumes:
+  caddy-data: {}
+  caddy-config: {}
+  redis-data: {}
+
+secrets:
+  redis_password:
+    file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/redis_password
+  redis_mcp_password:
+    file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/redis_mcp_password
+  searxng_secret:
+    file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/searxng_secret
+  anthropic_api_key:
+    file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/anthropic_api_key

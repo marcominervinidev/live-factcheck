@@ -1,6 +1,7 @@
 # PR pipeline (brief 13.3, 14.2): only stages that ci.yml does not run.
-# TP4: contract check, Dockerfile lint, Semgrep, image build (amd64) + Trivy per image.
-# CodeQL runs in codeql.yml. API/E2E tests follow in TP6. See ADR 0005.
+#   contract check, Dockerfile lint, Semgrep, image build (amd64) + Trivy per image,
+#   stage 3 (API) and stage 4 (E2E, sharded) via stack-tests.yml with mock providers.
+# CodeQL runs in codeql.yml. See ADR 0005.
 name: pr
 
 on:
@@ -64,16 +65,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: list
-        # Every workspace with a Dockerfile is an image; the build context is the repo root.
-        run: |
-          images=$(git ls-files 'services/*/Dockerfile' 'apps/*/Dockerfile' \
-            | jq -R -s -c 'split("\n") | map(select(length > 0) | {name: (split("/")[1]), dockerfile: .})')
-          echo "images=$images" | tee -a "$GITHUB_OUTPUT"
+        run: node scripts/ci/images.mjs
 
   image:
     name: image · ${{ matrix.image.name }}
     needs: images-matrix
-    if: needs.images-matrix.outputs.images != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
@@ -88,7 +84,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.image.dockerfile }}
-          target: runtime
+          target: ${{ matrix.image.target }}
           platforms: linux/amd64
           tags: lfc/${{ matrix.image.name }}:pr-${{ github.event.pull_request.number }}
           load: true
@@ -97,18 +93,31 @@ jobs:
           cache-to: type=gha,scope=${{ matrix.image.name }},mode=max
       - name: trivy (critical vulnerabilities and secrets fail the build)
         # --ignore-unfixed: a critical CVE without an available fix cannot be resolved by us;
-        # it is reported by the nightly full scan instead of blocking every PR.
+        # nightly.yml reports everything including unfixed findings.
         env:
           IMAGE: lfc/${{ matrix.image.name }}:pr-${{ github.event.pull_request.number }}
         run: >-
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.74.0
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
           image --scanners vuln,secret --severity CRITICAL --ignore-unfixed --exit-code 1
-          --no-progress "$IMAGE"
+          --no-progress --table-mode detailed "$IMAGE"
+
+  # Stages 3 and 4 against the stack built from this PR (reusable workflow).
+  stack-tests:
+    name: stack tests
+    uses: ./.github/workflows/stack-tests.yml
+    permissions:
+      contents: read
+      checks: write
+      packages: read
+    with:
+      shards: '[1, 2]'
+      # Full browser matrix (incl. Firefox) runs nightly (brief 13.3).
+      e2e-args: --project=chromium-desktop --project=chromium-mobile --project=webkit-iphone
 
   # Single required check for branch protection (see ci.yml `ci passed`).
   pr-passed:
     name: pr passed
-    needs: [contract-check, hadolint, semgrep, images-matrix, image]
+    needs: [contract-check, hadolint, semgrep, images-matrix, image, stack-tests]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 2
