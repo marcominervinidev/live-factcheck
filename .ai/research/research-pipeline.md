@@ -7,7 +7,7 @@
 
 ## Fetching pages safely (brief 9, 15.5)
 
-The URLs come from search results, i.e. from strangers. Guard (`packages/providers/src/fetch/safe-fetch.ts`):
+The URLs come from search results, i.e. from strangers. Guard (`packages/research/src/fetch/safe-fetch.ts`):
 
 1. Only `http:` / `https:`; no credentials in the URL; ports 80/443 only.
 2. Resolve the host with `dns.lookup(host, { all: true })`; reject if **any** address is loopback, private (RFC 1918, fc00::/7), link-local (169.254/16 incl. cloud metadata 169.254.169.254, fe80::/10), CGNAT (100.64/10), unspecified, multicast or IPv4-mapped variants of these. Implemented with Node's `net.BlockList`.
@@ -15,7 +15,7 @@ The URLs come from search results, i.e. from strangers. Guard (`packages/provide
 4. **Pin the connection to the validated IP** (undici 8 `Agent` with a custom `connect.lookup`) so a DNS change between check and connect (rebinding) cannot reach an internal address.
 5. Redirects manually (`redirect: "manual"`), at most 3, each hop re-validated from step 1.
 6. Limits: timeout (`CHECKER_FETCH_TIMEOUT_MS`), max body bytes (`CHECKER_FETCH_MAX_BYTES`, read as a stream and aborted when exceeded), `content-type` must be `text/html` or `text/plain`.
-7. Own `User-Agent` (`live-factcheck/<version> (+repo URL)`), and robots.txt respected via `robots-parser` 3.0.1 (robots.txt itself fetched through the same guard, cached per origin in Redis).
+7. Own `User-Agent` (`live-factcheck/<version> (+repo URL)`), and robots.txt respected via a small in-house RFC 9309 matcher (`packages/research/src/fetch/robots-rules.ts`; `robots-parser` 3.0.1 was dropped because its typings collapse to `any`). robots.txt itself is fetched through the same guard and cached per origin in Redis.
 
 ## Main-text extraction
 

@@ -1,0 +1,54 @@
+# Phase 1 · TP3 (packages/research) – evidence, 2026-09-26
+
+## Unit tests with coverage (@lfc/research; HTTP boundary = local fake server or fake fetcher)
+fetch/address 60 (SSRF attack cases, written first) · fetch/safe-fetch 15 · fetch/robots 14 ·
+extract-chunk 12 · sources 21 · source-tiers 7                                   -> 129 passed
+Coverage: statements 94.67 %, branches 82.5 %, functions 93.87 %, lines 96.49 % (threshold 80 %)
+
+## SSRF guard (brief 15.5) – refused
+- schemes other than http/https (file, gopher, data), credentials in URLs, ports other than 80/443
+- internal names: localhost, *.localhost, *.local, *.internal, *.home.arpa, single-label (redis,
+  postgres, searxng, gateway), host.docker.internal, metadata.google.internal
+- IP literals in every notation: 127.0.0.1, decimal 2130706433, hex 0x7f000001, [::1],
+  [::ffff:127.0.0.1]; blocked ranges incl. 169.254.169.254, CGNAT, TEST-NETs, multicast,
+  fc00::/7, fe80::/10, IPv4-mapped / NAT64 / 6to4 embedding of internal IPv4
+- names resolving to an internal address, or to a mix of public and internal (rebinding):
+  validation runs inside the connection's own DNS lookup, so checked = connected address
+- redirects to the metadata IP or an internal name (without connecting), > 3 redirects
+- bodies above the limit (with and without content-length), non-accepted content types, timeouts
+- the production policy blocks the loopback fake server outright
+
+## Other behaviour
+- robots.txt (RFC 9309): own group vs * group, wildcards, $ anchors, longest match, Allow wins
+  ties; 4xx → allow, 5xx/timeout/blocked → disallow; cached once per origin
+- extraction: scripts not executed, nav/footer dropped, publisher/publish date read,
+  injected instructions stay plain text (the prompt delimits them)
+- chunking: every chunk ≤ 500 tokens, all but the last ≥ 300, one sentence overlap, full coverage;
+  ordinals ("8. Mai") vs years ("1945.") handled
+- tiers: longest-suffix match from config/source-tiers.yaml; notbund.de is not bund.de
+- Google Fact Check: key only in the X-Goog-Api-Key header; entries without http(s) URL or rating dropped
+- Wikidata: dates by precision in German (incl. v. Chr.), counts de-DE formatted, only allowlisted properties
+- researchClaim: tiers in parallel, a failing or timed-out tier is reported and dropped
+- caches: repeated fetch/search served from cache, failures never cached
+- ranking: shared-word chunk first, score = similarity × tier weight
+
+## Stage 0
+make lint: typecheck, eslint, prettier, depcruise clean
+
+## Dependency change
+robots-parser 3.0.1 not used: its typings declare the module as `any`; replaced by a 60-line
+RFC 9309 matcher with tests.
+
+## Security review of TP2 + TP3 (security-reviewer subagent, 2026-09-26)
+| # | Severity | Finding | Resolution |
+|---|---|---|---|
+| 1 | high | ReDoS in the robots.txt matcher (reproduced: 45 s for 10 wildcards / 50 chars) | linear `*`-glob matcher without RegExp, limits for rule length (512), rule count (2000), path length (2048), parsed rules cached per origin; test: 40 wildcards vs 2000-char path < 200 ms |
+| 2 | medium | page text could close `<state>` in the llm classifier prompt | questions before state, state in a tag with a random 64-bit suffix per request; test with a `</state><questions>…` payload |
+| 3 | medium | daily budget counted unknown cloud models as 0 USD | unknown models charged at 15/75 USD per 1M tokens (above every known price); test |
+| 4 | low | caller headers (Google API key) re-sent on cross-origin redirects | headers only on hops with the first URL's origin; test |
+| 5 | low | IPv6 forms ::/96, ::ffff:0:0:0/96, fec0::/10, 64:ff9b:1::/48 passed | IPv6 allowed only from 2000::/3, Teredo 2001::/32 blocked, embedded IPv4 still checked; tests |
+| 6 | low | synchronous jsdom parsing on unbounded bodies | `maxBytes` capped at 5 MB in the safe fetch; service config default 2 MB |
+| 7 | low | Google Fact Check tier not modelled as external use | fact-checker config adds it to `checkPrivacyMode` (TP4); settings page lists it (TP5) |
+Clean per the review: SSRF core (lookup-level validation, all records checked, redirects, IP
+notations, ports), no plain fetch on stranger URLs, keys absent from URLs/logs/caches/errors,
+TypeSafe logging off, strict zod on every LLM answer, jsdom without scripts or resources.
