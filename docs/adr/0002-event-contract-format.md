@@ -1,6 +1,6 @@
 # 0002: Event contract format
 
-- Status: accepted
+- Status: accepted; the field list and rules for `ClaimDetected`, `ClaimChecked` and the envelope are amended by [ADR 0010](0010-contracts-v2-and-api-v1.md)
 - Date: 2026-09-25
 
 ## Context
