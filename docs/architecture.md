@@ -19,14 +19,16 @@ This document describes how live-factcheck is put together. The requirements are
 | `gateway` | Node.js, Fastify | only public API: REST + WebSocket, sessions, audio forwarding, event push | horizontal (WebSocket fan-out via Pub/Sub) | skeleton |
 | `transcription` | Node.js | streaming speech-to-text via adapters or `stt-local` | by active sessions | skeleton |
 | `stt-local` | Python, FastAPI, faster-whisper | fully local transcription (optional profile) | CPU/GPU bound | planned (phase 2) |
-| `claim-extractor` | Node.js worker | rolling window per session, claim extraction via LLM, deduplication | consumer group | skeleton |
-| `fact-checker` | Node.js worker | search, fetch, LLM verdict on the fetched sources only | consumer group; most expensive | skeleton |
+| `claim-extractor` | Node.js worker | rolling window per session; three stages: deterministic pre-filter, classifier (check-worthiness), LLM rewrite into a standalone claim; deduplication | consumer group | skeleton (logic in phase 2) |
+| `fact-checker` | Node.js worker | verdict cache → evidence store (phase 4) → live research over three source tiers; the classifier decides; publishes the verdict immediately | consumer group; most expensive | skeleton |
+| `explainer` | Node.js worker | short German explanation of a verdict via LLM, published as its own event after the verdict ([ADR 0009](adr/0009-explainer-service.md)) | consumer group; can scale to zero | planned (phase 1) |
+| `topic-tracker` | Node.js worker | detects the conversation topic and prefetches evidence | consumer group | planned (phase 4) |
 | `redis` | Redis 8 | streams, Pub/Sub, cache (ACL users `app`, read-only `mcp`) | – | running (Compose) |
 | `searxng` | SearXNG | self-hosted meta search without API key | – | running (Compose) |
 | `caddy` | Caddy | TLS termination, security headers; later the Ingress | – | running (Compose) |
-| `postgres` | PostgreSQL | session history, claims, verdicts | – | planned (phase 4) |
+| `postgres` | PostgreSQL + pgvector ([ADR 0013](adr/0013-vector-store.md)) | session history, claims, verdicts, evidence store, semantic verdict cache | – | planned (phase 4) |
 
-Shared packages: `@lfc/contracts` (schemas), `@lfc/service-kit` (config, logging, ops endpoints, Redis, lifecycle), `@lfc/providers` (adapters; LLM config in phase 0).
+Shared packages: `@lfc/contracts` (schemas), `@lfc/service-kit` (config, logging, ops endpoints, Redis, lifecycle), `@lfc/providers` (LLM, classifier, embedding, search and later STT adapters), `@lfc/research` (planned, phase 1: safe fetching, source tiers, chunking, ranking, caches).
 
 ## Data flow
 
@@ -118,3 +120,15 @@ A nightly workflow adds mutation testing, Lighthouse, Firefox and a full image s
 - From phase 1: gateway token in headers only, SSRF guard for every fetched URL, fetched pages treated as data (prompt injection), LLM output validated against the schema.
 
 Threat model, secret handling, key rotation and the leak procedure: [SECURITY.md](SECURITY.md).
+
+## Deviations from the brief
+
+The brief ([PROJECT_BRIEF.md](PROJECT_BRIEF.md)) is the owner's requirements document and is not edited to match the implementation. Where the implementation deliberately differs, the ADR is the source of truth:
+
+| Brief | Implementation | Why |
+|---|---|---|
+| 1.1, 1.3: Docker MCP server from phase 0; evidence "via the Docker MCP" | no Docker MCP; `docker compose ps/logs/exec` in the terminal | no official maintained server, every option needs the Docker socket (owner's decision, [ADR 0006](adr/0006-agent-tooling-layout.md)) |
+| 1.1, 1.4, 16: Antigravity MCP template in `tools/antigravity/`, written to `~/.gemini/…` by `make agent-setup` | workspace file `.agents/mcp_config.json`, kept identical to `.mcp.json` by CI | Antigravity reads workspace configs; no global file with absolute paths ([ADR 0006](adr/0006-agent-tooling-layout.md)) |
+| 1.1, 1.4: roles as Antigravity agents or workflows | subagents in `.agents/agents/`, glob rules in `.agents/rules/` for nested `AGENTS.md` | workflows are retired on 2026-11-01 ([ADR 0006](adr/0006-agent-tooling-layout.md)) |
+| 16: `tools/antigravity/` | `tools/toolbox/` (container for all Node tooling) | host needs only Docker ([ADR 0001](adr/0001-monorepo-and-toolchain.md)) |
+| 15.4: network `edge` for caddy, web and gateway | `edge` only for Caddy; internal `frontend` network for caddy, web, gateway; workers that need the internet on `egress` | web and gateway get no internet or host access ([ADR 0004](adr/0004-compose-network-topology.md)) |
