@@ -1,5 +1,23 @@
 import { z } from 'zod';
 
+import type { TokenUsage } from './llm/types.js';
+import { estimateCostUsd } from './pricing.js';
+
+/**
+ * USD per million tokens for cloud models missing from the price table: above every known
+ * price, so an unknown model can only make the budget stricter, never looser.
+ */
+const FALLBACK_PRICE = { input: 15, output: 75 };
+
+/** The cost counted against the budget: the known price, else the conservative fallback. */
+export function budgetCostUsd(model: string, usage: TokenUsage): number {
+  return (
+    estimateCostUsd(model, usage) ??
+    (usage.inputTokens * FALLBACK_PRICE.input + usage.outputTokens * FALLBACK_PRICE.output) /
+      1_000_000
+  );
+}
+
 /**
  * Daily budget for cloud model calls (brief 15.5): a mistake or abuse must not produce a big
  * bill. Spend is counted in Redis per UTC day and shared by all replicas.
@@ -30,8 +48,11 @@ const TWO_DAYS_S = 2 * 24 * 60 * 60;
 export interface DailyBudget {
   /** Throws `BudgetExceededError` when today's spend has reached the limit. Call before a cloud call. */
   ensureAvailable(): Promise<void>;
-  /** Adds the cost of a finished call (`null` = unknown price: counted as 0, see pricing.ts). */
-  record(costUsd: number | null): Promise<void>;
+  /**
+   * Adds the cost of a finished cloud call. A model without a known price is charged at a
+   * conservative fallback rate, so the budget fails closed (security review finding 3).
+   */
+  record(model: string, usage: TokenUsage): Promise<void>;
 }
 
 export function createDailyBudget(
@@ -47,8 +68,9 @@ export function createDailyBudget(
         throw new BudgetExceededError(spent, limitUsd);
       }
     },
-    async record(costUsd) {
-      if (costUsd === null || costUsd <= 0) return;
+    async record(model, usage) {
+      const costUsd = budgetCostUsd(model, usage);
+      if (costUsd <= 0) return;
       const k = key();
       await store.incrbyfloat(k, costUsd);
       await store.expire(k, TWO_DAYS_S);

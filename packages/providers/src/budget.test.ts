@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BudgetStore } from './budget.js';
-import { BudgetExceededError, createDailyBudget } from './budget.js';
+import { BudgetExceededError, budgetCostUsd, createDailyBudget } from './budget.js';
 import { estimateCostUsd } from './pricing.js';
 
 /** In-memory stand-in for Redis (the system boundary); the service tests use a real Redis. */
@@ -30,9 +30,10 @@ describe('daily cloud budget', () => {
     const { store, values, ttls } = memoryStore();
     const budget = createDailyBudget(store, 1, day('2026-09-26T23:59:00Z'));
     await budget.ensureAvailable();
-    await budget.record(0.6);
+    // 120k input tokens of claude-opus-5 = 0.60 USD
+    await budget.record('claude-opus-5', { inputTokens: 120_000, outputTokens: 0 });
     await budget.ensureAvailable();
-    await budget.record(0.5);
+    await budget.record('claude-opus-5', { inputTokens: 100_000, outputTokens: 0 });
     await expect(budget.ensureAvailable()).rejects.toBeInstanceOf(BudgetExceededError);
     expect([...values.keys()]).toEqual(['budget:v1:cloud:2026-09-26']);
     expect(ttls.get('budget:v1:cloud:2026-09-26')).toBe(172_800);
@@ -41,11 +42,18 @@ describe('daily cloud budget', () => {
     await expect(nextDay.ensureAvailable()).resolves.toBeUndefined();
   });
 
-  it('ignores unknown and zero costs', async () => {
+  it('charges unknown cloud models at a conservative rate instead of nothing (fails closed)', async () => {
     const { store, values } = memoryStore();
-    const budget = createDailyBudget(store, 1);
-    await budget.record(null);
-    await budget.record(0);
+    const budget = createDailyBudget(store, 1, day('2026-09-26T12:00:00Z'));
+    await budget.record('claude-sonnet-5-20260915', { inputTokens: 50_000, outputTokens: 5_000 });
+    expect(Number(values.get('budget:v1:cloud:2026-09-26'))).toBeCloseTo(1.125, 10);
+    await expect(budget.ensureAvailable()).rejects.toBeInstanceOf(BudgetExceededError);
+    expect(budgetCostUsd('claude-opus-5', { inputTokens: 1_000_000, outputTokens: 0 })).toBe(5);
+  });
+
+  it('ignores calls without tokens', async () => {
+    const { store, values } = memoryStore();
+    await createDailyBudget(store, 1).record('unknown', { inputTokens: 0, outputTokens: 0 });
     expect(values.size).toBe(0);
   });
 });
