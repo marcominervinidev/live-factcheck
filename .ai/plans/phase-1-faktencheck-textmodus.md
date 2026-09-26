@@ -16,12 +16,12 @@ Legende: **N** = Nachzieharbeit in TP0, **P1** = regulärer Phase-1-Scope, **sp�
 
 | # | Abschnitt | Soll laut Brief | Ist nach Phase 0 | Einordnung |
 |---|---|---|---|---|
-| 1 | 1.1, 1.3, 1.4 | Docker-MCP ab Phase 0; Nachweise „über den Docker-MCP“ | kein Docker-MCP; `docker compose ps/logs` im Terminal | **ADR 0006** (Entscheidung des Owners 2026-09-25: kein offizieller Server, Socket = Root). Bleibt; der neue Brief-Text nimmt das wieder zurück, vermutlich unbeabsichtigt → im PR benannt |
-| 2 | 1.1, 1.4, 16 | Antigravity-MCP-Vorlage `tools/antigravity/mcp_config.example.json`, `make agent-setup` schreibt `~/.gemini/…` | Workspace-Datei `.agents/mcp_config.json` (CI prüft Gleichstand mit `.mcp.json`) | **ADR 0006**; bleibt |
-| 3 | 1.1, 1.4 | Rollen in Antigravity als „Agenten bzw. Workflows“ | Subagents in `.agents/agents/` (Workflows werden am 2026-11-01 abgeschaltet) | **ADR 0006**; mit dem Brief vereinbar („Agenten“) |
-| 4 | 1.4, 16 | verschachtelte `AGENTS.md` liest Antigravity direkt | zusätzlich Glob-Regeln `.agents/rules/*.md` | **ADR 0006**; Ergänzung, kein Widerspruch |
-| 5 | 16 | `tools/antigravity/` | `tools/toolbox/` (Dev-Container für Node-Tooling) | **ADR 0001**; bleibt |
-| 6 | 15.4 | Netz `edge` für caddy, web, gateway | `edge` nur Caddy, internes Netz `frontend` für caddy/web/gateway | **ADR 0004** (Security-Review-Fix, strenger als der Brief); bleibt |
+| 1 | 1.1, 1.3 | (neuer Brief) Docker-MCP ab Phase 0 | kein Docker-MCP | **erledigt**: Rücknahme war unbeabsichtigt (Marco, 2026-09-26); Brief wieder auf ADR 0006 gesetzt |
+| 2 | 1.1, 1.4, 16 | (neuer Brief) `tools/antigravity/`-Vorlage + `make agent-setup` | `.agents/mcp_config.json` im Workspace | **erledigt**: Brief wieder auf ADR 0006 gesetzt |
+| 3 | 1.1, 1.4 | (neuer Brief) Antigravity-Agenten bzw. Workflows | Subagents in `.agents/agents/` | **erledigt**: Brief wieder auf ADR 0006 gesetzt |
+| 4 | 1.4, 16 | (neuer Brief) verschachtelte `AGENTS.md` direkt gelesen | Glob-Regeln `.agents/rules/` | **erledigt**: Brief wieder auf ADR 0006 gesetzt |
+| 5 | 16 | (neuer Brief) `tools/antigravity/` | `tools/toolbox/` | **erledigt**: Brief wieder auf ADR 0001 gesetzt |
+| 6 | 15.4 | `edge` für caddy, web, gateway | `edge` nur Caddy, internes `frontend`, `egress` | **erledigt**: Brief 15.4 erstmals an ADR 0004 angepasst |
 | 7 | 1.1 | Playwright-MCP ab Phase 1 | fehlt in `.mcp.json` | **N** T0.4 |
 | 8 | 1.2 | `.ai/summaries/` für stark veränderte Codebereiche | fehlt | **N** T0.1 |
 | 9 | 5, 6, 16 | Service `explainer` | fehlt | **N** T0.5 (Skelett), **P1** T4.3 (Logik) |
@@ -45,7 +45,7 @@ Legende: **N** = Nachzieharbeit in TP0, **P1** = regulärer Phase-1-Scope, **sp�
 | 27 | 13.6, 17 | `docs/testing/iphone-smoke.md` | fehlt | **später** (Phase 2 laut 17) |
 | 28 | 8.1, 5 | `claim-extractor` dreistufig, `topic-tracker`, `local-model` | Skelett bzw. fehlt | **später** (Phase 2, 4, 7) |
 | 29 | 17 | Phase 7 optional, eval-gesteuert, F1-Startwert 0,85 per ADR | – | **später**; Kennzahl F1 wird im Eval-Report für Phase 2 vorbereitet |
-| 30 | 1.2 Schritt 7 | Abweichungen im selben PR im Brief bzw. ADR nachziehen | Brief wurde neu gefasst, ADRs 0004/0006 widersprechen ihm | **N** T0.3: die ADRs bleiben die Quelle, der Brief-Text bleibt deine Fassung; die Liste oben geht in die PR-Beschreibung |
+| 30 | 1.2 Schritt 7 | Abweichungen im selben PR im Brief bzw. ADR nachziehen | Zeilen 1–6 | **erledigt**: Brief angepasst, `docs/architecture.md` listet keine offenen Abweichungen |
 
 ## Geklärte Entscheidungen
 
@@ -85,7 +85,7 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 
 **T0.1 Kurzbeschreibungen** (1.2 Schritt 2): `.ai/summaries/{service-kit,providers,contracts,gateway,fact-checker}.md` (Verantwortung, Datenfluss, zentrale Typen, Stolperfallen).
 **T0.2 ADRs** 0007, 0008, 0009 (proposed), 0012, 0013 (proposed, offen); Nachtrag in ADR 0004.
-**T0.3 Abweichungen** Brief ↔ ADR 0001/0004/0006 in `docs/architecture.md` und der PR-Beschreibung benennen; der Brief-Text bleibt unverändert.
+**T0.3 Abweichungen** Brief ↔ ADR 0001/0004/0006: Brief auf die vereinbarten Entscheidungen zurückgesetzt (Marco, 2026-09-26: Rücknahme war unbeabsichtigt), `docs/architecture.md` nachgezogen.
 **T0.4 Playwright-MCP** in `.mcp.json` und `.agents/mcp_config.json` (offizielles `@playwright/mcp`, Container-Start, headless), `docs/ai-tooling.md`. Verifikation: `node scripts/ci/check-mcp-parity.mjs`, `/mcp`.
 **T0.5 Skelette** über die Skills:
 - `services/explainer` per Skill `new-service` (Dockerfile, Compose-Eintrag, `AGENTS.md`/`CLAUDE.md`, Glob-Regel, CI-Image-Liste)
@@ -211,7 +211,7 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 - [x] TP0 erledigt (Nachweise: `docs/evidence/phase-1/tp0-gap-catch-up.txt`)
   - [x] T0.1 Kurzbeschreibungen `.ai/summaries/`
   - [x] T0.2 ADR 0007–0009 (proposed), 0012/0013 (offen), Nachtrag ADR 0004
-  - [x] T0.3 Abweichungen Brief ↔ ADR in `docs/architecture.md`
+  - [x] T0.3 Brief auf ADR 0001/0004/0006 zurückgesetzt (1.1, 1.3, 1.4, 15.4, 16, 17)
   - [x] T0.4 Playwright-MCP (Image per Digest, `https://lfc.local`)
   - [x] T0.5 `services/explainer`, `packages/research` + `config/source-tiers.yaml`, `evals/README.md` + `SOURCES.md`
   - [x] T0.6 Klassifikator-Config, `EXPLAINER`, `PRIVACY_MODE`, Secrets je Service, `egress`, `.env.example`

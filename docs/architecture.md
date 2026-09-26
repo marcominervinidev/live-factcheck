@@ -123,12 +123,4 @@ Threat model, secret handling, key rotation and the leak procedure: [SECURITY.md
 
 ## Deviations from the brief
 
-The brief ([PROJECT_BRIEF.md](PROJECT_BRIEF.md)) is the owner's requirements document and is not edited to match the implementation. Where the implementation deliberately differs, the ADR is the source of truth:
-
-| Brief | Implementation | Why |
-|---|---|---|
-| 1.1, 1.3: Docker MCP server from phase 0; evidence "via the Docker MCP" | no Docker MCP; `docker compose ps/logs/exec` in the terminal | no official maintained server, every option needs the Docker socket (owner's decision, [ADR 0006](adr/0006-agent-tooling-layout.md)) |
-| 1.1, 1.4, 16: Antigravity MCP template in `tools/antigravity/`, written to `~/.gemini/…` by `make agent-setup` | workspace file `.agents/mcp_config.json`, kept identical to `.mcp.json` by CI | Antigravity reads workspace configs; no global file with absolute paths ([ADR 0006](adr/0006-agent-tooling-layout.md)) |
-| 1.1, 1.4: roles as Antigravity agents or workflows | subagents in `.agents/agents/`, glob rules in `.agents/rules/` for nested `AGENTS.md` | workflows are retired on 2026-11-01 ([ADR 0006](adr/0006-agent-tooling-layout.md)) |
-| 16: `tools/antigravity/` | `tools/toolbox/` (container for all Node tooling) | host needs only Docker ([ADR 0001](adr/0001-monorepo-and-toolchain.md)) |
-| 15.4: network `edge` for caddy, web and gateway | `edge` only for Caddy; internal `frontend` network for caddy, web, gateway; workers that need the internet on `egress` | web and gateway get no internet or host access ([ADR 0004](adr/0004-compose-network-topology.md)) |
+None open. The brief ([PROJECT_BRIEF.md](PROJECT_BRIEF.md)) reflects the decisions in the ADRs, including the agent tooling layout ([ADR 0006](adr/0006-agent-tooling-layout.md): no Docker MCP, Antigravity workspace config in `.agents/`), the network split ([ADR 0004](adr/0004-compose-network-topology.md): `edge`, `frontend`, `internal`, `egress`) and the toolbox container ([ADR 0001](adr/0001-monorepo-and-toolchain.md)). A future deviation is listed here with its ADR and updated in the brief in the same PR (brief 1.2 step 7).
