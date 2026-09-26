@@ -29,6 +29,7 @@ for (const [network, prefix] of [
   ['::', 128], // unspecified
   ['::1', 128], // loopback
   ['100::', 64], // discard
+  ['2001::', 32], // Teredo (embeds an obfuscated IPv4)
   ['2001:db8::', 32], // documentation
   ['fc00::', 7], // unique local
   ['fe80::', 10], // link-local
@@ -89,6 +90,13 @@ export function isPublicAddress(address: string): boolean {
     const v4 = embeddedV4(address.toLowerCase());
     if (v4 !== undefined) {
       return isPublicAddress(v4);
+    }
+    // Only global unicast 2000::/3 is public; everything else (IPv4-compatible ::/96,
+    // IPv4-translated, site-local fec0::/10, local-use NAT64 64:ff9b:1::/48, …) is not
+    // (security review finding 5).
+    const firstHextet = hextets(address.toLowerCase())[0] ?? 0;
+    if (firstHextet < 0x2000 || firstHextet > 0x3fff) {
+      return false;
     }
     return !blocked.check(address, 'ipv6');
   }

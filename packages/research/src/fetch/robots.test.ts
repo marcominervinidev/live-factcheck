@@ -45,6 +45,37 @@ Disallow: /no-bots/
     expect(robotsAllows('User-agent: *\nDisallow:\n', 'https://example.org/x', TOKEN)).toBe(true);
   });
 
+  it('matches pathological wildcard rules in linear time (ReDoS, security review finding 1)', () => {
+    const rules = `User-agent: *\nDisallow: /${'*a'.repeat(40)}*b$\n`;
+    const url = `https://example.org/${'a'.repeat(2_000)}`;
+    const started = performance.now();
+    expect(robotsAllows(rules, url, TOKEN)).toBe(true);
+    expect(performance.now() - started).toBeLessThan(200);
+  });
+
+  it.each([
+    ['/*/x$', '/a/b/x', false],
+    ['/*/x$', '/a/b/x/y', true],
+    ['/a**b', '/a-b', false],
+    ['/*.php', '/index.php?x=1', false],
+    ['/p$', '/p', false],
+    ['/p$', '/pp', true],
+  ])('wildcard rule %s against %s → allowed %s', (rule, path, allowed) => {
+    expect(
+      robotsAllows(`User-agent: *\nDisallow: ${rule}\n`, `https://example.org${path}`, TOKEN),
+    ).toBe(allowed);
+  });
+
+  it('ignores overlong rules', () => {
+    expect(
+      robotsAllows(
+        `User-agent: *\nDisallow: /${'x'.repeat(600)}\n`,
+        `https://example.org/${'x'.repeat(600)}`,
+        TOKEN,
+      ),
+    ).toBe(true);
+  });
+
   it('lets Allow win a tie of equally long rules', () => {
     expect(
       robotsAllows('User-agent: *\nDisallow: /a\nAllow: /a\n', 'https://example.org/a', TOKEN),

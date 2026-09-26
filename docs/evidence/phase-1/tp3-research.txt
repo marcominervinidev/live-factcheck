@@ -38,3 +38,17 @@ make lint: typecheck, eslint, prettier, depcruise clean
 ## Dependency change
 robots-parser 3.0.1 not used: its typings declare the module as `any`; replaced by a 60-line
 RFC 9309 matcher with tests.
+
+## Security review of TP2 + TP3 (security-reviewer subagent, 2026-09-26)
+| # | Severity | Finding | Resolution |
+|---|---|---|---|
+| 1 | high | ReDoS in the robots.txt matcher (reproduced: 45 s for 10 wildcards / 50 chars) | linear `*`-glob matcher without RegExp, limits for rule length (512), rule count (2000), path length (2048), parsed rules cached per origin; test: 40 wildcards vs 2000-char path < 200 ms |
+| 2 | medium | page text could close `<state>` in the llm classifier prompt | questions before state, state in a tag with a random 64-bit suffix per request; test with a `</state><questions>…` payload |
+| 3 | medium | daily budget counted unknown cloud models as 0 USD | unknown models charged at 15/75 USD per 1M tokens (above every known price); test |
+| 4 | low | caller headers (Google API key) re-sent on cross-origin redirects | headers only on hops with the first URL's origin; test |
+| 5 | low | IPv6 forms ::/96, ::ffff:0:0:0/96, fec0::/10, 64:ff9b:1::/48 passed | IPv6 allowed only from 2000::/3, Teredo 2001::/32 blocked, embedded IPv4 still checked; tests |
+| 6 | low | synchronous jsdom parsing on unbounded bodies | `maxBytes` capped at 5 MB in the safe fetch; service config default 2 MB |
+| 7 | low | Google Fact Check tier not modelled as external use | fact-checker config adds it to `checkPrivacyMode` (TP4); settings page lists it (TP5) |
+Clean per the review: SSRF core (lookup-level validation, all records checked, redirects, IP
+notations, ports), no plain fetch on stranger URLs, keys absent from URLs/logs/caches/errors,
+TypeSafe logging off, strict zod on every LLM answer, jsdom without scripts or resources.
