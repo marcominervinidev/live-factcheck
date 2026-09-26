@@ -73,3 +73,31 @@ export type {
   ScoreAnswer,
   ScoreQuestion,
 } from './classifier/types.js';
+export {
+  EMBEDDING_PROVIDERS,
+  EmbeddingError,
+  checkEmbeddingsConfig,
+  cosineSimilarity,
+  createEmbeddingProvider,
+  describeEmbeddingsConfig,
+  embeddingsConfigShape,
+  embeddingsUse,
+  mockEmbedding,
+} from './embeddings/embeddings.js';
+export type { EmbeddingProvider, EmbeddingProviderName } from './embeddings/embeddings.js';
+export {
+  SEARCH_PROVIDERS,
+  SearchError,
+  checkSearchConfig,
+  createSearchProvider,
+  searchConfigShape,
+} from './search/search.js';
+export type {
+  MockSearchHandler,
+  SearchProvider,
+  SearchProviderName,
+  SearchResult,
+} from './search/search.js';
+export { estimateCostUsd } from './pricing.js';
+export { BudgetExceededError, budgetConfigShape, createDailyBudget } from './budget.js';
+export type { BudgetStore, DailyBudget } from './budget.js';
