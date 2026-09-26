@@ -66,6 +66,7 @@ export interface SafeFetcher {
 }
 
 const REDIRECTS = new Set([301, 302, 303, 307, 308]);
+const MAX_BODY_BYTES = 5_000_000;
 
 function charsetOf(contentType: string): string {
   const match = /charset\s*=\s*"?([\w-]+)"?/i.exec(contentType);
@@ -120,6 +121,10 @@ async function readLimited(body: ByteStream, maxBytes: number): Promise<Uint8Arr
  * size and time limits, content-type allowlist.
  */
 export function createSafeFetcher(options: SafeFetchOptions): SafeFetcher {
+  if (options.maxBytes > MAX_BODY_BYTES) {
+    // jsdom parses synchronously; a bounded body bounds the CPU per page (review finding 6).
+    throw new Error(`maxBytes must not exceed ${String(MAX_BODY_BYTES)}`);
+  }
   const policy = options.policy ?? PUBLIC_WEB;
   const resolve = options.resolve ?? systemResolver;
   const maxRedirects = options.maxRedirects ?? 3;
@@ -157,11 +162,16 @@ export function createSafeFetcher(options: SafeFetchOptions): SafeFetcher {
         ...(fetchOptions.signal === undefined ? [] : [fetchOptions.signal]),
       ]);
       let current = rawUrl;
+      let firstOrigin: string | undefined;
       for (let hop = 0; ; hop++) {
         const check = checkUrl(current, policy);
         if (!check.ok) {
           throw new FetchBlockedError(hop === 0 ? check.reason : `redirect to ${check.reason}`);
         }
+        firstOrigin ??= check.url.origin;
+        // Caller headers (e.g. an API key) never follow a redirect to another origin
+        // (security review finding 4; the fetch spec strips credentials the same way).
+        const extraHeaders = check.url.origin === firstOrigin ? fetchOptions.headers : undefined;
         let response;
         try {
           response = await fetch(check.url, {
@@ -171,7 +181,7 @@ export function createSafeFetcher(options: SafeFetchOptions): SafeFetcher {
             headers: {
               'user-agent': options.userAgent,
               accept: fetchOptions.accept.join(', '),
-              ...fetchOptions.headers,
+              ...extraHeaders,
             },
           });
         } catch (error) {

@@ -60,6 +60,18 @@ const routes: Record<string, (req: IncomingMessage, res: ServerResponse) => void
       res.end('late');
     }, 2_000);
   },
+  '/echo-key': (req, res) => {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end(String(req.headers['x-api-key'] ?? 'none'));
+  },
+  '/redirect-same-origin': (_req, res) => {
+    res.writeHead(302, { location: '/echo-key' });
+    res.end();
+  },
+  '/redirect-other-origin': (_req, res) => {
+    res.writeHead(302, { location: `http://other.test:${String(port)}/echo-key` });
+    res.end();
+  },
   '/ua': (req, res) => {
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end(req.headers['user-agent'] ?? '');
@@ -93,6 +105,7 @@ afterAll(async () => {
 /** Test DNS: public-looking names map to our fake server; others to attack targets. */
 const dnsTable: Record<string, { address: string; family: 4 | 6 }[]> = {
   'site.test': [{ address: '127.0.0.1', family: 4 }],
+  'other.test': [{ address: '127.0.0.1', family: 4 }],
   'metadata.attacker.test': [{ address: '169.254.169.254', family: 4 }],
   'mixed.attacker.test': [
     { address: '127.0.0.1', family: 4 },
@@ -135,6 +148,27 @@ describe('safe fetch', () => {
   it('sends its own User-Agent', async () => {
     const page = await fetcher().fetchText(at('/ua'), { accept: ['text/plain'] });
     expect(page.text).toMatch(/^live-factcheck\//);
+  });
+
+  it('keeps caller headers on same-origin redirects and drops them for other origins', async () => {
+    const headers = { 'x-api-key': 'secret-key' };
+    const same = await fetcher().fetchText(at('/redirect-same-origin'), {
+      accept: ['text/plain'],
+      headers,
+    });
+    expect(same.text).toBe('secret-key');
+    const other = await fetcher().fetchText(at('/redirect-other-origin'), {
+      accept: ['text/plain'],
+      headers,
+    });
+    expect(other.url).toBe(`http://other.test:${String(port)}/echo-key`);
+    expect(other.text).toBe('none');
+  });
+
+  it('refuses a body limit above 5 MB (bounded synchronous parsing)', () => {
+    expect(() =>
+      createSafeFetcher({ userAgent: 'x', timeoutMs: 1_000, maxBytes: 50_000_000 }),
+    ).toThrow('maxBytes must not exceed');
   });
 
   it('follows a safe relative redirect', async () => {

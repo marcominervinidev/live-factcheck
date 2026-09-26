@@ -32,6 +32,11 @@ describe('isPublicAddress', () => {
     ['IPv4-mapped private (hex form)', '::ffff:a00:1'],
     ['NAT64 of a private address', '64:ff9b::a00:1'],
     ['6to4 of loopback', '2002:7f00:1::1'],
+    ['deprecated IPv4-compatible', '::7f00:1'],
+    ['IPv4-translated', '::ffff:0:7f00:1'],
+    ['site-local v6', 'fec0::1'],
+    ['local-use NAT64 (RFC 8215)', '64:ff9b:1::a00:1'],
+    ['Teredo', '2001:0:4136:e378:8000:63bf:3fff:fdd2'],
     ['not an IP at all', 'redis'],
   ])('blocks %s (%s)', (_label, address) => {
     expect(isPublicAddress(address)).toBe(false);
