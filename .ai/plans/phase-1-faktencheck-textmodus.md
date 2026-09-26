@@ -216,12 +216,14 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
   - [x] T0.5 `services/explainer`, `packages/research` + `config/source-tiers.yaml`, `evals/README.md` + `SOURCES.md`
   - [x] T0.6 Klassifikator-Config, `EXPLAINER`, `PRIVACY_MODE`, Secrets je Service, `egress`, `.env.example`
 - [x] Gate 0 freigegeben (2026-09-26): ADR 0007–0009 accepted
-- Aktuell: TP1 (Verträge)
+- [x] TP1 erledigt auf `phase-1/tp1-contracts` (Nachweise: `docs/evidence/phase-1/tp1-contracts.txt`): ADR 0010, sieben Vertrags-Commits, `research` nutzt `SourceTier` aus den Verträgen
+- Aktuelles Gate: **Gate 1 – wartet auf Marcos Review** (PR für TP1; `usage`/`reason` bestätigen oder streichen)
+- Arbeitsweise wie in Phase 0: ein PR pro Gate, Branch `phase-1/tpN-<thema>`, gestapelt
+- Nächster Task nach Freigabe: T2.1 `LlmProvider` (Branch `phase-1/tp2-providers`)
 - [x] isolierter Stack-Lauf mit `explainer` (von Marco erlaubt): alle `/readyz` 200, nur Caddy mit Host-Ports, Netze und Secrets je Service wie geplant
 - [x] Brief auf die vereinbarten Entscheidungen zurückgesetzt (Rücknahme war unbeabsichtigt)
-- Offen: Zusatzfelder `usage`/`reason` in `ClaimChecked` v2 (Gate 1); ADR-Nummern 0010/0011 reserviert für TP1/TP5
+- Offen: ADR-Nummer 0011 reserviert für TP5; `scripts/check-contract-change.sh` braucht bash 5 (lokal: `scripts/tb bash scripts/check-contract-change.sh <base>`)
 - Erkenntnis: nie zwei Edits parallel auf dieselbe Datei (Format-Hook hat `docker-compose.yml` dabei abgeschnitten; sofort aus dem Commit wiederhergestellt)
 - Voraussetzung für den Merge: PR #5, #6, #7 zuerst
-- Nächster Task nach Freigabe: T1.1 (Verträge)
 
 ## Session-Log
