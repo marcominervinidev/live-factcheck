@@ -29,8 +29,10 @@ export {
 export {
   ClaimCheckedEvent,
   ClaimDetectedEvent,
+  ClaimExplainedEvent,
   EventEnvelope,
   STREAMS,
+  TopicDetectedEvent,
   TranscriptSegmentEvent,
   sessionEventsChannel,
 } from './envelope.js';
