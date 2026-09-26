@@ -17,7 +17,6 @@ import { Counter, Histogram } from 'prom-client';
 
 import { configSchema, secretKeys } from './config.js';
 import { checkClaim } from './pipeline.js';
-import { createPipelineDeps, providerStatus } from './wiring.js';
 
 const CHECK_TIMEOUT_MS = 60_000;
 
@@ -25,7 +24,10 @@ await runService({
   name: 'fact-checker',
   configSchema,
   secretKeys,
-  start: ({ config, logger, metrics }) => {
+  start: async ({ config, logger, metrics }) => {
+    // Loaded only after the config is valid: the research stack (jsdom, undici, SDKs) is heavy,
+    // and a misconfigured service must fail fast (brief 4.1 factor III).
+    const { createPipelineDeps, providerStatus } = await import('./wiring.js');
     logger.info(
       {
         privacyMode: config.PRIVACY_MODE,
@@ -120,12 +122,12 @@ await runService({
       },
     });
 
-    return Promise.resolve({
+    return {
       readiness: [redis.readiness],
       stop: async () => {
         await consumer.stop();
         await redis.close();
       },
-    });
+    };
   },
 });
