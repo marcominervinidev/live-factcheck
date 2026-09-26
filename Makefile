@@ -51,8 +51,9 @@ lint: ## Stage 0: typecheck, lint, format check, boundaries, MCP config parity
 test-unit: ## Stage 1: unit tests of all workspaces
 	$(TB) pnpm test:unit
 
-test-integration: ## Stages 2a (backend, Testcontainers) and 2b (frontend, Playwright, mocked backend)
-	$(TB) pnpm --filter '!@lfc/web' -r --if-present test:int
+test-integration: ## Stages 2a (backend, Testcontainers; Docker socket) and 2b (frontend, Playwright)
+	$(COMPOSE) -f compose.toolbox.yaml --profile docker run --rm toolbox-docker \
+	  pnpm --filter '!@lfc/web' -r --if-present test:int
 	$(PLAYWRIGHT) sh -c 'cd /workspace/apps/web && node_modules/.bin/playwright test -c tests/playwright.config.ts'
 
 test-api: ## Stage 3: API tests against the running stack (starts it with the test overlay)
