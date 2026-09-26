@@ -1,7 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { test as base, expect } from '@playwright/test';
 
+import { MockBackend, TEST_TOKEN } from './mock-backend';
 import { AppShellPage } from './pages/app-shell.page';
+import { ClaimsPage } from './pages/claims.page';
 
 interface RuntimeConfigResponse {
   status: number;
@@ -12,6 +14,11 @@ interface Fixtures {
   /** What the mocked /config.json returns; override per test with test.use(). */
   runtimeConfig: RuntimeConfigResponse;
   app: AppShellPage;
+  /** The gateway token already in localStorage (set on the settings page in real use); null: none. */
+  token: string | null;
+  /** Mocked gateway: WebSocket session, text mode and provider status. */
+  backend: MockBackend;
+  claims: ClaimsPage;
   /** Accessibility scan with axe; returns serious and critical violations. */
   a11yViolations: () => Promise<string[]>;
 }
@@ -29,6 +36,24 @@ export const test = base.extend<Fixtures>({
     );
     await page.route(/\/(api|ws)\//, (route) => route.fulfill({ status: 404, json: {} }));
     await use(new AppShellPage(page));
+  },
+
+  token: [TEST_TOKEN, { option: true }],
+
+  // Depends on `app`: registered after its catch-all 404 route, so these routes win.
+  backend: async ({ page, app: _app, token }, use) => {
+    if (token !== null) {
+      await page.addInitScript((value) => {
+        window.localStorage.setItem('lfc.gatewayToken', value);
+      }, token);
+    }
+    const backend = new MockBackend(page);
+    await backend.install();
+    await use(backend);
+  },
+
+  claims: async ({ page, backend: _backend }, use) => {
+    await use(new ClaimsPage(page));
   },
 
   a11yViolations: async ({ page }, use) => {

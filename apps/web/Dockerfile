@@ -17,6 +17,7 @@ FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch
 COPY package.json tsconfig.base.json ./
+COPY packages/contracts/ packages/contracts/
 COPY apps/web/ apps/web/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --offline --frozen-lockfile --filter "@lfc/web..."
