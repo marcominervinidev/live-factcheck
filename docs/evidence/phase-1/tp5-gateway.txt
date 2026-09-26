@@ -1,0 +1,38 @@
+# Phase 1 · TP5 (gateway) – evidence, 2026-09-26
+
+## Unit (gateway, 14)
+tokenMatches: exact token only (longer, shorter, empty, missing refused); bearerToken parsing;
+normalizeClaimText: NFKC, quotes/dashes, whitespace, trailing punctuation; numbers and
+negations kept apart; startup: GATEWAY_TOKEN required and ≥ 32 chars, value never printed
+
+## Integration against a real Redis (gateway, 11)
+REST 401 with ApiError for no/wrong/Basic token; 400 for blank text and broken JSON; 413 for a
+5 kB body; 404 session_unknown; provider status from worker records.
+WebSocket: close 4408 without auth in time, 4401 wrong token, 4400 other first message; text mode
+end to end: 202, ClaimDetected v2 in claims.detected (text-mode provider, normalised text),
+claim.detected and later events pushed to the socket, invalid channel payloads not forwarded,
+session record deleted on close, no claim text in the log; rate limit → 429 rate_limited.
+
+## Stage 3 through Caddy on an isolated stack (project lfc-verify, throwaway secrets, torn down)
+== readiness
+gateway            200 {"status":"ready","checks":{"redis":"ok"}}
+transcription      200 {"status":"ready","checks":{"redis":"ok"}}
+claim-extractor    200 {"status":"ready","checks":{"redis":"ok"}}
+fact-checker       200 {"status":"ready","checks":{"redis":"ok"}}
+explainer          200 {"status":"ready","checks":{"redis":"ok"}}
+web                200 ok
+
+searxng            200 OK
+caddy -> web       200 https://localhost/
+
+== stage 3 result
+  28 passed (7.0s)
+fact-checker log lines containing the claim text: 0
+
+Stage 3 covers: text mode detected → checked → explained in this order (brief example: falsch/hoch
+with existing fact check and evidence), medium confidence (groesstenteils_richtig/mittel) and
+opinion (nicht_pruefbar/classified_unverifiable), verdict cache (verdict_exact), 401 without or
+with a wrong token, token in the URL does not authenticate, WebSocket without auth closed 4408,
+413 and 400 bodies, provider status lists fact-checker and explainer without keys or URLs.
+SSRF defence is proven at stages 1/2a (packages/research, 144 tests): CI uses the mock research
+corpus because tests must not reach external networks (brief 13.1).
