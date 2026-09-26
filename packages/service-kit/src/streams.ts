@@ -56,24 +56,32 @@ export interface StreamConsumer {
 
 type RawEntry = [id: string, fields: string[]];
 
+/** Resolves when the client is connected, or after `ms` (the next command then reports why). */
+async function waitReady(client: Redis, ms: number): Promise<void> {
+  if (client.status === 'ready') return;
+  await new Promise<void>((resolve) => {
+    const timer = setTimeout(done, ms);
+    function done() {
+      clearTimeout(timer);
+      client.off('ready', done);
+      resolve();
+    }
+    client.once('ready', done);
+  });
+}
+
 /**
- * At-least-once consumer on a Redis Streams consumer group (brief 4.1 factor IX):
+ * At-least-once consumer on a Redis Streams consumer group (brief 4.1 factor IX). Returns at
+ * once; the group is created (or found) in the background, retried while Redis is unreachable.
  * `XACK` only after the handler succeeded, stale pending messages taken over with
  * `XAUTOCLAIM`, invalid entries logged and acknowledged so they cannot block the group.
  * Handlers make processing idempotent (e.g. by `claimId`).
  */
-export async function startStreamConsumer(options: StreamConsumerOptions): Promise<StreamConsumer> {
+export function startStreamConsumer(options: StreamConsumerOptions): StreamConsumer {
   const { redis, stream, group, consumer, logger } = options;
   const batchSize = options.batchSize ?? 10;
   const blockMs = options.blockMs ?? 5_000;
   const claimIdleMs = options.claimIdleMs ?? 60_000;
-
-  try {
-    // Start at 0: a new group also processes entries published before it existed.
-    await redis.xgroup('CREATE', stream, group, '0', 'MKSTREAM');
-  } catch (error) {
-    if (!(error instanceof Error) || !error.message.includes('BUSYGROUP')) throw error;
-  }
 
   // Blocking reads get their own connection so stop() can interrupt them.
   const reader = redis.duplicate();
@@ -130,10 +138,25 @@ export async function startStreamConsumer(options: StreamConsumerOptions): Promi
     }
   };
 
+  let groupReady = false;
+  const ensureGroup = async () => {
+    try {
+      // Start at 0: a new group also processes entries published before it existed.
+      await redis.xgroup('CREATE', stream, group, '0', 'MKSTREAM');
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes('BUSYGROUP')) throw error;
+    }
+    groupReady = true;
+  };
+
   const loop = async () => {
     let round = 0;
     while (!state.stopping) {
       try {
+        // The service-kit client has no offline queue (honest readiness): wait until Redis is
+        // reachable instead of failing the service start (retried below).
+        if (!groupReady) await ensureGroup();
+        await waitReady(reader, blockMs);
         if (round % 10 === 0) await claimStale();
         round++;
         const response = (await reader.xreadgroup(

@@ -49,7 +49,7 @@ describe('Redis Streams helpers against a real Redis', () => {
     group: 'checker',
   });
 
-  const consume = async (
+  const consume = (
     redis: Redis,
     stream: string,
     group: string,
@@ -57,7 +57,7 @@ describe('Redis Streams helpers against a real Redis', () => {
     consumer = `c-${randomBytes(2).toString('hex')}`,
     claimIdleMs = 60_000,
   ) => {
-    const started = await startStreamConsumer({
+    const started = startStreamConsumer({
       redis,
       stream,
       group,
@@ -93,7 +93,7 @@ describe('Redis Streams helpers against a real Redis', () => {
     subscriber.on('message', (_channel, message: string) => channelMessages.push(message));
 
     const received: StreamMessage[] = [];
-    await consume(redis, stream, group, (message) => {
+    consume(redis, stream, group, (message) => {
       received.push(message);
       return Promise.resolve();
     });
@@ -117,7 +117,7 @@ describe('Redis Streams helpers against a real Redis', () => {
   it('keeps a message pending when the handler fails; another consumer claims it later', async () => {
     const redis = connect();
     const { stream, group } = names();
-    await consume(
+    consume(
       redis,
       stream,
       group,
@@ -129,7 +129,7 @@ describe('Redis Streams helpers against a real Redis', () => {
     await expect.poll(async () => ((await redis.xpending(stream, group)) as [number])[0]).toBe(1);
 
     const recovered: string[] = [];
-    await consume(
+    consume(
       connect(),
       stream,
       group,
@@ -148,7 +148,7 @@ describe('Redis Streams helpers against a real Redis', () => {
     const redis = connect();
     const { stream, group } = names();
     const received: string[] = [];
-    await consume(redis, stream, group, (message) => {
+    consume(redis, stream, group, (message) => {
       received.push(message.id);
       return Promise.resolve();
     });
@@ -172,7 +172,7 @@ describe('Redis Streams helpers against a real Redis', () => {
     const redis = connect();
     const { stream, group } = names();
     let finished = false;
-    const consumer = await consume(redis, stream, group, async () => {
+    const consumer = consume(redis, stream, group, async () => {
       await new Promise((resolve) => setTimeout(resolve, 300));
       finished = true;
     });
