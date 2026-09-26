@@ -10,3 +10,4 @@ Rules for this package only. Repo-wide rules: `/AGENTS.md`.
 - `REDIS_URL` never contains credentials; the password is a separate secret.
 - Public API = `src/index.ts` plus the `./healthcheck` entry point. Anything else is internal; add new exports deliberately.
 - Tests: unit tests use real files and real child processes (see `lifecycle.test.ts`), integration tests (`*.int.test.ts`) use Testcontainers. No mocks of internal modules.
+- Streams: publish only with `publishEvent` (validates the envelope, mirrors to the session channel) and consume only with `startStreamConsumer` (`XACK` after success, `XAUTOCLAIM` for stale entries, invalid entries acknowledged and logged). Handlers throw only for failures worth a retry and use `processedMarker` to stay idempotent.

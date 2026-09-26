@@ -359,6 +359,9 @@ importers:
 
   packages/service-kit:
     dependencies:
+      '@lfc/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       fastify:
         specifier: 5.12.5
         version: 5.12.5
