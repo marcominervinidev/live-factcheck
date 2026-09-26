@@ -1,6 +1,7 @@
 // Valid example payloads for contract tests. Not exported from the package.
 import type { ClaimChecked } from '../claim-checked.js';
 import type { ClaimDetected } from '../claim-detected.js';
+import type { Evidence } from '../evidence.js';
 import type { TranscriptSegment } from '../transcript-segment.js';
 
 export const SESSION_ID = '6f1c1e9a-3b1f-4c55-9a53-2f4a9c1d7e10';
@@ -42,22 +43,52 @@ export const validTextModeDetected = (): ClaimDetected => ({
   provider: { classifier: 'text-mode', model: 'none' },
 });
 
+export const EVIDENCE_ID = '5c4b3a29-1807-4f6e-9d5c-4b3a29180716';
+
+export const validEvidence = (): Evidence => ({
+  evidenceId: EVIDENCE_ID,
+  title: 'Zweiter Weltkrieg',
+  url: 'https://de.wikipedia.org/wiki/Zweiter_Weltkrieg',
+  publisher: 'Wikipedia',
+  retrievedAt: '2026-09-25T10:00:06.000Z',
+  tier: 'referenz',
+  snippet: 'Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 …',
+});
+
+/** The example verdict from brief 2: false, high confidence, evidence from Wikipedia. */
 export const validChecked = (): ClaimChecked => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   sessionId: SESSION_ID,
   claimId: CLAIM_ID,
   speaker: 'A',
   claim: 'Der Zweite Weltkrieg ist erst 20 Jahre vorbei.',
   verdict: 'falsch',
-  confidence: 'hoch',
-  explanation: 'Der Zweite Weltkrieg endete 1945, also vor über 80 Jahren.',
-  sources: [
-    {
-      title: 'Zweiter Weltkrieg – Wikipedia',
-      url: 'https://de.wikipedia.org/wiki/Zweiter_Weltkrieg',
-      snippet: 'Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 …',
-    },
-  ],
+  probabilities: {
+    stimmt: 0.01,
+    groesstenteils_richtig: 0.01,
+    uebertrieben: 0.03,
+    falsch: 0.93,
+    nicht_pruefbar: 0.02,
+  },
+  confidence: 0.91,
+  confidenceLevel: 'hoch',
+  evidence: [validEvidence()],
+  bestEvidenceId: EVIDENCE_ID,
+  cacheHit: 'none',
+  timings: { detectMs: 0, retrieveMs: 2_400, classifyMs: 380, totalMs: 2_900 },
   checkedAt: '2026-09-25T10:00:09.000Z',
-  provider: { llm: 'anthropic', model: 'example-model', search: 'searxng' },
+  provider: { classifier: 'llm', model: 'example-model', search: 'searxng', embeddings: 'mock' },
+  usage: { inputTokens: 3_120, outputTokens: 96, estimatedCostUsd: 0.0162 },
 });
+
+/** No verdict because the classifier was not confident enough (ADR 0007 thresholds). */
+export const validUncheckable = (): ClaimChecked => {
+  const { bestEvidenceId: _best, ...rest } = validChecked();
+  return {
+    ...rest,
+    verdict: 'nicht_pruefbar',
+    confidence: 0.3,
+    confidenceLevel: 'niedrig',
+    reason: 'low_confidence',
+  };
+};

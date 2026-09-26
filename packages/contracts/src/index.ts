@@ -2,16 +2,26 @@ export { HttpUrl, IsoDateTimeUtc, LanguageTag, OffsetMs, Speaker, Uuid } from '.
 export { TranscriptSegment } from './transcript-segment.js';
 export { ClaimDetected } from './claim-detected.js';
 export {
+  CacheHit,
+  CheckProvider,
+  CheckTimings,
   ClaimChecked,
-  Confidence,
   Explanation,
+  ExistingFactCheck,
   MAX_EXPLANATION_LENGTH,
   MAX_EXPLANATION_SENTENCES,
-  ProviderInfo,
-  Source,
-  Verdict,
+  UncheckableReason,
+  Usage,
   countSentences,
 } from './claim-checked.js';
+export { Evidence, MAX_SNIPPET_LENGTH, SourceTier } from './evidence.js';
+export {
+  ConfidenceLevel,
+  PROBABILITY_SUM_TOLERANCE,
+  VERDICTS,
+  Verdict,
+  VerdictProbabilities,
+} from './verdict.js';
 export {
   ClaimCheckedEvent,
   ClaimDetectedEvent,
