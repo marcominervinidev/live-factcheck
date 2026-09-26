@@ -20,7 +20,7 @@
 
 Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets). Die Inhalte (Prompts, Skills, Regeln) liegen tool-neutral im Repo; die tool-spezifischen Dateien sind nur dünne Hüllen darum (siehe 1.4).
 
-- **Review- und Rollen-Prompts unter `.ai/prompts/`** (`reviewer.md`, `security-reviewer.md`, `platform-engineer.md`). Für Claude Code verweisen Subagents unter `.claude/agents/` auf diese Prompts, in Antigravity werden dieselben Prompts als eigene Agenten bzw. Workflows eingebunden:
+- **Review- und Rollen-Prompts unter `.ai/prompts/`** (`reviewer.md`, `security-reviewer.md`, `platform-engineer.md`). Für Claude Code verweisen Subagents unter `.claude/agents/` auf diese Prompts, in Antigravity verweisen Subagents unter `.agents/agents/` auf dieselben Prompts (Workflows sind in Antigravity veraltet, siehe ADR 0006):
   - `reviewer` prüft Änderungen gegen diesen Brief: 12 Faktoren (4.1), Modulgrenzen und Verträge (4.2), Sicherheit (15), Tests (13) und Konventionen aus den `AGENTS.md`-Dateien. Er achtet gezielt auf die typischen Agent-Fehler:
     - aufgeweichte Typen (`any`-Äquivalente, nachträglich optionale Pflichtfelder, stille Default-Werte, die schlechte Eingaben verdecken)
     - Grenzverletzungen (Importe oder Aufrufe über Service- bzw. Paketgrenzen hinweg)
@@ -44,9 +44,9 @@ Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets). Die Inhalte 
   - `adr` erzeugt ein neues ADR aus der Vorlage mit der nächsten freien Nummer.
   - `evidence` sammelt die Nachweise eines Tasks im festen Format (siehe 1.3).
   - Einen neuen Skill schlägst du vor, sobald ich dir denselben Ablauf zum zweiten Mal erkläre.
-- **MCP-Server,** bewusst wenige, weil jeder Server Kontext kostet. Für Claude Code stehen sie in `.mcp.json` im Projekt-Scope. Für Antigravity liegt unter `tools/antigravity/mcp_config.example.json` eine Vorlage mit denselben Servern. Antigravity erwartet die Konfiguration unter macOS in `~/.gemini/antigravity/mcp_config.json` und verlangt absolute Pfade; `make agent-setup` erzeugt die Datei aus der Vorlage.
+- **MCP-Server,** bewusst wenige, weil jeder Server Kontext kostet. Für Claude Code stehen sie in `.mcp.json` im Projekt-Scope. Für Antigravity stehen dieselben Server in `.agents/mcp_config.json` im Workspace; ein CI-Check hält beide Dateien synchron (ADR 0006).
   - ab sofort GitHub (Issues, PRs) und Context7 (aktuelle Bibliotheksdoku, vor allem für Fastify, KEDA, Argo CD, Terraform-Provider),
-  - ab Phase 0 ein Docker-MCP (Container-Status, Logs, `exec`) und ein Redis-MCP (Streams, Consumer Groups, Pending-Einträge, Pub/Sub) für die Selbstverifikation,
+  - ab Phase 0 ein Redis-MCP (Streams, Consumer Groups, Pending-Einträge, Pub/Sub) mit Read-only-ACL-User für die Selbstverifikation. Einen Docker-MCP gibt es nicht: Es existiert kein offizieller, gepflegter Server, und die Agents nutzen `docker compose ps|logs|exec` im Terminal (ADR 0006),
   - ab Phase 1 Playwright MCP, um UI-Änderungen im echten Browser zu prüfen,
   - ab Phase 5 ein Kubernetes-MCP im Read-only-Modus für Cluster-Diagnose.
   - Nur offizielle bzw. gut gepflegte Server, keine Produktions-Secrets in MCP-Konfigurationen. Tokens kommen aus Umgebungsvariablen und stehen in keiner MCP-Konfiguration.
@@ -70,7 +70,7 @@ Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets). Die Inhalte 
 - **Tests und Checks:** die tatsächliche Ausgabe der Test-, Lint- und Scan-Befehle, inklusive übersprungener Tests (und warum)
 - **Backend:** echte HTTP-Anfragen gegen den laufenden Stack mit Request und Response, dazu der Zustand in Redis über den Redis-MCP. Beispiel: Eine eingetippte Behauptung erscheint nacheinander in `claims.detected` und `claims.checked`, die Consumer Groups haben keine hängenden Einträge.
 - **Frontend:** Durchlauf des betroffenen Nutzerflusses per Playwright-MCP, Screenshots an den Entscheidungspunkten, Konsolenfehler
-- **Service-übergreifend:** der komplette Pfad, belegt durch Stream-Einträge und Logauszüge der beteiligten Container über den Docker-MCP
+- **Service-übergreifend:** der komplette Pfad, belegt durch Stream-Einträge und Logauszüge der beteiligten Container (`docker compose logs`)
 - **Infrastruktur (ab Phase 5):** `kubectl`-Ausgaben, Argo-CD-Sync-Status und Grafana-Screenshots
 
 Die Nachweise landen in der PR-Beschreibung und kompakt unter `docs/evidence/phase-N/`. Diese Selbstverifikation ergänzt die automatisierten Tests, ersetzt sie aber nicht. Ohne Artefakt gilt ein Task als nicht erledigt.
@@ -81,10 +81,10 @@ Ich arbeite primär mit Claude Code in VS Code. Wenn mein Nutzungslimit erreicht
 
 | Baustein | Tool-neutrale Quelle | Claude Code | Antigravity |
 |---|---|---|---|
-| Regeln | `AGENTS.md` (Root und pro Service) | `CLAUDE.md` mit `@AGENTS.md` plus Claude-Spezifika | liest `AGENTS.md` direkt; `GEMINI.md` nur bei Bedarf für Antigravity-Spezifika |
+| Regeln | `AGENTS.md` (Root und pro Service) | `CLAUDE.md` mit `@AGENTS.md` plus Claude-Spezifika | liest Root-`AGENTS.md` direkt; verschachtelte über glob-Regeln in `.agents/rules/`; `GEMINI.md` nur bei Bedarf für Antigravity-Spezifika |
 | Skills | `.agents/skills/*/SKILL.md` | `.claude/skills` als Symlink | liest `.agents/skills` |
-| Review- und Rollen-Prompts | `.ai/prompts/*.md` | Subagents in `.claude/agents/`, die auf die Prompts verweisen | eigene Agenten bzw. Workflows mit denselben Prompts |
-| MCP-Server | Liste in `docs/ai-tooling.md` | `.mcp.json` | `~/.gemini/antigravity/mcp_config.json`, erzeugt aus `tools/antigravity/mcp_config.example.json` |
+| Review- und Rollen-Prompts | `.ai/prompts/*.md` | Subagents in `.claude/agents/`, die auf die Prompts verweisen | Subagents in `.agents/agents/`, die auf die Prompts verweisen |
+| MCP-Server | Liste in `docs/ai-tooling.md` | `.mcp.json` | `.agents/mcp_config.json` im Workspace |
 | Plan und Stand | `.ai/plans/`, ADRs, Git-Historie | gleich | gleich |
 
 **Schutzmaßnahmen, die für jedes Tool gelten.** Agent-Hooks greifen nur in Claude Code. Alles, was wirklich zählt, wird deshalb zusätzlich über Git-Hooks (lefthook) und die CI erzwungen:
@@ -557,7 +557,7 @@ Sicherheit gehört ab Phase 0 zur Definition of Done und ist kein späteres Them
 ### 15.4 Netzwerk
 
 - Nur `caddy` veröffentlicht Ports auf dem Host (443, ggf. 80 für den Redirect). Alle anderen Services haben keine Host-Ports; Redis, Postgres und SearXNG sind von außen nicht erreichbar.
-- Es gibt getrennte Compose-Netzwerke: `edge` für `caddy`, `web` und `gateway`, `internal` für alles andere. Nur die Services, die ins Internet müssen, bekommen ausgehenden Zugriff. In Kubernetes wird das später über NetworkPolicies abgebildet.
+- Es gibt getrennte Compose-Netzwerke (ADR 0004): `edge` nur für `caddy` (trägt die Host-Ports), das interne Netz `frontend` für `caddy`, `web` und `gateway`, `internal` für alles andere und `egress` für den ausgehenden Zugriff. Nur die Services, die ins Internet müssen, bekommen ausgehenden Zugriff; `web` und `gateway` haben weder Internet- noch Host-Zugriff. In Kubernetes wird das später über NetworkPolicies abgebildet.
 - Redis läuft mit Passwort (ACL), Postgres mit einem eigenen, eingeschränkten DB-User.
 - LM Studio und Ollama werden nur an `localhost` bzw. den Docker-Host gebunden und nicht ins LAN freigegeben.
 
@@ -637,9 +637,12 @@ live-factcheck/
 │  ├─ skills -> ../.agents/skills
 │  └─ settings.json       # Agent-Hooks (Komfort, nicht die eigentliche Absicherung)
 ├─ .agents/
-│  └─ skills/             # new-service, new-event-contract, adr, evidence
+│  ├─ agents/             # Antigravity-Subagents, dünne Hüllen um .ai/prompts/
+│  ├─ rules/              # glob-Regeln, die verschachtelte AGENTS.md einbinden
+│  ├─ skills/             # new-service, new-event-contract, adr, evidence
+│  └─ mcp_config.json     # MCP-Server für Antigravity, ohne Tokens
 ├─ tools/
-│  └─ antigravity/        # mcp_config.example.json
+│  └─ toolbox/            # Dev-Container für Node-Tooling, Hooks und Tests
 ├─ .mcp.json              # MCP-Server für Claude Code, ohne Tokens
 ├─ lefthook.yml           # Git-Hooks, gelten für jedes Tool
 ├─ CODEOWNERS
@@ -665,7 +668,7 @@ Diese Phase legt das Grundgerüst an:
 - Dev-Modus mit `docker compose watch` und `.devcontainer/`
 - `.env.example`, Makefile, gitleaks-Hook und `docs/SECURITY.md`
 - Test-Setup für alle Stufen aus 13.2 mit je einem ersten Beispieltest, inklusive Playwright-Projekten für Chromium und WebKit (iPhone)
-- Agent-Setup nach 1.1 und 1.4: `AGENTS.md`/`CLAUDE.md`, Prompts, Skills, Agent-Hooks, `.mcp.json`, Antigravity-Vorlage, `docs/ai-tooling.md`
+- Agent-Setup nach 1.1 und 1.4: `AGENTS.md`/`CLAUDE.md`, Prompts, Skills, Agent-Hooks, `.mcp.json`, `.agents/mcp_config.json`, `docs/ai-tooling.md`
 - tool-unabhängige Absicherung: `lefthook.yml`, `CODEOWNERS`, Vertrags-Check in der CI, `make secrets-init`
 - CI-Grundpipeline nach 14.2, Stufen 1–4, dazu Branch-Protection-Empfehlung in der README
 
