@@ -67,11 +67,17 @@ await runService({
     });
 
     // The gateway reads this for GET /api/status (plan T5.4); no keys, no URLs.
-    void redis.client
-      .set('status:v1:fact-checker', JSON.stringify(providerStatus(config)))
-      .catch((error: unknown) => {
-        logger.warn({ err: error }, 'could not publish provider status');
-      });
+    // The gateway reads this for GET /api/status; no keys, no URLs. Written on every (re)connect,
+    // because the service-kit client has no offline queue.
+    const publishStatus = () => {
+      redis.client
+        .set('status:v1:fact-checker', JSON.stringify(providerStatus(config)))
+        .catch((error: unknown) => {
+          logger.warn({ err: error }, 'could not publish provider status');
+        });
+    };
+    redis.client.on('ready', publishStatus);
+    if (redis.client.status === 'ready') publishStatus();
 
     const consumer = startStreamConsumer({
       redis: redis.client,
