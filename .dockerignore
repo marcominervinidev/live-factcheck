@@ -22,3 +22,4 @@ docs
 **/.env.*
 secrets/
 .DS_Store
+**/.playwright-mcp

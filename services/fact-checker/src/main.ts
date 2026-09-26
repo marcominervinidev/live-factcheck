@@ -1,4 +1,4 @@
-import { describeLlmConfig } from '@lfc/providers';
+import { describeClassifierConfig, describeLlmConfig } from '@lfc/providers';
 import { createRedis, runService } from '@lfc/service-kit';
 
 import { configSchema, secretKeys } from './config.js';
@@ -8,7 +8,14 @@ await runService({
   configSchema,
   secretKeys,
   start: ({ config, logger }) => {
-    logger.info({ llm: describeLlmConfig('CHECKER', config) }, 'llm provider configured');
+    logger.info(
+      {
+        privacyMode: config.PRIVACY_MODE,
+        llm: describeLlmConfig('CHECKER', config),
+        classifier: describeClassifierConfig('CHECKER', config),
+      },
+      'providers configured',
+    );
     const redis = createRedis({
       url: config.REDIS_URL,
       ...(config.REDIS_USERNAME === undefined ? {} : { username: config.REDIS_USERNAME }),

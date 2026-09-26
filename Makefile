@@ -8,7 +8,7 @@ TEST := $(COMPOSE) -f docker-compose.yml -f compose.test.yaml
 SECRETS_DIR ?= $(HOME)/.config/live-factcheck/secrets
 TRIVY := aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
 PLAYWRIGHT := docker run --rm --ipc=host -e CI -v $(CURDIR):/workspace mcr.microsoft.com/playwright:v1.63.0-noble
-IMAGES := caddy web gateway transcription claim-extractor fact-checker
+IMAGES := caddy web gateway transcription claim-extractor fact-checker explainer
 
 .PHONY: help up up-local dev down logs ready check-ports lint test test-unit test-integration \
         test-api test-e2e eval scan toolbox toolbox-down install secrets-init hooks-install

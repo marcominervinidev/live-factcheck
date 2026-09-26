@@ -1,4 +1,11 @@
-import { checkLlmConfig, llmConfigShape, llmSecretKey } from '@lfc/providers';
+import {
+  checkLlmConfig,
+  checkPrivacyMode,
+  llmConfigShape,
+  llmSecretKey,
+  llmUse,
+  privacyModeShape,
+} from '@lfc/providers';
 import { baseConfigSchema } from '@lfc/service-kit';
 import { z } from 'zod';
 
@@ -9,9 +16,11 @@ export const configSchema = baseConfigSchema
     /** ACL user; omit to use Redis' default user. */
     REDIS_USERNAME: z.string().min(1).optional(),
     REDIS_PASSWORD: z.string().min(1),
+    ...privacyModeShape,
     ...llmConfigShape('EXTRACTOR'),
   })
-  .superRefine(checkLlmConfig('EXTRACTOR'));
+  .superRefine(checkLlmConfig('EXTRACTOR'))
+  .superRefine(checkPrivacyMode((config) => [llmUse('EXTRACTOR', config)]));
 
 export const secretKeys = ['REDIS_PASSWORD', llmSecretKey('EXTRACTOR')] as const;
 

@@ -8,7 +8,10 @@ await runService({
   configSchema,
   secretKeys,
   start: ({ config, logger }) => {
-    logger.info({ llm: describeLlmConfig('EXTRACTOR', config) }, 'llm provider configured');
+    logger.info(
+      { privacyMode: config.PRIVACY_MODE, llm: describeLlmConfig('EXTRACTOR', config) },
+      'providers configured',
+    );
     const redis = createRedis({
       url: config.REDIS_URL,
       ...(config.REDIS_USERNAME === undefined ? {} : { username: config.REDIS_USERNAME }),

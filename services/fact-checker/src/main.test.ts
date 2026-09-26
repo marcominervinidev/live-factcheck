@@ -26,6 +26,7 @@ describe('fact-checker startup', () => {
       'REDIS_PASSWORD',
       'CHECKER_LLM_PROVIDER',
       'CHECKER_LLM_MODEL',
+      'CHECKER_CLASSIFIER_PROVIDER',
     ]);
   });
 
@@ -36,6 +37,7 @@ describe('fact-checker startup', () => {
       REDIS_PASSWORD: 'x'.repeat(16),
       CHECKER_LLM_PROVIDER: 'mock',
       CHECKER_LLM_MODEL: 'mock',
+      CHECKER_CLASSIFIER_PROVIDER: 'mock',
     });
     expect(await run.exitCode).toBe(1);
     expect(run.output()).toContain('REDIS_URL');
@@ -48,6 +50,7 @@ describe('fact-checker startup', () => {
       REDIS_PASSWORD: 'x'.repeat(16),
       CHECKER_LLM_PROVIDER: 'anthropic',
       CHECKER_LLM_MODEL: 'some-model',
+      CHECKER_CLASSIFIER_PROVIDER: 'mock',
     });
     expect(await run.exitCode).toBe(1);
     expect(fatalIssues(run.output())).toContain(
@@ -55,8 +58,28 @@ describe('fact-checker startup', () => {
     );
   });
 
-  it('never writes the configured API key to any log line (DoD)', async () => {
+  it('refuses cloud providers when PRIVACY_MODE=local (brief 15.6)', async () => {
+    const run = startServiceProcess(ENTRY, {
+      PORT: '8080',
+      REDIS_URL: 'redis://redis:6379',
+      REDIS_PASSWORD: 'x'.repeat(16),
+      PRIVACY_MODE: 'local',
+      CHECKER_LLM_PROVIDER: 'openai-compatible',
+      CHECKER_LLM_MODEL: 'qwen',
+      CHECKER_LLM_BASE_URL: 'http://host.docker.internal:11434/v1',
+      CHECKER_CLASSIFIER_PROVIDER: 'typesafe',
+      CHECKER_CLASSIFIER_MODEL: 'jev-1.13.0',
+      TYPESAFE_API_KEY: 'ts-key',
+    });
+    expect(await run.exitCode).toBe(1);
+    expect(fatalIssues(run.output())).toEqual([
+      'PRIVACY_MODE: CHECKER_CLASSIFIER_PROVIDER=typesafe sends data to a cloud service; not allowed when PRIVACY_MODE=local',
+    ]);
+  });
+
+  it('never writes the configured API keys to any log line (DoD)', async () => {
     const apiKey = `sk-ant-test-${randomBytes(16).toString('hex')}`;
+    const typesafeKey = `ts-test-${randomBytes(16).toString('hex')}`;
     const run = startServiceProcess(ENTRY, {
       PORT: String(await freePort()),
       REDIS_URL: `redis://127.0.0.1:${String(await freePort())}`,
@@ -64,14 +87,17 @@ describe('fact-checker startup', () => {
       CHECKER_LLM_PROVIDER: 'anthropic',
       CHECKER_LLM_MODEL: 'some-model',
       CHECKER_LLM_API_KEY: apiKey,
+      CHECKER_CLASSIFIER_PROVIDER: 'typesafe',
+      CHECKER_CLASSIFIER_MODEL: 'jev-1.13.0',
+      TYPESAFE_API_KEY: typesafeKey,
     });
     await run.waitFor('service started');
     run.kill('SIGTERM');
     await run.exitCode;
 
     expect(run.output()).toContain('"provider":"anthropic"');
-    expect(run.output()).not.toContain(apiKey);
+    expect(run.output()).toContain('"provider":"typesafe"');
     const lines = run.output().split('\n');
-    expect(lines.filter((line) => line.includes(apiKey))).toEqual([]);
+    expect(lines.filter((line) => line.includes(apiKey) || line.includes(typesafeKey))).toEqual([]);
   });
 });

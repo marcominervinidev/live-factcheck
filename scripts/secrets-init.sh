@@ -28,6 +28,8 @@ gateway_token
 "
 EXTERNAL="
 anthropic_api_key
+typesafe_api_key
+google_factcheck_api_key
 deepgram_api_key
 assemblyai_api_key
 brave_api_key
