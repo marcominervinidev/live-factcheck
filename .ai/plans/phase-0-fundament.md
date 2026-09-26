@@ -299,9 +299,15 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
   - T6.4 Stufe 5: Stryker (contracts), Lighthouse 100/100/100
   - T6.5 `stack-tests.yml` (wiederverwendbar), `pr.yml` mit Stufe 3/4 in 2 Shards, `main.yml` (Multi-Arch, GHCR), `nightly.yml`
   - Gefunden: CSP-Verletzung durch zod-JIT in Firefox (behoben mit `jitless`)
-- Aktuell: TP7 auf `phase-0/tp7-docs-reviews`, gestapelt auf TP6
-- Nächster Task: T7.1 `docs/SECURITY.md`
+- [x] TP7 auf `phase-0/tp7-docs-reviews`, gestapelt auf TP6: PR #7
+  - T7.1 `docs/SECURITY.md`, T7.2 README fertig (Teststufen, Zertifikat, iPhone, Tunnel, API-Keys), T7.3 Regeldateien für alle Workspaces, T7.5 Evidence-Index `docs/evidence/phase-0/README.md`
+  - T7.6 Reviews: `reviewer` (8 Befunde), `security-reviewer` (9), `/code-review` (2) → 15 behoben oder begründet dokumentiert (`t7-review-fixes.txt`); `/security-review` danach: keine Befunde
+- Aktuelles Gate: **Gate 7 – Marco reviewt PR #5, #6, #7 (in dieser Reihenfolge) und merged**
+- Nächster Schritt: **T7.4 Antigravity-Probe (Marco)**, danach Phase 1 mit neuer Plan-Datei
 - Offene Punkte:
+  - Commits zwischen TP2 und TP7 tragen den Autor `ci <ci@example.invalid>` (lokale Git-Einstellung aus dem Szenario-Vorfall); ab 2026-09-26 behoben, Historie bleibt wie sie ist (Entscheidung Marco)
+  - Der Bash-Guard blockiert auch Befehle, deren *Text* `.env`, `/run/secrets` oder `SECRETS_DIR` nur erwähnt (Commit-Nachrichten, Heredocs); Workaround: Nachrichten-Dateien und Edit-Tool. Mögliche Verbesserung mit Marco besprechen.
+  - Graceful Draining über `/readyz` (Verzögerung zwischen 503 und Close) mit Kubernetes in Phase 5
   - Stryker-Score (44,7 %) nicht verlässlich: Mutanten in refine-Callbacks gelten als überlebt, obwohl die Tests sie von Hand erkennen → Ursachenanalyse Phase 1; Schwelle bis dahin aus
   - `main.yml` und `nightly.yml` laufen erst, wenn sie auf `main` liegen → nach dem Merge prüfen (erster GHCR-Push, `workflow_dispatch` für nightly)
   - Antigravity-Verhalten erst in T7.4 verifizierbar (Marco)
