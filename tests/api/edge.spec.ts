@@ -9,6 +9,9 @@ test('serves the app over HTTPS with the security headers', async ({ request }) 
   expect(headers['strict-transport-security']).toBe('max-age=31536000');
   expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
   expect(headers['content-security-policy']).toContain("script-src 'self';");
+  // WebSockets only to this origin, never to any host (a bare `wss:`).
+  const origin = new URL(response.url()).host;
+  expect(headers['content-security-policy']).toContain(`connect-src 'self' wss://${origin};`);
   expect(headers['permissions-policy']).toContain('microphone=(self)');
   expect(headers['x-content-type-options']).toBe('nosniff');
   expect(headers['x-frame-options']).toBe('DENY');

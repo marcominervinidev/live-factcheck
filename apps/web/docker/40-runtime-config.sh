@@ -6,8 +6,9 @@ set -eu
 : "${WEB_GATEWAY_URL:?WEB_GATEWAY_URL is required, e.g. /api or https://factcheck.local/api}"
 
 # Allow only an absolute path or an http(s) URL with a safe character set, so the value can be
-# embedded in JSON without escaping and cannot inject markup.
-if ! printf '%s' "$WEB_GATEWAY_URL" | grep -Eq '^(https?://[A-Za-z0-9.:-]+)?/[A-Za-z0-9._~/-]*$'; then
+# embedded in JSON without escaping and cannot inject markup. The first path segment must not be
+# empty: `//other.host/api` would be a protocol-relative URL to a foreign origin.
+if ! printf '%s' "$WEB_GATEWAY_URL" | grep -Eq '^(https?://[A-Za-z0-9.:-]+)?/([A-Za-z0-9._~-][A-Za-z0-9._~/-]*)?$'; then
   echo "40-runtime-config.sh: invalid WEB_GATEWAY_URL" >&2
   exit 1
 fi
