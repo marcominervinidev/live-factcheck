@@ -4,8 +4,28 @@ export {
   describeLlmConfig,
   llmConfigShape,
   llmSecretKey,
+  resolveLlmConfig,
 } from './llm/config.js';
-export type { LlmConfig, LlmConfigShape, LlmProviderName, LlmTask } from './llm/config.js';
+export type {
+  LlmConfig,
+  LlmConfigShape,
+  LlmProviderName,
+  LlmTask,
+  ResolvedLlmConfig,
+} from './llm/config.js';
+export { createLlmProvider } from './llm/factory.js';
+export type { CreateLlmOptions } from './llm/factory.js';
+export { loadPromptTemplate, renderPrompt } from './llm/prompt.js';
+export type { PromptTemplate } from './llm/prompt.js';
+export { LlmError, NO_USAGE, addUsage } from './llm/types.js';
+export type {
+  LlmErrorKind,
+  LlmProvider,
+  MockLlmHandler,
+  StructuredRequest,
+  StructuredResult,
+  TokenUsage,
+} from './llm/types.js';
 export {
   CLASSIFIER_PROVIDERS,
   TYPESAFE_API_KEY,
