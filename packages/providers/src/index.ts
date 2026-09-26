@@ -99,5 +99,10 @@ export type {
   SearchResult,
 } from './search/search.js';
 export { estimateCostUsd } from './pricing.js';
-export { BudgetExceededError, budgetConfigShape, createDailyBudget } from './budget.js';
+export {
+  BudgetExceededError,
+  budgetConfigShape,
+  budgetCostUsd,
+  createDailyBudget,
+} from './budget.js';
 export type { BudgetStore, DailyBudget } from './budget.js';

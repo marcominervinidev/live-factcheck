@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+
 import { z } from 'zod';
 
 import { loadPromptTemplate, renderPrompt } from '../llm/prompt.js';
@@ -96,7 +98,10 @@ export function createLlmClassifier(llm: LlmProvider): ClassifierProvider {
       const schema = z.strictObject(
         Object.fromEntries(Object.entries(questions).map(([id, q]) => [id, schemaFor(q)])),
       ) as z.ZodType<Record<string, RawAnswer>>;
+      // A fresh random suffix per request: page text cannot close the state block, because it
+      // cannot know the tag (security review of TP2/TP3, finding 2).
       const user = renderPrompt(TEMPLATE.user, {
+        nonce: randomBytes(8).toString('hex'),
         state: typeof state === 'string' ? state : JSON.stringify(state, null, 2),
         questions: describeQuestions(questions),
       });
