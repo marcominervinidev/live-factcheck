@@ -33,6 +33,7 @@ expect "Bash: make secrets-init"           2 guard-secrets.sh '{"tool_name":"Bas
 expect "Bash: scripts/secrets-init.sh x"   2 guard-secrets.sh '{"tool_name":"Bash","tool_input":{"command":"scripts/secrets-init.sh /tmp/x"}}'
 expect "Bash: cd . && sh scripts/secrets-init.sh" 2 guard-secrets.sh '{"tool_name":"Bash","tool_input":{"command":"cd . && sh scripts/secrets-init.sh"}}'
 expect "Bash: git add scripts/secrets-init.sh" 0 guard-secrets.sh '{"tool_name":"Bash","tool_input":{"command":"git add scripts/secrets-init.sh"}}'
+expect "Bash: exec cat in-container secret" 2 guard-secrets.sh '{"tool_name":"Bash","tool_input":{"command":"docker compose exec redis cat /run/secrets/redis_password"}}'
 expect "Bash: grep SECRETS_DIR Makefile"   0 guard-secrets.sh '{"tool_name":"Bash","tool_input":{"command":"grep -n SECRETS_DIR Makefile"}}'
 expect "Bash: node process.env"            0 guard-secrets.sh '{"tool_name":"Bash","tool_input":{"command":"node -e process.env.PORT"}}'
 
