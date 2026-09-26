@@ -219,9 +219,9 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 - [x] TP1 erledigt auf `phase-1/tp1-contracts` (Nachweise: `docs/evidence/phase-1/tp1-contracts.txt`): ADR 0010, sieben Vertrags-Commits, `research` nutzt `SourceTier` aus den Verträgen
 - [x] Gate 1: `usage`/`reason` von Marco bestätigt (2026-09-26); PR #9 wartet auf Merge
 - Arbeitsmodus ab 2026-09-26 (Marco): an Gates nicht mehr anhalten, sondern PR öffnen, im Chat melden und weiterarbeiten; anhalten nur für wichtige Freigaben (z. B. bezahlte Läufe) und Sicherheitsfragen
-- Aktuell: TP2 auf `phase-1/tp2-providers`
+- [x] TP2 erledigt auf `phase-1/tp2-providers` (Nachweise: `docs/evidence/phase-1/tp2-providers.txt`); Budget liegt als `createDailyBudget` mit `BudgetStore`-Schnittstelle in `providers`, die Redis-Anbindung macht der fact-checker (TP4)
+- Aktuell: TP3 auf `phase-1/tp3-research`
 - Arbeitsweise wie in Phase 0: ein PR pro Gate, Branch `phase-1/tpN-<thema>`, gestapelt
-- Nächster Task nach Freigabe: T2.1 `LlmProvider` (Branch `phase-1/tp2-providers`)
 - [x] isolierter Stack-Lauf mit `explainer` (von Marco erlaubt): alle `/readyz` 200, nur Caddy mit Host-Ports, Netze und Secrets je Service wie geplant
 - [x] Brief auf die vereinbarten Entscheidungen zurückgesetzt (Rücknahme war unbeabsichtigt)
 - Offen: ADR-Nummer 0011 reserviert für TP5; `scripts/check-contract-change.sh` braucht bash 5 (lokal: `scripts/tb bash scripts/check-contract-change.sh <base>`)
