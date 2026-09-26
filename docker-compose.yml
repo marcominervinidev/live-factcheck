@@ -49,7 +49,7 @@ services:
     volumes:
       - caddy-data:/data
       - caddy-config:/config
-    networks: [edge]
+    networks: [edge, frontend]
     depends_on:
       web: { condition: service_healthy }
       gateway: { condition: service_healthy }
@@ -71,7 +71,7 @@ services:
     image: ${LFC_REGISTRY:-lfc}/web:${LFC_TAG:-local}
     environment:
       WEB_GATEWAY_URL: /api
-    networks: [edge]
+    networks: [frontend]
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/healthz']
       interval: 10s
@@ -93,7 +93,7 @@ services:
       PORT: '8080'
       LOG_LEVEL: ${LOG_LEVEL:-info}
     secrets: [redis_password]
-    networks: [edge, internal]
+    networks: [frontend, internal]
     depends_on:
       redis: { condition: service_healthy }
 
@@ -167,7 +167,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          'REDISCLI_AUTH="$$(cat /run/secrets/redis_password)" redis-cli --no-auth-warning --user app ping | grep -q PONG',
+          'REDISCLI_AUTH="$$(sed -e ''s/^[[:space:]]*//'' -e ''s/[[:space:]]*$$//'' /run/secrets/redis_password | tr -d ''\r\n'')" redis-cli --no-auth-warning --user app ping | grep -q PONG',
         ]
       interval: 5s
       timeout: 3s
@@ -206,8 +206,11 @@ services:
         limits: { cpus: '1.00', memory: 512M }
 
 networks:
-  # Caddy, web and gateway: the only path from the host into the stack.
+  # Caddy only: carries the published host ports (a published network cannot be internal).
   edge: {}
+  # Caddy <-> web and gateway. Internal, so the edge-facing services have no internet or host access.
+  frontend:
+    internal: true
   # Service-to-service traffic; no route to the internet or the host.
   internal:
     internal: true

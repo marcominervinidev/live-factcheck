@@ -19,7 +19,7 @@ check() { # network url label
 for svc in gateway transcription claim-extractor fact-checker; do
   check internal "http://${svc}:8080/readyz" "$svc"
 done
-check edge "http://web:8080/healthz" web
+check frontend "http://web:8080/healthz" web
 check internal "http://searxng:8080/healthz" searxng
 
 # End to end through Caddy with TLS (internal CA, hence -k). The SNI must be "localhost".
