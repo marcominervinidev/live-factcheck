@@ -21,6 +21,9 @@
       "path": "./packages/providers"
     },
     {
+      "path": "./packages/research"
+    },
+    {
       "path": "./services/gateway"
     },
     {

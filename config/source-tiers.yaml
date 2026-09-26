@@ -1,0 +1,52 @@
+# Source tiers and their weights (brief 9.1). Data, not code: the fact-checker maps every
+# evidence URL to a tier by registrable-domain suffix ("bund.de" matches "www.destatis.bund.de")
+# and multiplies its ranking score by the tier weight. Unlisted domains get `sonstige`.
+# Validated at service start (packages/research/src/source-tiers.ts); a domain may appear in
+# only one tier. Path-level rules are not supported.
+schemaVersion: 1
+
+tiers:
+  faktencheck:
+    weight: 1.0
+    domains:
+      - correctiv.org
+      - dpa-factchecking.com
+      - mimikama.org
+    # Fact-check desks of broadcasters (ARD-Faktenfinder, BR24 #Faktenfuchs) live on paths of
+    # press domains; they count as `presse` until path rules exist. Google Fact Check API
+    # results are always `faktencheck`, whatever their domain.
+
+  amtlich:
+    weight: 0.9
+    domains:
+      - bund.de
+      - bundestag.de
+      - bundesregierung.de
+      - destatis.de
+      - europa.eu
+      - bundesbank.de
+
+  referenz:
+    weight: 0.8
+    domains:
+      - wikipedia.org
+      - wikidata.org
+
+  presse:
+    weight: 0.6
+    domains:
+      - tagesschau.de
+      - br.de
+      - zdf.de
+      - deutschlandfunk.de
+      - spiegel.de
+      - zeit.de
+      - sueddeutsche.de
+      - faz.net
+      - handelsblatt.com
+      - reuters.com
+      - apnews.com
+
+  sonstige:
+    weight: 0.3
+    domains: []
