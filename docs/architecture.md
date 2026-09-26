@@ -21,9 +21,9 @@ This document describes how live-factcheck is put together. The requirements are
 | `stt-local` | Python, FastAPI, faster-whisper | fully local transcription (optional profile) | CPU/GPU bound | planned (phase 2) |
 | `claim-extractor` | Node.js worker | rolling window per session, claim extraction via LLM, deduplication | consumer group | skeleton |
 | `fact-checker` | Node.js worker | search, fetch, LLM verdict on the fetched sources only | consumer group; most expensive | skeleton |
-| `redis` | Redis 8 | streams, Pub/Sub, cache | – | planned (gate 5) |
-| `searxng` | SearXNG | self-hosted meta search without API key | – | planned (gate 5) |
-| `caddy` | Caddy | TLS termination, security headers; later the Ingress | – | planned (gate 5) |
+| `redis` | Redis 8 | streams, Pub/Sub, cache (ACL users `app`, read-only `mcp`) | – | running (Compose) |
+| `searxng` | SearXNG | self-hosted meta search without API key | – | running (Compose) |
+| `caddy` | Caddy | TLS termination, security headers; later the Ingress | – | running (Compose) |
 | `postgres` | PostgreSQL | session history, claims, verdicts | – | planned (phase 4) |
 
 Shared packages: `@lfc/contracts` (schemas), `@lfc/service-kit` (config, logging, ops endpoints, Redis, lifecycle), `@lfc/providers` (adapters; LLM config in phase 0).
@@ -88,7 +88,7 @@ services/<name>/
 
 | Stage | Where | How | State |
 |---|---|---|---|
-| Local | Docker Compose on macOS (Apple Silicon) | `make up`; networks `edge` / `internal` / `egress`; only Caddy publishes ports; Compose secrets from a directory outside the repo | planned (gate 5) |
+| Local | Docker Compose on macOS (Apple Silicon) | `make up`; networks `edge` / `internal` / `egress`; only Caddy publishes ports; Compose secrets from a directory outside the repo ([ADR 0004](adr/0004-compose-network-topology.md)) | running |
 | Local cluster | k3d (1 server, 2 agents) | Kustomize base + overlays, Argo CD, KEDA on stream lag, NetworkPolicies, Pod Security `restricted` | planned (phase 5) |
 | Real cluster | k3s on VMs via Terraform | staging and prod, cert-manager, backups, signed images with SBOM | planned (phase 6) |
 

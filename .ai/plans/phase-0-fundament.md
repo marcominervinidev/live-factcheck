@@ -290,25 +290,23 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
 ## Status
 
 - [x] Plan freigegeben (2026-09-25)
-- [x] Gate 1: PR #1 · [x] Gate 2: PR #2 · [x] Gate 3: PR #3 (alle gemergt)
+- [x] Gate 1–4: PR #1–#4 gemergt; Ruleset `main` mit Pflicht-Checks `ci passed`, `pr passed` aktiv
 - Arbeitsweise: ein PR pro Gate, Branch `phase-0/tpN-<thema>`
-- [x] TP4 erledigt auf `phase-0/tp4-services`:
-  - T4.1 gateway als Referenzservice (+ `@lfc/service-kit/testing` für Prozess-Tests)
-  - T4.2 transcription, claim-extractor, fact-checker per Subagent mit Skill `new-service`; dafür neu `packages/providers` (LLM-Konfiguration pro Task)
-  - T4.3 apps/web (App-Shell, `/config.json`, nginx-unprivileged)
-  - T4.4 `pr.yml` (hadolint, Semgrep, Image-Build amd64 + Trivy) und `codeql.yml`
-  - vorgezogen aus T7.2: erste README und `docs/architecture.md` (Wunsch Marco)
-- Aktuelles Gate: **Gate 4 – wartet auf Marcos Review von PR #4**
-- Nächster Task nach Freigabe: T5.1 `docker-compose.yml` (Branch `phase-0/tp5-compose`)
-- Abweichungen in TP4:
-  - Der Secret-Datei-Test läuft auf Prozessebene (`main.int.test.ts`); ein Image-Build per Testcontainers scheitert an BuildKit (`invalid tar header`). Das Image mit Compose-Secrets wird in TP5 am laufenden Stack geprüft.
-  - Tests liegen neben dem Code (`src/*.test.ts`) statt unter `test/` (Brief 13.2).
+- [x] TP5 (Compose-Stack, Dev-Modus, Makefile): PR #5, noch offen
+- [x] TP6 (Teststufen 2b–5, Workflows) auf `phase-0/tp6-test-stages`, gestapelt auf TP5: PR #6, CI grün
+  - T6.1 Stufe 2b: 9 Tests, Chromium Desktop/Mobile + WebKit iPhone, axe
+  - T6.2/T6.3 Stufe 3 (17 API-Tests) und 4 (Smoke, 4 Browser inkl. Firefox) über `compose.test.yaml`
+  - T6.4 Stufe 5: Stryker (contracts), Lighthouse 100/100/100
+  - T6.5 `stack-tests.yml` (wiederverwendbar), `pr.yml` mit Stufe 3/4 in 2 Shards, `main.yml` (Multi-Arch, GHCR), `nightly.yml`
+  - Gefunden: CSP-Verletzung durch zod-JIT in Firefox (behoben mit `jitless`)
+- Aktuell: TP7 auf `phase-0/tp7-docs-reviews`, gestapelt auf TP6
+- Nächster Task: T7.1 `docs/SECURITY.md`
 - Offene Punkte:
-  - Marco: Ruleset `main` → Pflicht-Checks `ci passed`, `pr passed`
-  - Pre-Commit-Messung mit Unit-Tests als Datei sichern (TP5); gemessen: 5,0 s
-  - `ci.yml`: Test-Jobs hängen bewusst nicht per `needs` an `static`; die teuren Jobs (Images) liegen in `pr.yml`
-  - Antigravity-Verhalten erst in T7.4 verifizierbar
+  - Stryker-Score (44,7 %) nicht verlässlich: Mutanten in refine-Callbacks gelten als überlebt, obwohl die Tests sie von Hand erkennen → Ursachenanalyse Phase 1; Schwelle bis dahin aus
+  - `main.yml` und `nightly.yml` laufen erst, wenn sie auf `main` liegen → nach dem Merge prüfen (erster GHCR-Push, `workflow_dispatch` für nightly)
+  - Antigravity-Verhalten erst in T7.4 verifizierbar (Marco)
+  - Verifikationsläufe nur im isolierten Compose-Projekt (`lfc-verify`), nie im Stack `live-factcheck` (AGENTS.md)
   - Beim Plan-Update immer am Zeilenanfang `\n## Status\n` verankern (der Text von T3.4 enthält `## Status` in Backticks)
-- Evidence: `docs/evidence/phase-0/` (neu: t4-images)
+- Evidence: `docs/evidence/phase-0/` (neu: t6-stage3-4, t6-stage5)
 
 ## Session-Log
