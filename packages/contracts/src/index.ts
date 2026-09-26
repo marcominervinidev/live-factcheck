@@ -6,14 +6,17 @@ export {
   CheckProvider,
   CheckTimings,
   ClaimChecked,
-  Explanation,
   ExistingFactCheck,
-  MAX_EXPLANATION_LENGTH,
-  MAX_EXPLANATION_SENTENCES,
   UncheckableReason,
   Usage,
-  countSentences,
 } from './claim-checked.js';
+export {
+  ClaimExplained,
+  Explanation,
+  MAX_EXPLANATION_LENGTH,
+  MAX_EXPLANATION_SENTENCES,
+  countSentences,
+} from './claim-explained.js';
 export { Evidence, MAX_SNIPPET_LENGTH, SourceTier } from './evidence.js';
 export {
   ConfidenceLevel,

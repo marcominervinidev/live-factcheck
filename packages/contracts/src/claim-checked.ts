@@ -4,23 +4,6 @@ import { HttpUrl, IsoDateTimeUtc, Speaker, Uuid, text } from './common.js';
 import { Evidence } from './evidence.js';
 import { ConfidenceLevel, Verdict, VerdictProbabilities } from './verdict.js';
 
-export const MAX_EXPLANATION_SENTENCES = 2;
-export const MAX_EXPLANATION_LENGTH = 400;
-
-// A sentence boundary is ., ! or ? followed by whitespace and an uppercase letter,
-// unless the token before it is a number ("8. Mai") or a single letter ("z. B.").
-// This undercounts rather than overcounts, so valid German explanations are not rejected.
-const SENTENCE_BOUNDARY = /(?<!(?:^|[\s(])\p{L}|\d)[.!?]+\s+(?=\p{Lu})/gu;
-
-export function countSentences(value: string): number {
-  return (value.trim().match(SENTENCE_BOUNDARY) ?? []).length + 1;
-}
-
-export const Explanation = text(MAX_EXPLANATION_LENGTH).refine(
-  (value) => countSentences(value) <= MAX_EXPLANATION_SENTENCES,
-  { message: `At most ${String(MAX_EXPLANATION_SENTENCES)} sentences` },
-);
-
 /** Which cache level answered (brief 9.5, 9.6; ADR 0008). */
 export const CacheHit = z.enum(['none', 'verdict_exact', 'verdict_semantic', 'evidence_store']);
 export type CacheHit = z.infer<typeof CacheHit>;

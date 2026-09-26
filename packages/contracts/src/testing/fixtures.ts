@@ -1,6 +1,7 @@
 // Valid example payloads for contract tests. Not exported from the package.
 import type { ClaimChecked } from '../claim-checked.js';
 import type { ClaimDetected } from '../claim-detected.js';
+import type { ClaimExplained } from '../claim-explained.js';
 import type { Evidence } from '../evidence.js';
 import type { TranscriptSegment } from '../transcript-segment.js';
 
@@ -92,3 +93,11 @@ export const validUncheckable = (): ClaimChecked => {
     reason: 'low_confidence',
   };
 };
+
+export const validExplained = (): ClaimExplained => ({
+  schemaVersion: 1,
+  sessionId: SESSION_ID,
+  claimId: CLAIM_ID,
+  explanation: 'Der Zweite Weltkrieg endete 1945, also vor über 80 Jahren.',
+  provider: { llm: 'anthropic', model: 'example-model' },
+});

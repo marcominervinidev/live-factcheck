@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ClaimChecked, countSentences } from './claim-checked.js';
+import { ClaimChecked } from './claim-checked.js';
 import { validChecked, validEvidence, validUncheckable } from './testing/fixtures.js';
 
 const failurePaths = (input: unknown) =>
@@ -122,18 +122,5 @@ describe('ClaimChecked v2 contract', () => {
     expect(
       failurePaths({ ...validChecked(), evidence: Array.from({ length: 11 }, validEvidence) }),
     ).toContain('evidence');
-  });
-});
-
-describe('countSentences', () => {
-  it.each([
-    ['Der Zweite Weltkrieg endete 1945, also vor über 80 Jahren.', 1],
-    ['Das stimmt nicht. Die Zahl ist höher.', 2],
-    ['Er endete am 8. Mai 1945 in Europa.', 1],
-    ['Das gilt z. B. für Berlin. Außerdem für Hamburg.', 2],
-    ['Eins. Zwei. Drei.', 3],
-    ['Stimmt das? Nein!', 2],
-  ])('counts %j as %i', (value, expected) => {
-    expect(countSentences(value)).toBe(expected);
   });
 });
