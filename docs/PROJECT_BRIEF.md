@@ -20,7 +20,7 @@
 
 Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets). Die Inhalte (Prompts, Skills, Regeln) liegen tool-neutral im Repo; die tool-spezifischen Dateien sind nur dünne Hüllen darum (siehe 1.4).
 
-- **Review- und Rollen-Prompts unter `.ai/prompts/`** (`reviewer.md`, `security-reviewer.md`, `platform-engineer.md`). Für Claude Code verweisen Subagents unter `.claude/agents/` auf diese Prompts, in Antigravity verweisen Subagents unter `.agents/agents/` auf dieselben Prompts (Workflows sind in Antigravity veraltet, siehe ADR 0006):
+- **Review- und Rollen-Prompts unter `.ai/prompts/`** (`reviewer.md`, `security-reviewer.md`, `platform-engineer.md`). Für Claude Code verweisen Subagents unter `.claude/agents/` auf diese Prompts, in Antigravity werden dieselben Prompts als eigene Agenten bzw. Workflows eingebunden:
   - `reviewer` prüft Änderungen gegen diesen Brief: 12 Faktoren (4.1), Modulgrenzen und Verträge (4.2), Sicherheit (15), Tests (13) und Konventionen aus den `AGENTS.md`-Dateien. Er achtet gezielt auf die typischen Agent-Fehler:
     - aufgeweichte Typen (`any`-Äquivalente, nachträglich optionale Pflichtfelder, stille Default-Werte, die schlechte Eingaben verdecken)
     - Grenzverletzungen (Importe oder Aufrufe über Service- bzw. Paketgrenzen hinweg)
@@ -44,9 +44,9 @@ Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets). Die Inhalte 
   - `adr` erzeugt ein neues ADR aus der Vorlage mit der nächsten freien Nummer.
   - `evidence` sammelt die Nachweise eines Tasks im festen Format (siehe 1.3).
   - Einen neuen Skill schlägst du vor, sobald ich dir denselben Ablauf zum zweiten Mal erkläre.
-- **MCP-Server,** bewusst wenige, weil jeder Server Kontext kostet. Für Claude Code stehen sie in `.mcp.json` im Projekt-Scope. Für Antigravity stehen dieselben Server in `.agents/mcp_config.json` im Workspace; ein CI-Check hält beide Dateien synchron (ADR 0006).
+- **MCP-Server,** bewusst wenige, weil jeder Server Kontext kostet. Für Claude Code stehen sie in `.mcp.json` im Projekt-Scope. Für Antigravity liegt unter `tools/antigravity/mcp_config.example.json` eine Vorlage mit denselben Servern. Antigravity erwartet die Konfiguration unter macOS in `~/.gemini/antigravity/mcp_config.json` und verlangt absolute Pfade; `make agent-setup` erzeugt die Datei aus der Vorlage.
   - ab sofort GitHub (Issues, PRs) und Context7 (aktuelle Bibliotheksdoku, vor allem für Fastify, KEDA, Argo CD, Terraform-Provider),
-  - ab Phase 0 ein Redis-MCP (Streams, Consumer Groups, Pending-Einträge, Pub/Sub) mit Read-only-ACL-User für die Selbstverifikation. Einen Docker-MCP gibt es nicht: Es existiert kein offizieller, gepflegter Server, und die Agents nutzen `docker compose ps|logs|exec` im Terminal (ADR 0006),
+  - ab Phase 0 ein Docker-MCP (Container-Status, Logs, `exec`) und ein Redis-MCP (Streams, Consumer Groups, Pending-Einträge, Pub/Sub) für die Selbstverifikation,
   - ab Phase 1 Playwright MCP, um UI-Änderungen im echten Browser zu prüfen,
   - ab Phase 5 ein Kubernetes-MCP im Read-only-Modus für Cluster-Diagnose.
   - Nur offizielle bzw. gut gepflegte Server, keine Produktions-Secrets in MCP-Konfigurationen. Tokens kommen aus Umgebungsvariablen und stehen in keiner MCP-Konfiguration.
@@ -70,7 +70,7 @@ Richte in Phase 0 folgendes ein und committe es mit (ohne Secrets). Die Inhalte 
 - **Tests und Checks:** die tatsächliche Ausgabe der Test-, Lint- und Scan-Befehle, inklusive übersprungener Tests (und warum)
 - **Backend:** echte HTTP-Anfragen gegen den laufenden Stack mit Request und Response, dazu der Zustand in Redis über den Redis-MCP. Beispiel: Eine eingetippte Behauptung erscheint nacheinander in `claims.detected` und `claims.checked`, die Consumer Groups haben keine hängenden Einträge.
 - **Frontend:** Durchlauf des betroffenen Nutzerflusses per Playwright-MCP, Screenshots an den Entscheidungspunkten, Konsolenfehler
-- **Service-übergreifend:** der komplette Pfad, belegt durch Stream-Einträge und Logauszüge der beteiligten Container (`docker compose logs`)
+- **Service-übergreifend:** der komplette Pfad, belegt durch Stream-Einträge und Logauszüge der beteiligten Container über den Docker-MCP
 - **Infrastruktur (ab Phase 5):** `kubectl`-Ausgaben, Argo-CD-Sync-Status und Grafana-Screenshots
 
 Die Nachweise landen in der PR-Beschreibung und kompakt unter `docs/evidence/phase-N/`. Diese Selbstverifikation ergänzt die automatisierten Tests, ersetzt sie aber nicht. Ohne Artefakt gilt ein Task als nicht erledigt.
@@ -81,10 +81,10 @@ Ich arbeite primär mit Claude Code in VS Code. Wenn mein Nutzungslimit erreicht
 
 | Baustein | Tool-neutrale Quelle | Claude Code | Antigravity |
 |---|---|---|---|
-| Regeln | `AGENTS.md` (Root und pro Service) | `CLAUDE.md` mit `@AGENTS.md` plus Claude-Spezifika | liest Root-`AGENTS.md` direkt; verschachtelte über glob-Regeln in `.agents/rules/`; `GEMINI.md` nur bei Bedarf für Antigravity-Spezifika |
+| Regeln | `AGENTS.md` (Root und pro Service) | `CLAUDE.md` mit `@AGENTS.md` plus Claude-Spezifika | liest `AGENTS.md` direkt; `GEMINI.md` nur bei Bedarf für Antigravity-Spezifika |
 | Skills | `.agents/skills/*/SKILL.md` | `.claude/skills` als Symlink | liest `.agents/skills` |
-| Review- und Rollen-Prompts | `.ai/prompts/*.md` | Subagents in `.claude/agents/`, die auf die Prompts verweisen | Subagents in `.agents/agents/`, die auf die Prompts verweisen |
-| MCP-Server | Liste in `docs/ai-tooling.md` | `.mcp.json` | `.agents/mcp_config.json` im Workspace |
+| Review- und Rollen-Prompts | `.ai/prompts/*.md` | Subagents in `.claude/agents/`, die auf die Prompts verweisen | eigene Agenten bzw. Workflows mit denselben Prompts |
+| MCP-Server | Liste in `docs/ai-tooling.md` | `.mcp.json` | `~/.gemini/antigravity/mcp_config.json`, erzeugt aus `tools/antigravity/mcp_config.example.json` |
 | Plan und Stand | `.ai/plans/`, ADRs, Git-Historie | gleich | gleich |
 
 **Schutzmaßnahmen, die für jedes Tool gelten.** Agent-Hooks greifen nur in Claude Code. Alles, was wirklich zählt, wird deshalb zusätzlich über Git-Hooks (lefthook) und die CI erzwungen:
@@ -167,12 +167,14 @@ Die Gespräche finden primär auf Deutsch statt. Getestet wird auf dem iPhone (S
 | `gateway` | Node.js (aktuelle LTS), TypeScript, Fastify, `@fastify/websocket` | Einziger öffentlicher API-Einstieg (REST + WebSocket). Verwaltet Sessions, leitet Audio an `transcription` weiter und pusht Ergebnisse an den Client | horizontal; WebSocket-Sessions brauchen Session-Affinität oder Fan-out über Redis Pub/Sub (siehe ADR) |
 | `transcription` | Node.js/TS | Streaming-Speech-to-Text über Adapter (Cloud) oder Weiterleitung an `stt-local`. Veröffentlicht Transkript-Segmente mit Sprecher-Label | nach Anzahl aktiver Sessions |
 | `stt-local` (optional, Compose-Profil `local-stt`) | Python, FastAPI, faster-whisper | Vollständig lokale Transkription, in der ersten Version ohne Diarization | CPU-/GPU-gebunden |
-| `claim-extractor` | Node.js/TS Worker | Liest Segmente, erkennt prüfbare Tatsachenbehauptungen per LLM und dedupliziert sie | horizontal über Consumer Group |
-| `fact-checker` | Node.js/TS Worker | Recherchiert pro Behauptung (Websuche + Seitenabruf), lässt das LLM auf Basis der Quellen urteilen und veröffentlicht das Ergebnis | horizontal über Consumer Group; teuerster Teil |
+| `claim-extractor` | Node.js/TS Worker | Liest Segmente und erkennt in drei Stufen prüfwürdige Tatsachenbehauptungen: Vorfilter, Klassifikator, Umformulierung in eine eigenständige Aussage (siehe 8.1). Dedupliziert pro Session | horizontal über Consumer Group |
+| `fact-checker` | Node.js/TS Worker | Prüft pro Behauptung zuerst die Caches, dann den Evidenz-Speicher und recherchiert bei Bedarf live. Der Klassifikator fällt das Urteil. Veröffentlicht das Urteil sofort, ohne auf eine Erklärung zu warten (siehe 9) | horizontal über Consumer Group |
+| `explainer` | Node.js/TS Worker | Erzeugt nachträglich per LLM eine kurze Erklärung zum Urteil und veröffentlicht sie als eigenes Event | horizontal, per KEDA bis auf null herunterskalierbar |
+| `topic-tracker` (ab Phase 4) | Node.js/TS Worker | Erkennt das aktuelle Gesprächsthema und stößt vorab Recherche an, damit spätere Behauptungen auf bereits indexierte Evidenz treffen (siehe 9.4) | horizontal über Consumer Group |
 | `redis` | Redis (offizielles Image) | Streams, Pub/Sub, Cache | — |
 | `searxng` | SearXNG (offizielles Image) | Selbst gehostete Metasuche ohne API-Key für den lokalen Modus | — |
 | `caddy` | Caddy | Lokaler Reverse Proxy mit HTTPS; entspricht später dem Ingress | — |
-| `postgres` (ab Phase 4) | PostgreSQL | Sitzungsverlauf, Behauptungen, Urteile | — |
+| `postgres` (ab Phase 4) | PostgreSQL mit pgvector | Sitzungsverlauf, Behauptungen, Urteile, Evidenz-Speicher (Chunks mit Embeddings), semantischer Urteils-Cache | — |
 
 Wenn dir ein anderer Schnitt sinnvoller erscheint (z. B. `transcription` und `gateway` zusammenlegen), schlag ihn mit Begründung als ADR vor, bevor du ihn umsetzt.
 
@@ -182,8 +184,10 @@ Wenn dir ein anderer Schnitt sinnvoller erscheint (z. B. `transcription` und `ga
 2. Der Client nimmt Audio per AudioWorklet auf. Er sendet PCM16, mono, 16 kHz in Frames von ca. 100 ms als Binärnachrichten. Steuernachrichten (start, stop, Sprecher umbenennen) gehen als JSON.
 3. Das `gateway` leitet den Audiostream über einen internen WebSocket an `transcription` weiter.
 4. `transcription` streamt an den konfigurierten STT-Anbieter und schreibt finale Segmente in den Stream `transcript.segments`. Zwischenergebnisse (interim) gehen nur per Pub/Sub an den Client, nicht in die Pipeline.
-5. `claim-extractor` sammelt pro Session ein rollierendes Fenster der letzten Segmente, extrahiert Behauptungen und schreibt sie nach `claims.detected`. Dedupliziert wird über einen normalisierten Hash und einen Abgleich mit den bereits erkannten Behauptungen der Session.
-6. `fact-checker` recherchiert, bewertet und schreibt das Ergebnis nach `claims.checked`.
+5. `claim-extractor` sammelt pro Session ein rollierendes Fenster der letzten Segmente. Ein deterministischer Vorfilter verwirft offensichtlichen Smalltalk. Der Klassifikator entscheidet, ob ein Segment eine prüfwürdige Tatsachenbehauptung enthält. Nur für positive Fälle formuliert ein LLM die Behauptung in eine eigenständige Aussage um (Pronomen und Bezüge aufgelöst). Das Ergebnis geht nach `claims.detected`. Dedupliziert wird über einen normalisierten Hash und einen Abgleich mit den bereits erkannten Behauptungen der Session.
+6. `fact-checker` prüft Urteils-Cache, Evidenz-Speicher und bei Bedarf die Live-Recherche (siehe 9.6). Der Klassifikator fällt das Urteil, das sofort nach `claims.checked` geht.
+6a. `explainer` liest `claims.checked` und schreibt eine kurze Erklärung nach `claims.explained`. Das UI zeigt das Urteil also zuerst und ergänzt die Erklärung, sobald sie da ist.
+6b. Ab Phase 4 liest `topic-tracker` ebenfalls `transcript.segments`, schreibt erkannte Themen nach `topics.detected` und füllt den Evidenz-Speicher vorab.
 7. Alle für den Client relevanten Events landen zusätzlich auf dem Pub/Sub-Kanal `session:{sessionId}:events`. Die `gateway`-Instanz mit der offenen Verbindung pusht sie an den Client.
 8. Zusätzlich gibt es einen Textmodus: `POST /api/claims/check` nimmt eine eingetippte Behauptung entgegen, die direkt in `claims.detected` landet. Er dient für Phase 1 und zum Testen.
 
@@ -193,17 +197,32 @@ Mindestens diese Schemas, jeweils mit `schemaVersion` versioniert:
 
 ```ts
 TranscriptSegment { sessionId, segmentId, speaker: string, text, startMs, endMs, isFinal, language }
-ClaimDetected     { sessionId, claimId, speaker, text, normalizedText, sourceSegmentIds[], detectedAt }
-ClaimChecked      { sessionId, claimId, speaker, claim, verdict, confidence, explanation,
-                    sources: { title, url, snippet? }[], checkedAt,
-                    provider: { llm, model, search } }
 
-verdict:     "stimmt" | "groesstenteils_richtig" | "uebertrieben" | "falsch" | "nicht_pruefbar"
-confidence:  "hoch" | "mittel" | "niedrig"
-explanation: max. 2 Sätze, Deutsch
+ClaimDetected     { sessionId, claimId, speaker, originalText, standaloneText, normalizedText,
+                    checkworthiness: number /* 0..1 */, sourceSegmentIds[], detectedAt,
+                    provider: { classifier, model } }
+
+ClaimChecked      { sessionId, claimId, speaker, claim /* standaloneText */,
+                    verdict, probabilities: Record<Verdict, number>, confidence: number /* 0..1 */,
+                    confidenceLevel, evidence: Evidence[], bestEvidenceId?,
+                    cacheHit: "none" | "verdict_exact" | "verdict_semantic" | "evidence_store",
+                    existingFactCheck?: { publisher, url, rating },
+                    timings: { detectMs, retrieveMs, classifyMs, totalMs },
+                    checkedAt, provider: { classifier, model, search, embeddings } }
+
+ClaimExplained    { sessionId, claimId, explanation /* max. 2 Sätze, Deutsch */, provider: { llm, model } }
+
+TopicDetected     { sessionId, topicId, label, keywords[], detectedAt }
+
+Evidence          { evidenceId, title, url, publisher, publishedAt?, retrievedAt,
+                    tier: "faktencheck" | "amtlich" | "referenz" | "presse" | "sonstige",
+                    snippet /* kurzer Auszug, keine Volltexte */ }
+
+Verdict:          "stimmt" | "groesstenteils_richtig" | "uebertrieben" | "falsch" | "nicht_pruefbar"
+confidenceLevel:  "hoch" | "mittel" | "niedrig"   // aus confidence per konfigurierbaren Schwellen abgeleitet
 ```
 
-Das Hauptergebnis ist keine Prozentangabe, weil LLM-Prozentwerte nicht kalibriert sind. Stattdessen gibt es Kategorie, Konfidenz und Quellen.
+**Zu den Wahrscheinlichkeiten:** Das UI zeigt standardmäßig Urteil und Konfidenzstufe, die Verteilung über alle Urteile nur in der Detailansicht. Ein Prozentwert wird erst dann prominent angezeigt, wenn die Evals (13.5) für den verwendeten Klassifikator eine gute Kalibrierung auf deutschen Daten belegen. Vorher gilt, was schon für LLM-Prozentwerte galt: Sie sehen präziser aus, als sie sind.
 
 ## 8. LLM-Abstraktion (muss mit lokalen Modellen funktionieren)
 
@@ -223,18 +242,91 @@ Das Hauptergebnis ist keine Prozentangabe, weil LLM-Prozentwerte nicht kalibrier
 - **Netzwerk-Hinweis für macOS:** LM Studio und Ollama laufen nativ auf dem Mac, weil Docker unter macOS keinen GPU-/Metal-Zugriff hat. Aus Containern heraus sind sie über `http://host.docker.internal:<port>/v1` erreichbar. Das muss in `.env.example` und README dokumentiert sein.
 - Prompts liegen als eigene, versionierte Dateien mit Platzhaltern unter `services/*/prompts/*.md` und nicht als Strings im Code verstreut.
 
-## 9. Recherche (unabhängig vom LLM-Anbieter)
+### 8.1 Klassifikator und Aufgabenverteilung der Modelle
 
-Lokale Modelle haben keine eingebaute Websuche. Deshalb recherchiert der `fact-checker` selbst:
+Die meisten Entscheidungen in der Pipeline sind Klassifikationen, keine Textaufgaben. Dafür gibt es neben dem `LlmProvider` ein zweites Interface `ClassifierProvider` mit drei Fragetypen: **Choice** (eine Option aus einer Liste), **Score** (Stufe auf einer Skala) und **Bool** (Wahrscheinlichkeit, dass eine Aussage zutrifft). Jede Antwort enthält die Wahrscheinlichkeiten und eine Konfidenz.
 
-1. Er leitet aus der Behauptung 1–3 Suchanfragen ab (per LLM oder Heuristik).
-2. Die Suche läuft über den Adapter `SearchProvider`: `searxng` ist der Standard (lokal, ohne Key), `brave` und `tavily` sind optional per API-Key.
-3. Er ruft die Top-N-Ergebnisse ab, extrahiert den Haupttext (z. B. mit `@mozilla/readability` + `jsdom`), kürzt ihn und versieht ihn mit Quellen-IDs.
-4. Das LLM urteilt **nur** auf Basis der übergebenen Quellen und darf nur diese zitieren. Reicht die Evidenz nicht, lautet das Urteil `nicht_pruefbar`.
-5. Die Ergebnisse werden pro normalisierter Behauptung in Redis gecacht, mit konfigurierbarer TTL.
-6. Optional gibt es den Modus `CHECKER_RESEARCH_MODE=native`. Er nutzt bei Anthropic das serverseitige Web-Search-Tool der Claude API, statt selbst zu recherchieren. Standard ist `pipeline`.
+Implementierungen:
 
-Timeouts, die maximale Anzahl Seiten und die maximalen Tokens pro Quelle sind konfigurierbar. Der Service setzt einen eigenen User-Agent und respektiert robots.txt.
+- `typesafe`: **Jev** von TypeSafe AI über dessen eigene HTTP-API (`/v1/systemone`, offizielles JS-SDK). Jev ist ein „System One“-Modell: Es erzeugt keinen Text, sondern typisierte Entscheidungen mit kalibrierten Wahrscheinlichkeiten, und die Klassen werden beim Aufruf in natürlicher Sprache definiert, ohne Fine-Tuning. Die Bool-Fragen heißen dort `noul`.
+- `llm`: bildet die drei Fragetypen über den `LlmProvider` mit zod-Schema nach. Das ist der Fallback und der Weg für den vollständig lokalen Modus.
+- `mock` für Tests.
+- ab Phase 7 optional `local-model` für ein eigenes, feingetuntes Modell (siehe 17).
+
+Konfiguration pro Aufgabe (z. B. `DETECTOR_CLASSIFIER_PROVIDER`, `CHECKER_CLASSIFIER_PROVIDER`) und **pro Aufgabe konfigurierbare Konfidenzschwellen:** Bei hoher Konfidenz handelt das System automatisch, bei mittlerer wird das Ergebnis als „unsicher“ markiert, bei niedriger wird nicht geurteilt (`nicht_pruefbar`) bzw. die Behauptung verworfen.
+
+| Aufgabe | Art | Standard | Fallback / lokal |
+|---|---|---|---|
+| Vorfilter gegen Smalltalk | deterministisch | Heuristik: Mindestlänge, Fragen, Grußformeln, reine Meinungsmarker („ich finde“) | — |
+| Prüfwürdigkeit | Klassifikation | Bool „enthält eine überprüfbare Tatsachenbehauptung“ plus Score „Prüfwürdigkeit 1–5“ | LLM, ab Phase 7 eigenes Modell |
+| Eigenständige Formulierung | Generierung | kleines LLM, nur für positive Fälle | lokales LLM |
+| Thema | Klassifikation + Generierung | Choice unter den bisherigen Themen der Session plus „neues Thema“; Bezeichnung des neuen Themas per LLM | LLM |
+| Suchanfragen | Generierung | kleines LLM | Heuristik aus Entitäten |
+| Relevanz der Evidenz | Klassifikation | Vorauswahl per Embedding-Ähnlichkeit, dann Bool „Auszug ist relevant für die Behauptung“ für die Top-k | nur Embeddings |
+| Evidenz ausreichend? | Klassifikation | Bool „die Auszüge reichen für ein Urteil“ | LLM |
+| Urteil | Klassifikation | Choice über die fünf Urteile; State = Behauptung plus relevante Auszüge; zusätzlich Choice „welcher Auszug belegt das Urteil am stärksten“ | LLM |
+| Gleiche Aussage? (Cache) | Klassifikation | Bool „beide Behauptungen haben denselben Wahrheitsgehalt“ (schützt vor Fehltreffern bei Negation oder anderen Zahlen) | LLM |
+| Erklärung | Generierung | LLM, asynchron im `explainer` | lokales LLM |
+
+**Einschränkungen von Jev, die das Design berücksichtigt:**
+
+- Jev ist im Early Access mit Warteliste. Die Pipeline muss vollständig mit `llm` funktionieren; Jev ist eine Optimierung, keine Voraussetzung.
+- Die Angaben zu Latenz (70–500 ms), Kosten und Kalibrierung sind Herstellerangaben aus Messungen an der US-Westküste. Aus Europa kommt Netzwerklatenz dazu. Wir messen selbst (13.5).
+- Englisch ist die primäre Trainingssprache; Deutsch wird unterstützt, aber nicht gleich gut. Die deutsche Qualität muss das Eval-Set belegen.
+- Jev verarbeitet nur Text (kein Audio) und hat ein Kontextbudget von 64.000 Tokens pro Anfrage.
+- Jev erzeugt keine Erklärungen. Deshalb bleibt die Erklärung beim LLM.
+- Gehostet in den USA, keine EU-Region; Datenschutzfolgen siehe 15.6.
+
+## 9. Recherche, Evidenz-Speicher und Caching
+
+Die Recherche ist unabhängig vom Modellanbieter; auch lokale Modelle ohne eingebaute Websuche funktionieren. Die gemeinsame Logik (Quellenabruf, Chunking, Embeddings, Retrieval) liegt in `packages/research` und wird von `fact-checker` und `topic-tracker` genutzt.
+
+### 9.1 Quellen in Stufen
+
+Offizielle APIs haben Vorrang vor dem Scraping von Webseiten, weil sie stabiler sind und nicht an Bot-Sperren scheitern:
+
+1. **Bestehende Faktenchecks** über die Google Fact Check Tools API (ClaimReview-Einträge u. a. deutscher Faktenchecker). Ein Treffer ist die stärkste Evidenz und wird im UI als „bereits von … geprüft“ angezeigt.
+2. **Strukturierte Referenzdaten** über die Wikidata- und die deutschsprachige Wikipedia-API, z. B. für Daten, Zahlen und Personen.
+3. **Websuche** über den Adapter `SearchProvider` (`searxng` als lokaler Standard ohne Key, `brave` und `tavily` optional) mit anschließendem Seitenabruf.
+
+Alle Stufen laufen parallel. Jede Quelle bekommt anhand ihrer Domain eine Stufe (`faktencheck`, `amtlich`, `referenz`, `presse`, `sonstige`). Die Zuordnung und die Gewichtung stehen als Daten in `config/source-tiers.yaml`, nicht im Code.
+
+### 9.2 Chunking und Embeddings
+
+- Der Haupttext abgerufener Seiten wird extrahiert (z. B. `@mozilla/readability` + `jsdom`) und in Abschnitte von ca. 300–500 Tokens mit Überlappung zerlegt. Jeder Chunk trägt Metadaten: URL, Herausgeber, Veröffentlichungs- und Abrufdatum, Quellenstufe.
+- Embeddings kommen über den Adapter `EmbeddingProvider`: `openai-compatible` (Embedding-Endpunkt von LM Studio bzw. Ollama, lokaler Standard) oder ein Cloud-Anbieter. Das Modell muss mehrsprachig sein und Deutsch gut abdecken; die Wahl ist ein ADR.
+- Im UI und in Events erscheinen nur kurze Auszüge, nie ganze Texte.
+
+### 9.3 Evidenz-Speicher (ab Phase 4)
+
+- Bis Phase 3 werden die Chunks pro Behauptung im Speicher gerankt und danach verworfen.
+- Ab Phase 4 landen sie in Postgres mit pgvector. Die Alternativen Qdrant und die Vektorsuche von Redis bewertest du im ADR.
+- Retrieval ist hybrid: Vektorsuche plus deutsche Volltextsuche von Postgres, die Ergebnisse werden zusammengeführt.
+- Aktualität zählt: Zeitkritische Fakten (Amtsinhaber, Preise, aktuelle Zahlen) haben eine kurze Gültigkeit, historische Fakten eine lange. Die Klassifikation „zeitkritisch ja/nein“ übernimmt der Klassifikator.
+
+### 9.4 Themen-Prefetch
+
+Der `topic-tracker` erkennt aus dem Gesprächsfenster, worüber gerade gesprochen wird (z. B. „Zweiter Weltkrieg“), und stößt vorab die Recherche an: passende Wikipedia-Artikel, Faktenchecks zum Thema und die Top-Suchergebnisse werden abgerufen, gechunkt und indexiert. Kommt kurz danach eine Behauptung zum Thema, liegt die Evidenz schon bereit. Budgets pro Session (maximale Themenzahl, Seiten pro Thema) begrenzen Kosten und Last.
+
+### 9.5 Caching statt vorgenerierter Fragen
+
+Es werden **keine** möglichen Fragen und Antworten vorab generiert. Der Raum möglicher Behauptungen ist offen, die allermeisten vorab erzeugten Paare würden nie gebraucht, und eine vorab erzeugte Antwort wäre nicht gegen den tatsächlichen Wortlaut geprüft. Stattdessen gibt es drei Cache-Ebenen:
+
+1. **Urteils-Cache:** exakt über den normalisierten Hash und semantisch über Embedding-Ähnlichkeit. Ein semantischer Treffer wird nur verwendet, wenn der Klassifikator bestätigt, dass beide Behauptungen denselben Wahrheitsgehalt haben. Sonst würde „Der Krieg endete 1945“ das Urteil für „Der Krieg endete 1955“ liefern.
+2. **Evidenz-Speicher** aus Prefetch und früheren Prüfungen (9.3).
+3. **Such- und Seiten-Cache** in Redis.
+
+### 9.6 Ablauf pro Behauptung
+
+1. **Urteils-Cache:** Bei einem Treffer wird das Urteil sofort ausgeliefert.
+2. **Evidenz-Speicher:** hybrides Retrieval der Top-k, Relevanzprüfung, dann die Frage „reicht die Evidenz?“. Wenn ja, folgt das Urteil.
+3. **Live-Recherche (Cache-Fehltreffer):** Suchanfragen erzeugen, die drei Quellenstufen parallel abfragen, Seiten abrufen, chunken, embedden, ranken, urteilen. Die neuen Chunks werden asynchron in den Evidenz-Speicher geschrieben, damit die nächste ähnliche Behauptung schneller ist.
+4. **Urteil** per Klassifikator. Bei niedriger Konfidenz lautet das Ergebnis `nicht_pruefbar` oder „unsicher“. Optional, und nur innerhalb des Budgets, wird ein stärkeres LLM als zweite Instanz gefragt.
+5. **Erklärung** asynchron durch den `explainer`.
+
+Zielwerte für die Latenz ab Satzende: Cache-Treffer unter 1 Sekunde, Treffer im Evidenz-Speicher 1–3 Sekunden, Live-Recherche 5–10 Sekunden. Die tatsächlichen Werte pro Pfad werden gemessen (`timings` im Event, Dashboard in 14.5).
+
+Weitere Regeln: Timeouts, maximale Seitenzahl und maximale Tokens pro Quelle sind konfigurierbar. Der Service setzt einen eigenen User-Agent und respektiert robots.txt; es gilt der SSRF-Schutz aus 15.5. Optional gibt es den Modus `CHECKER_RESEARCH_MODE=native`, der bei Anthropic das serverseitige Web-Search-Tool der Claude API nutzt. Standard ist `pipeline`.
 
 ## 10. Transkription
 
@@ -249,7 +341,18 @@ Timeouts, die maximale Anzahl Seiten und die maximalen Tokens pro Quelle sind ko
 - Mobile-first mit dem iPhone-Viewport als erstem Ziel, dazu PWA-Manifest und Icons (installierbar über „Zum Home-Bildschirm“).
 - **Vor jeder Aufnahme erscheint ein Einwilligungsdialog.** Er weist darauf hin, dass alle Gesprächsteilnehmer informiert sein und zustimmen müssen (Vertraulichkeit des gesprochenen Wortes, DSGVO). Ohne Bestätigung startet keine Aufnahme.
 - Es gibt einen Start/Stopp-Button, eine Anzeige für Verbindungs- und Aufnahmestatus und ein Live-Transkript mit Sprecher-Labels (interim grau, final schwarz).
-- Der Karten-Feed zeigt die geprüften Behauptungen, die neueste oben. Die Karten sind nach Urteil farbcodiert und zeigen die Konfidenz, eine aufklappbare Begründung und die Quellen-Links. Sobald eine Behauptung erkannt ist, erscheint sie mit dem Zwischenstatus „wird geprüft …“.
+- **Live-Transkript mit markierten Behauptungen:** Erkannte Behauptungen werden direkt im Transkript unterstrichen, zuerst grau („erkannt“), dann mit einer dezenten Animation („wird geprüft“), zuletzt in der Farbe des Urteils. Ein Tipp auf die Markierung springt zur zugehörigen Karte.
+- **Zeitleiste** am oberen Rand: ein Punkt pro Behauptung in der Farbe des Urteils, damit der Verlauf des Gesprächs auf einen Blick sichtbar ist.
+- **Karten-Feed**, die neueste oben. Jede Karte zeigt:
+  - Urteil als Chip mit Icon und Text, Sprecher und Uhrzeit
+  - die eigenständig formulierte Behauptung, die wörtliche Aussage aufklappbar
+  - einen Konfidenzbalken; in der Detailansicht die Verteilung über alle Urteile
+  - den stärksten Beleg als kurzes Zitat mit Herausgeber, Datum und Quellenstufe
+  - Badges wie „bereits von … geprüft“ oder „aus früherer Prüfung“
+  - die Erklärung, die nachträglich erscheint (vorher ein Platzhalter)
+  - alle Quellen-Links
+- **Ehrlichkeit vor Farbe:** Mittlere Konfidenz wird ausdrücklich als „unsicher“ angezeigt, nicht als Rot oder Grün. Jede Karte trägt den Hinweis, dass es sich um eine automatische Einschätzung handelt.
+- **Keine Personenwertung:** Das UI zeigt keine „Lügen-Scores“ oder Ranglisten pro Person. Die Zusammenfassung am Ende einer Session listet Behauptungen und Urteile neutral und lässt sich als Markdown exportieren.
 - Sprecher lassen sich umbenennen (A → „Marco“).
 - Im Textmodus kann man eine Behauptung eintippen und prüfen lassen.
 - Eine Einstellungsseite zeigt, welche Provider aktiv sind. Sie dient nur der Anzeige, die Konfiguration bleibt serverseitig.
@@ -330,7 +433,15 @@ Die E2E-Tests laufen bewusst schon im PR und nicht erst nach dem Merge. Sonst w�
 - Coverage-Schwelle für Stufe 1 und 2 zusammen: 80 % Zeilen und Branches für `packages/*` und die Service-Logik. Die Schwelle darf nie sinken; steigt die Coverage, wird die Schwelle nachgezogen.
 - Neue Logik ohne Tests meldet der `reviewer` als Befund.
 - Mutationstests (Stryker) laufen nightly für `contracts`, `providers` und die Deduplizierung. Sie zeigen, ob die Tests wirklich etwas prüfen.
-- Ein **Evaluations-Set** `evals/claims.de.jsonl` enthält ca. 30 deutsche Behauptungen mit erwartetem Urteil (klar wahr, klar falsch, übertrieben, Meinung). Das Skript `pnpm eval` lässt ein Provider-Setup dagegen laufen und gibt Trefferquote, Latenz und bei Claude die Kosten pro Behauptung aus. Damit vergleiche ich Claude mit lokalen Modellen. Die Evals laufen manuell oder wöchentlich mit einem eigenen, budgetbegrenzten API-Key, nie bei jedem Push.
+- **Evals** vergleichen die Provider-Setups (Jev, Claude, lokale Modelle) mit denselben Daten. Sie laufen manuell oder wöchentlich mit eigenen, budgetbegrenzten API-Keys, nie bei jedem Push. Es gibt zwei Eval-Sets, beide versioniert unter `evals/`:
+  - **Erkennung** (`evals/detection.de.jsonl`, Ziel: mehrere hundert Segmente): Gesprächsausschnitte, gelabelt mit „enthält prüfwürdige Behauptung ja/nein“ und der erwarteten eigenständigen Formulierung. Gemessen werden Precision, Recall und F1. Precision ist für die Live-Nutzung besonders wichtig, weil Fehlalarme den Feed zumüllen.
+  - **Urteil** (`evals/claims.de.jsonl`, Ziel: mindestens 200 Behauptungen): Behauptungen mit erwartetem Urteil. Gemessen werden die Trefferquote und die **Kalibrierung** (Brier-Score, Expected Calibration Error, Reliability-Diagramm), dazu Latenz p50/p95 pro Pfad (9.6) und Kosten pro Behauptung.
+- **Datenquellen für die Eval-Sets:**
+  - öffentliche Plenarprotokolle des Bundestags (deutsch, reich an Tatsachenbehauptungen, Meinungsäußerungen und Zwischenrufen)
+  - veröffentlichte Faktenchecks mit ClaimReview-Bewertung als Referenz für Urteile
+  - eigene Testgespräche, nur mit Einwilligung aller Beteiligten
+  - Vorab-Labels darf ein LLM liefern; jedes Label wird von mir geprüft, bevor es ins Set kommt. Lizenz und Herkunft jeder Quelle stehen in `evals/SOURCES.md`.
+- Das Eval-Ergebnis entscheidet, welcher Klassifikator Standard wird und ob Phase 7 (eigenes Modell) nötig ist.
 
 ### 13.6 Plattform: erst Web-App, iPhone über WebKit
 
@@ -385,7 +496,7 @@ Weitere Regeln:
 - Dazu kommen Deployments, Services, ConfigMaps und ein Ingress mit WebSocket-Unterstützung. k3s bringt Traefik mit; ob Traefik bleibt oder ingress-nginx kommt, entscheidest du per ADR.
 - Pflicht in jedem Manifest: Resource Requests/Limits, Liveness/Readiness Probes, PodDisruptionBudgets und ein SecurityContext mit `runAsNonRoot`, `readOnlyRootFilesystem`, `capabilities.drop: [ALL]` und `seccompProfile: RuntimeDefault`. Die Namespaces erzwingen per Pod Security Admission das Profil `restricted`.
 - NetworkPolicies nach dem Prinzip default deny; nur die benötigten Verbindungen werden erlaubt.
-- Skalierung: HPA (CPU) für `gateway` und `web`. Für `claim-extractor` und `fact-checker` KEDA-ScaledObjects auf die offenen Einträge der Redis-Streams, damit die Worker mit der Last hoch- und bis auf ein Minimum herunterskalieren.
+- Skalierung: HPA (CPU) für `gateway` und `web`. Für `claim-extractor`, `fact-checker`, `explainer` und `topic-tracker` KEDA-ScaledObjects auf die offenen Einträge der Redis-Streams, damit die Worker mit der Last hoch- und bis auf ein Minimum herunterskalieren.
 - Die Strategie für Session-Affinität bzw. Fan-out der WebSockets im `gateway` ist dokumentiert und getestet.
 - Ein ADR legt fest, wie Redis und Postgres im Cluster laufen (Operator, Helm-Chart oder einfaches StatefulSet für lokal).
 - Secrets werden per Sealed Secrets oder SOPS verwaltet (siehe 15.1).
@@ -421,7 +532,7 @@ Sicherheit gehört ab Phase 0 zur Definition of Done und ist kein späteres Them
 
 - Secrets sind strikt von normaler Konfiguration getrennt. Dazu gehören die API-Keys für Anthropic, Deepgram/AssemblyAI und Brave/Tavily sowie das Gateway-Token und die Passwörter für Redis und Postgres.
 - Ein Secret landet **niemals** in Git, einem Docker-Image oder einem Build-Argument. Genauso wenig gehört es ins Frontend-Bundle, in die `/config.json`, in Logs, Fehlermeldungen, Metriken oder Traces.
-- **Least Privilege:** Jeder Service bekommt nur die Secrets, die er wirklich braucht. Nur `claim-extractor` und `fact-checker` kennen LLM-Keys, nur `transcription` kennt den STT-Key, und `web` kennt gar keine Secrets. Der Browser bzw. das iPhone sieht nie einen Key, weil Audio und alle Anfragen über das `gateway` laufen.
+- **Least Privilege:** Jeder Service bekommt nur die Secrets, die er wirklich braucht. Nur `claim-extractor`, `fact-checker`, `explainer` und `topic-tracker` kennen LLM- bzw. Klassifikator-Keys, und jeder nur die, die er braucht (der `explainer` z. B. keinen Jev-Key); nur `transcription` kennt den STT-Key, und `web` kennt gar keine Secrets. Der Browser bzw. das iPhone sieht nie einen Key, weil Audio und alle Anfragen über das `gateway` laufen.
 - Services lesen Secrets wahlweise aus einer Env-Variable oder aus einer Datei (Konvention `<NAME>_FILE`, z. B. `ANTHROPIC_API_KEY_FILE`). So funktionieren Docker-Compose-Secrets und später Kubernetes-Secrets als gemountete Dateien ohne Code-Änderung.
 - **Lokal** liegen Secrets **außerhalb des Repo-Ordners**, standardmäßig unter `~/.config/live-factcheck/secrets/` (eine Datei pro Secret, Verzeichnis `700`, Dateien `600`). Compose bindet sie als Compose-Secrets über `${SECRETS_DIR}` ein. Damit liegen sie außerhalb des Workspace, in dem Claude Code und Antigravity arbeiten. Kein Agent liest sie beim normalen Durchsuchen des Projekts mit ein, und keiner kann sie committen. Vollständig ausschließen lässt sich ein Zugriff per Terminal-Befehl nicht; deshalb bestätige ich nie Agent-Befehle, die dieses Verzeichnis berühren, und in beiden Tools ist für Terminal-Befehle eine Freigabe eingestellt. `make secrets-init` legt das Verzeichnis mit den richtigen Rechten und leeren Platzhalterdateien an; die Werte trage ich selbst ein. Das README zeigt optional, wie ich sie aus dem macOS-Schlüsselbund oder einem Passwortmanager-CLI befülle, statt sie im Klartext abzulegen.
 - Beim Start loggt jeder Service, *welche* Provider konfiguriert sind, aber nie die Keys selbst. Als zweite Absicherung schwärzt der Logger bekannte Secret-Felder (pino `redact`).
@@ -467,7 +578,11 @@ Sicherheit gehört ab Phase 0 zur Definition of Done und ist kein späteres Them
 - Vor jeder Aufnahme erscheint der Einwilligungsdialog (siehe Abschnitt 11).
 - Audio wird standardmäßig **nicht** gespeichert. Transkripte werden nur gespeichert, wenn das aktiviert ist (Default `PERSIST_TRANSCRIPTS=false`), mit konfigurierbarer Aufbewahrungsdauer.
 - Transkript-Inhalte werden nicht geloggt (Default `LOG_TRANSCRIPTS=false`).
-- Die Einstellungsseite zeigt, welche Daten an welche externen Anbieter gehen. Im vollständig lokalen Modus (lokales LLM, `stt-local`, SearXNG) verlassen nur Suchanfragen und Seitenabrufe das eigene Netzwerk.
+- Die Einstellungsseite zeigt, welche Daten an welche externen Anbieter gehen. Im vollständig lokalen Modus (lokales LLM, `stt-local`, SearXNG, lokale Embeddings, Klassifikator `llm`) verlassen nur Suchanfragen und Seitenabrufe das eigene Netzwerk.
+- **Jev:** Der Dienst läuft laut Anbieter in den USA ohne EU-Region. TypeSafe bietet einen Auftragsverarbeitungsvertrag mit EU-Standardvertragsklauseln, trainiert nach eigener Aussage nicht auf Kundendaten, bietet Zero Data Retention aber nur Enterprise-Kunden an. Deshalb gilt:
+  - An Jev gehen nur die nötigen Textausschnitte, Sprechernamen werden durch Platzhalter (A, B, …) ersetzt.
+  - Im Einwilligungsdialog werden alle aktiven externen Anbieter genannt.
+  - Im lokalen Modus ist Jev deaktiviert.
 
 ## 16. Repo-Struktur (Vorschlag)
 
@@ -480,10 +595,13 @@ live-factcheck/
 │  ├─ transcription/
 │  ├─ stt-local/          # Python
 │  ├─ claim-extractor/
-│  └─ fact-checker/
+│  ├─ fact-checker/
+│  ├─ explainer/
+│  └─ topic-tracker/      # ab Phase 4
 ├─ packages/
 │  ├─ contracts/          # zod-Schemas, Event-Typen
-│  ├─ providers/          # LLM-, STT-, Search-Adapter
+│  ├─ providers/          # LLM-, Classifier-, Embedding-, STT-, Search-Adapter
+│  ├─ research/           # Quellenabruf, Chunking, Retrieval, Caches
 │  └─ service-kit/        # Logging, Health, Metrics, Redis-Streams-Helper, Shutdown
 ├─ deploy/
 │  ├─ compose/            # Caddyfile, SearXNG-Config
@@ -492,6 +610,9 @@ live-factcheck/
 ├─ infra/
 │  └─ terraform/          # ab Phase 6
 ├─ load-tests/            # k6, ab Phase 5
+├─ config/
+│  └─ source-tiers.yaml   # Quellenstufen und Gewichtung
+├─ ml/                    # nur falls Phase 7 nötig wird: Datensatz-Skripte, Training, Modell-Serving
 ├─ evals/
 ├─ tests/
 │  ├─ api/                # Stufe 3: System-/API-Tests Backend
@@ -516,12 +637,9 @@ live-factcheck/
 │  ├─ skills -> ../.agents/skills
 │  └─ settings.json       # Agent-Hooks (Komfort, nicht die eigentliche Absicherung)
 ├─ .agents/
-│  ├─ agents/             # Antigravity-Subagents, dünne Hüllen um .ai/prompts/
-│  ├─ rules/              # glob-Regeln, die verschachtelte AGENTS.md einbinden
-│  ├─ skills/             # new-service, new-event-contract, adr, evidence
-│  └─ mcp_config.json     # MCP-Server für Antigravity, ohne Tokens
+│  └─ skills/             # new-service, new-event-contract, adr, evidence
 ├─ tools/
-│  └─ toolbox/            # Dev-Container für Node-Tooling, Hooks und Tests
+│  └─ antigravity/        # mcp_config.example.json
 ├─ .mcp.json              # MCP-Server für Claude Code, ohne Tokens
 ├─ lefthook.yml           # Git-Hooks, gelten für jedes Tool
 ├─ CODEOWNERS
@@ -547,7 +665,7 @@ Diese Phase legt das Grundgerüst an:
 - Dev-Modus mit `docker compose watch` und `.devcontainer/`
 - `.env.example`, Makefile, gitleaks-Hook und `docs/SECURITY.md`
 - Test-Setup für alle Stufen aus 13.2 mit je einem ersten Beispieltest, inklusive Playwright-Projekten für Chromium und WebKit (iPhone)
-- Agent-Setup nach 1.1 und 1.4: `AGENTS.md`/`CLAUDE.md`, Prompts, Skills, Agent-Hooks, `.mcp.json`, `.agents/mcp_config.json`, `docs/ai-tooling.md`
+- Agent-Setup nach 1.1 und 1.4: `AGENTS.md`/`CLAUDE.md`, Prompts, Skills, Agent-Hooks, `.mcp.json`, Antigravity-Vorlage, `docs/ai-tooling.md`
 - tool-unabhängige Absicherung: `lefthook.yml`, `CODEOWNERS`, Vertrags-Check in der CI, `make secrets-init`
 - CI-Grundpipeline nach 14.2, Stufen 1–4, dazu Branch-Protection-Empfehlung in der README
 
@@ -563,18 +681,19 @@ Diese Phase legt das Grundgerüst an:
 - Eine Antigravity-Session kann mit „Lies `AGENTS.md` und den aktuellen Plan“ den nächsten Task benennen, ohne Rückfragen zu stellen.
 
 **Phase 1: Faktencheck im Textmodus**
-LLM-Adapter (`anthropic`, `openai-compatible`, `mock`), Such-Adapter (`searxng`), vollständiger `fact-checker`, Textmodus im Frontend, Ergebnis-Karten, Eval-Set und `pnpm eval`. Dazu kommen Frontend-Integrationstests mit gemocktem Backend (2b), System-/API-Tests für den Textmodus (3), die Coverage-Schwellen aus 13.5 und Renovate bzw. Dependabot.
-*DoD:* Eine eingetippte Behauptung wird einmal mit Claude und einmal mit LM Studio bzw. Ollama geprüft, beides funktioniert, und ein Eval-Report liegt vor.
+LLM-Adapter (`anthropic`, `openai-compatible`, `mock`), `ClassifierProvider` (`llm`, `mock` und `typesafe`, sobald ich Jev-Zugang habe), `EmbeddingProvider`, die drei Quellenstufen aus 9.1, Chunking und Ranking im Speicher, der `fact-checker` mit exaktem Urteils-Cache, der `explainer`, der Textmodus im Frontend und die Ergebnis-Karten nach Abschnitt 11. Dazu das Urteils-Eval-Set und `pnpm eval` mit Kalibrierungsmetriken. Dazu kommen Frontend-Integrationstests mit gemocktem Backend (2b), System-/API-Tests für den Textmodus (3), die Coverage-Schwellen aus 13.5 und Renovate bzw. Dependabot.
+*DoD:* Eine eingetippte Behauptung wird mit Claude, mit LM Studio bzw. Ollama und (falls verfügbar) mit Jev als Klassifikator geprüft. Alle Varianten funktionieren, das Urteil erscheint vor der Erklärung, und ein Eval-Report vergleicht Trefferquote, Kalibrierung, Latenz und Kosten.
 
 **Phase 2: Live-Transkription**
-Audioaufnahme im Browser, WebSocket-Pfad, `transcription` mit einem Cloud-Adapter und dem lokalen Adapter (`stt-local`), `claim-extractor`, Live-Transkript im UI, Einwilligungsdialog und Test auf dem iPhone über HTTPS. Ab jetzt laufen die E2E-Tests mit WAV-Fixture in Chromium und mit synthetischem MediaStream in WebKit. Die iPhone-Smoke-Checkliste wird angelegt und einmal durchlaufen.
+Audioaufnahme im Browser, WebSocket-Pfad, `transcription` mit einem Cloud-Adapter und dem lokalen Adapter (`stt-local`), `claim-extractor` mit Vorfilter, Klassifikator und eigenständiger Formulierung, das Erkennungs-Eval-Set, Live-Transkript mit markierten Behauptungen und Zeitleiste, Einwilligungsdialog und Test auf dem iPhone über HTTPS. Ab jetzt laufen die E2E-Tests mit WAV-Fixture in Chromium und mit synthetischem MediaStream in WebKit. Die iPhone-Smoke-Checkliste wird angelegt und einmal durchlaufen.
 *DoD:* Ich spreche ins iPhone, sehe das Transkript live und bekomme für eine falsche Behauptung innerhalb weniger Sekunden eine Karte.
 
 **Phase 3: Sprecher und UX**
 Diarization über den Cloud-Adapter, Sprecher umbenennen, verfeinerte Deduplizierung, Latenz messen und optimieren, PWA-Feinschliff.
 
-**Phase 4: Persistenz**
-Postgres, Sitzungsverlauf ansehen und löschen, Aufbewahrungsregeln, Export einer Sitzung als Markdown.
+**Phase 4: Persistenz, Evidenz-Speicher und Prefetch**
+Postgres mit pgvector (nach ADR), Sitzungsverlauf ansehen und löschen, Aufbewahrungsregeln, Export einer Sitzung als Markdown. Dazu der Evidenz-Speicher mit hybridem Retrieval (9.3), der semantische Urteils-Cache mit Bestätigung durch den Klassifikator (9.5) und der `topic-tracker` mit Prefetch (9.4).
+*DoD:* In einem Testgespräch zu einem Thema treffen spätere Behauptungen messbar häufiger auf den Evidenz-Speicher oder den Cache, und die Latenz pro Pfad ist im Eval-Report und im Dashboard sichtbar.
 
 **Phase 5: Kubernetes lokal und GitOps**
 Umsetzung von 14.3 und 14.5 im lokalen k3d-Cluster, mit Argo CD, KEDA, NetworkPolicies, Pod Security und Monitoring. Die CI prüft zusätzlich die Manifeste.
@@ -589,6 +708,14 @@ Umsetzung von 14.4: VMs per Terraform, k3s, Argo CD-Bootstrap, staging und prod 
 - Der Cluster lässt sich per Terraform und GitOps von null aus reproduzierbar aufbauen; der Ablauf ist im Runbook dokumentiert.
 - Eine Änderung durchläuft PR, CI, staging und nach Freigabe prod.
 - Eine Backup-Wiederherstellung ist einmal getestet.
+
+**Phase 7 (optional): eigenes Modell für die Behauptungserkennung**
+Diese Phase findet nur statt, wenn die Evals es rechtfertigen: wenn die Erkennung auf deutschen Daten das F1-Ziel (Startwert 0,85, per ADR festgelegt) verfehlt, wenn Jev aus Europa zu langsam ist oder wenn der lokale Modus eine bessere Erkennung braucht.
+- Für die reine Ja/Nein-Entscheidung wird zuerst ein kleines, mehrsprachiges Encoder-Modell als Klassifikator feingetunt. Das ist deutlich schneller und günstiger zu betreiben als ein LoRA-Fine-Tuning eines LLM. LoRA auf einem kleinen LLM ist die Alternative, falls auch die eigenständige Formulierung lokal besser werden muss (ADR).
+- Der Datensatz wird aus den Quellen in 13.5 aufgebaut: mindestens einige tausend gelabelte Segmente, getrennt in Trainings-, Validierungs- und Testdaten. Das Eval-Set bleibt unangetastet.
+- Das Training ist reproduzierbar im Container (`ml/`), mit Experiment-Tracking (z. B. MLflow) und versionierten Datensätzen.
+- Das Modell wird als versioniertes Container-Image ausgeliefert (CPU, z. B. ONNX Runtime) und über den `ClassifierProvider` `local-model` angebunden.
+- **Eval-Gate in der CI:** Ein neues Modell ersetzt das alte nur, wenn es auf dem Test-Set besser abschneidet. Vor der Umschaltung läuft es eine Weile im Shadow-Modus mit: Es klassifiziert parallel, und nur die Abweichungen werden protokolliert.
 
 ## 18. Deine erste Aufgabe
 
