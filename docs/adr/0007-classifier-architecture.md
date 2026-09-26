@@ -1,6 +1,6 @@
 # 0007: Classifier architecture – Jev with an LLM fallback
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-09-26
 
 ## Context

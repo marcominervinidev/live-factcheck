@@ -66,9 +66,9 @@ Neu (eigene Festlegungen, jeweils im ADR begründet, Freigabe an Gate 0):
 
 | Nr. | Titel | Status nach TP0 |
 |---|---|---|
-| 0007 | Klassifikator-Architektur: Jev (`typesafe`) mit LLM-Fallback, Fragetypen, Konfidenzschwellen, lokaler Modus | proposed → accepted an Gate 0 |
-| 0008 | Caching statt vorgenerierter Fragen: exakter Urteils-Cache (Phase 1), semantischer Cache mit Bestätigung (Phase 4), Such-/Seiten-Cache | proposed → accepted an Gate 0 |
-| 0009 | `explainer` als eigener Service (Urteil vor Erklärung, eigene Skalierung bis null, kein Jev-Key) | proposed → accepted an Gate 0 |
+| 0007 | Klassifikator-Architektur: Jev (`typesafe`) mit LLM-Fallback, Fragetypen, Konfidenzschwellen, lokaler Modus | accepted (Gate 0) |
+| 0008 | Caching statt vorgenerierter Fragen: exakter Urteils-Cache (Phase 1), semantischer Cache mit Bestätigung (Phase 4), Such-/Seiten-Cache | accepted (Gate 0) |
+| 0009 | `explainer` als eigener Service (Urteil vor Erklärung, eigene Skalierung bis null, kein Jev-Key) | accepted (Gate 0) |
 | 0010 | Event-Verträge v2 (ClaimDetected v2, ClaimChecked v2, ClaimExplained v1, TopicDetected v1, Evidence) und API-/WS-Verträge v1 | geschrieben in TP1 |
 | 0011 | Gateway-Authentifizierung für REST und WebSocket | geschrieben in TP5 |
 | 0012 | Embedding-Modell | proposed (offen) |
@@ -215,10 +215,11 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
   - [x] T0.4 Playwright-MCP (Image per Digest, `https://lfc.local`)
   - [x] T0.5 `services/explainer`, `packages/research` + `config/source-tiers.yaml`, `evals/README.md` + `SOURCES.md`
   - [x] T0.6 Klassifikator-Config, `EXPLAINER`, `PRIVACY_MODE`, Secrets je Service, `egress`, `.env.example`
-- Aktuelles Gate: **Gate 0 – wartet auf Marcos Review** (ADR 0007–0009 annehmen?)
+- [x] Gate 0 freigegeben (2026-09-26): ADR 0007–0009 accepted
+- Aktuell: TP1 (Verträge)
 - [x] isolierter Stack-Lauf mit `explainer` (von Marco erlaubt): alle `/readyz` 200, nur Caddy mit Host-Ports, Netze und Secrets je Service wie geplant
 - [x] Brief auf die vereinbarten Entscheidungen zurückgesetzt (Rücknahme war unbeabsichtigt)
-- Offen an Gate 0: Annahme von ADR 0007–0009; Zusatzfelder `usage`/`reason` in `ClaimChecked` v2 (Gate 1); ADR-Nummern 0010/0011 reserviert für TP1/TP5
+- Offen: Zusatzfelder `usage`/`reason` in `ClaimChecked` v2 (Gate 1); ADR-Nummern 0010/0011 reserviert für TP1/TP5
 - Erkenntnis: nie zwei Edits parallel auf dieselbe Datei (Format-Hook hat `docker-compose.yml` dabei abgeschnitten; sofort aus dem Commit wiederhergestellt)
 - Voraussetzung für den Merge: PR #5, #6, #7 zuerst
 - Nächster Task nach Freigabe: T1.1 (Verträge)

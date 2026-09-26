@@ -1,6 +1,6 @@
 # 0009: `explainer` as its own service
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-09-26
 
 ## Context

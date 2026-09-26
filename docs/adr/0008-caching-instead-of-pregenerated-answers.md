@@ -1,6 +1,6 @@
 # 0008: Caching instead of pre-generated questions and answers
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-09-26
 
 ## Context
