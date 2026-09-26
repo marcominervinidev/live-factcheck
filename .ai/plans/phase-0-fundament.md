@@ -292,23 +292,21 @@ Kürzel: `tb` = `scripts/tb` (startet die Toolbox bei Bedarf und führt den Befe
 - [x] Plan freigegeben (2026-09-25)
 - [x] Gate 1–4: PR #1–#4 gemergt; Ruleset `main` mit Pflicht-Checks `ci passed`, `pr passed` aktiv
 - Arbeitsweise: ein PR pro Gate, Branch `phase-0/tpN-<thema>`
-- [x] TP5 erledigt auf `phase-0/tp5-compose`:
-  - T5.1 `docker-compose.yml` (Caddy mit eigenem Non-Root-Image, Redis-ACL `app`/`mcp`, SearXNG, Netze edge/internal/egress, ADR 0004)
-  - T5.2 `compose.dev.yaml` (watch, Hot Reload belegt) und `.devcontainer/`
-  - T5.3 Makefile mit allen Zielen aus Brief 12; `secrets-init` erzeugt interne Secrets zufällig
-  - Redis-MCP aus T3.5 gegen den Stack geprüft (lesen ok, schreiben von Redis verweigert)
-- DoD-Punkte belegt: `make up` + alle `/readyz` grün, nur Caddy mit Host-Ports, `make scan` ohne kritische Befunde, Pre-Commit 11,1 s mit Unit-Tests, Services lesen Secrets als Dateien (kein Secret in Env-Variablen)
-- Aktuelles Gate: **Gate 5 – wartet auf Marcos Review von PR #5**
-- Nächster Task nach Freigabe: T6.1 Frontend-Integration (Stufe 2b), Branch `phase-0/tp6-test-stages`
-- Abweichungen in TP5:
-  - Host-Ports konfigurierbar (`LFC_HTTP_PORT`, `LFC_HTTPS_PORT`), weil der macOS-Apache Port 80 belegt
-  - service-kit behandelt leere Werte als „nicht gesetzt“ (Compose `${VAR:-}`, leere Secret-Datei)
-  - Dev-Stages starten tsx/vite direkt statt `pnpm run`
+- [x] TP5 (Compose-Stack, Dev-Modus, Makefile): PR #5, noch offen
+- [x] TP6 (Teststufen 2b–5, Workflows) auf `phase-0/tp6-test-stages`, gestapelt auf TP5: PR #6, CI grün
+  - T6.1 Stufe 2b: 9 Tests, Chromium Desktop/Mobile + WebKit iPhone, axe
+  - T6.2/T6.3 Stufe 3 (17 API-Tests) und 4 (Smoke, 4 Browser inkl. Firefox) über `compose.test.yaml`
+  - T6.4 Stufe 5: Stryker (contracts), Lighthouse 100/100/100
+  - T6.5 `stack-tests.yml` (wiederverwendbar), `pr.yml` mit Stufe 3/4 in 2 Shards, `main.yml` (Multi-Arch, GHCR), `nightly.yml`
+  - Gefunden: CSP-Verletzung durch zod-JIT in Firefox (behoben mit `jitless`)
+- Aktuell: TP7 auf `phase-0/tp7-docs-reviews`, gestapelt auf TP6
+- Nächster Task: T7.1 `docs/SECURITY.md`
 - Offene Punkte:
-  - **Marco:** Deny-Regel `Edit(./.env.*)` in `.claude/settings.json` blockiert auch `.env.example`; die neue `.env.example` (LAN_HOST, Ports, LLM-Variablen) liegt vorbereitet im PR-Text
-  - **Marco:** `make secrets-init` einmal ausführen (erzeugt jetzt `redis_mcp_password`), danach `make up`
-  - Antigravity-Verhalten erst in T7.4 verifizierbar
+  - Stryker-Score (44,7 %) nicht verlässlich: Mutanten in refine-Callbacks gelten als überlebt, obwohl die Tests sie von Hand erkennen → Ursachenanalyse Phase 1; Schwelle bis dahin aus
+  - `main.yml` und `nightly.yml` laufen erst, wenn sie auf `main` liegen → nach dem Merge prüfen (erster GHCR-Push, `workflow_dispatch` für nightly)
+  - Antigravity-Verhalten erst in T7.4 verifizierbar (Marco)
+  - Verifikationsläufe nur im isolierten Compose-Projekt (`lfc-verify`), nie im Stack `live-factcheck` (AGENTS.md)
   - Beim Plan-Update immer am Zeilenanfang `\n## Status\n` verankern (der Text von T3.4 enthält `## Status` in Backticks)
-- Evidence: `docs/evidence/phase-0/` (neu: t5-stack-up, t5-security, t5-scan, t5-precommit-timing)
+- Evidence: `docs/evidence/phase-0/` (neu: t6-stage3-4, t6-stage5)
 
 ## Session-Log
