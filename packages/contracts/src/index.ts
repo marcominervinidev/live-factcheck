@@ -37,3 +37,11 @@ export {
   sessionEventsChannel,
 } from './envelope.js';
 export type { EventType } from './envelope.js';
+export {
+  ApiError,
+  ApiErrorCode,
+  CheckClaimAccepted,
+  CheckClaimRequest,
+  ProviderRole,
+  ProviderStatus,
+} from './api.js';
