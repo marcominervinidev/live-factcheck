@@ -30,6 +30,9 @@
       "path": "./services/claim-extractor"
     },
     {
+      "path": "./services/explainer"
+    },
+    {
       "path": "./services/fact-checker"
     }
   ]
