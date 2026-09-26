@@ -91,7 +91,7 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 - `services/explainer` per Skill `new-service` (Dockerfile, Compose-Eintrag, `AGENTS.md`/`CLAUDE.md`, Glob-Regel, CI-Image-Liste)
 - `packages/research` (package.json mit `exports`, tsconfig, `AGENTS.md`/`CLAUDE.md`, Glob-Regel, depcruise-Regeln)
 - `config/source-tiers.yaml` + Schema `packages/research/src/source-tiers.ts` mit Test (Datei validiert)
-- `evals/` als Workspace (`package.json`, `SOURCES.md`, `README.md`), noch ohne Daten
+- `evals/README.md` und `evals/SOURCES.md`, noch ohne Daten; das Workspace-Paket entsteht mit dem ersten Code in T7.2 (kein leeres Paket)
 - Verifikation: `tb pnpm install --frozen-lockfile && make lint && make test-unit`
 **T0.6 Konfiguration und Secrets:**
 - `packages/providers/src/llm/config.ts`: Task `EXPLAINER`; neu `src/classifier/config.ts` (Provider, Modell, Schwellen, Querprüfung HIGH > LOW) und `src/privacy.ts` (`PRIVACY_MODE`, Abbruch bei Cloud-Anbietern im lokalen Modus), jeweils mit Tests
@@ -208,9 +208,20 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 ## Status
 
 - [x] Plan freigegeben (2026-09-26, inkl. Vertragsänderungen aus Brief 7 und API-/WS-Verträgen)
-- Zusatzfelder `usage`/`reason` in `ClaimChecked` v2: Bestätigung an Gate 1 offen
+- [x] TP0 erledigt (Nachweise: `docs/evidence/phase-1/tp0-gap-catch-up.txt`)
+  - [x] T0.1 Kurzbeschreibungen `.ai/summaries/`
+  - [x] T0.2 ADR 0007–0009 (proposed), 0012/0013 (offen), Nachtrag ADR 0004
+  - [x] T0.3 Abweichungen Brief ↔ ADR in `docs/architecture.md`
+  - [x] T0.4 Playwright-MCP (Image per Digest, `https://lfc.local`)
+  - [x] T0.5 `services/explainer`, `packages/research` + `config/source-tiers.yaml`, `evals/README.md` + `SOURCES.md`
+  - [x] T0.6 Klassifikator-Config, `EXPLAINER`, `PRIVACY_MODE`, Secrets je Service, `egress`, `.env.example`
+- Aktuelles Gate: **Gate 0 – wartet auf Marcos Review** (ADR 0007–0009 annehmen?)
+- Offen an Gate 0:
+  - isolierter Stack-Lauf mit dem neuen `explainer` (`make up/ready/check-ports`) fehlt: braucht `SECRETS_DIR=<tmp>` im Befehl, das blockiert der Secrets-Guard. Marco führt ihn aus oder erlaubt einen Lauf.
+  - Zusatzfelder `usage`/`reason` in `ClaimChecked` v2: Bestätigung an Gate 1
+  - ADR-Nummern 0010/0011 sind für TP1/TP5 reserviert
+- Erkenntnis: nie zwei Edits parallel auf dieselbe Datei (Format-Hook hat `docker-compose.yml` dabei abgeschnitten; sofort aus dem Commit wiederhergestellt)
 - Voraussetzung für den Merge: PR #5, #6, #7 zuerst
-- Aktuell: TP0 auf `phase-1-faktencheck-textmodus`
-- Nächster Task: T0.1
+- Nächster Task nach Freigabe: T1.1 (Verträge)
 
 ## Session-Log
