@@ -22,10 +22,14 @@ export class FetchBlockedError extends Error {
 
 /** The fetch was allowed but failed (network, HTTP status, size, type, timeout). */
 export class FetchFailedError extends Error {
-  constructor(message: string, options?: ErrorOptions) {
+  constructor(message: string, options?: ErrorOptions & { readonly status?: number }) {
     super(message, options);
     this.name = 'FetchFailedError';
+    this.status = options?.status;
   }
+
+  /** HTTP status when the server answered with a non-2xx status. */
+  readonly status: number | undefined;
 }
 
 export interface SafeFetchOptions {
@@ -74,16 +78,25 @@ function charsetOf(contentType: string): string {
   }
 }
 
-async function readLimited(
-  body: ReadableStream<Uint8Array>,
-  maxBytes: number,
-): Promise<Uint8Array> {
+/** The part of a web stream this module uses; undici's and the DOM's stream types differ. */
+interface ByteStream {
+  getReader(): {
+    read(): Promise<{ done: boolean; value?: unknown }>;
+    cancel(): Promise<void>;
+  };
+}
+
+async function readLimited(body: ByteStream, maxBytes: number): Promise<Uint8Array> {
   const reader = body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
+    if (!(value instanceof Uint8Array)) {
+      await reader.cancel();
+      throw new FetchFailedError('unexpected body chunk');
+    }
     total += value.byteLength;
     if (total > maxBytes) {
       await reader.cancel();
@@ -183,7 +196,9 @@ export function createSafeFetcher(options: SafeFetchOptions): SafeFetcher {
         }
         if (response.status < 200 || response.status > 299) {
           await response.body?.cancel();
-          throw new FetchFailedError(`HTTP ${String(response.status)}`);
+          throw new FetchFailedError(`HTTP ${String(response.status)}`, {
+            status: response.status,
+          });
         }
         const contentTypeHeader = response.headers.get('content-type') ?? '';
         const contentType = contentTypeHeader.split(';')[0]?.trim().toLowerCase() ?? '';
