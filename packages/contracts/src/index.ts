@@ -45,3 +45,4 @@ export {
   ProviderRole,
   ProviderStatus,
 } from './api.js';
+export { WsAuth, WsClientMessage, WsErrorCode, WsServerMessage } from './ws.js';
