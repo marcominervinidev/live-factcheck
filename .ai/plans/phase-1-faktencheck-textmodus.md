@@ -57,7 +57,7 @@ Neu (eigene Festlegungen, jeweils im ADR begründet, Freigabe an Gate 0):
 - **Konfiguration:** `CHECKER_CLASSIFIER_PROVIDER` (`llm` | `typesafe` | `mock`), `CHECKER_CLASSIFIER_MODEL` (Jev-Version gepinnt, z. B. `jev-1.13.0`), Schwellen `CHECKER_CONFIDENCE_HIGH` / `CHECKER_CONFIDENCE_LOW` (Startwerte 0,75 / 0,45, per Eval nachjustiert). Der `llm`-Klassifikator nutzt `CHECKER_LLM_*`. Neu `EXPLAINER_LLM_*`. `DETECTOR_CLASSIFIER_*` erst in Phase 2.
 - **Lokaler Modus:** `PRIVACY_MODE=local|cloud` (Default `cloud`). Bei `local` bricht jeder Worker beim Start ab, wenn ein Cloud-Anbieter konfiguriert ist (Anthropic, TypeSafe, Google Fact Check, Cloud-Embeddings). Damit ist „im lokalen Modus ist Jev deaktiviert“ (15.6) erzwungen statt nur dokumentiert.
 - **Text-Modus-Behauptungen (ADR 0010):** Der Gateway schreibt `ClaimDetected` mit `originalText = standaloneText` = eingegebener Text, `checkworthiness: 1`, `provider: { classifier: "text-mode", model: "none" }`, leere `sourceSegmentIds`; `timings.detectMs = 0`.
-- **Zusatzfelder in `ClaimChecked` v2** (aus dem freigegebenen Entwurf, über Brief 7 hinaus, weil „mindestens diese Schemas“): `usage { inputTokens, outputTokens, estimatedCostUsd | null }` für Kosten pro Behauptung (13.5, 14.5) und `reason` bei `nicht_pruefbar` (`budget_exceeded`, `invalid_llm_output`, `no_evidence`, `low_confidence`, `uncited_or_foreign_source`, `provider_error`). **Wird an Gate 1 von dir bestätigt oder gestrichen.**
+- **Zusatzfelder in `ClaimChecked` v2** (aus dem freigegebenen Entwurf, über Brief 7 hinaus, weil „mindestens diese Schemas“): `usage { inputTokens, outputTokens, estimatedCostUsd | null }` für Kosten pro Behauptung (13.5, 14.5) und `reason` bei `nicht_pruefbar` (`budget_exceeded`, `invalid_llm_output`, `no_evidence`, `low_confidence`, `uncited_or_foreign_source`, `provider_error`). **Bestätigt an Gate 1 (2026-09-26).**
 - **Gateway-Token (ADR 0011):** REST per `Authorization: Bearer`; WebSocket: erste Nachricht `{type: "auth", token}` innerhalb von 5 s (Browser setzen beim Handshake keine Header, Token nie in die URL). Im Browser einmal auf der Einstellungsseite eingeben, gespeichert in `localStorage` (Risiko im ADR).
 - **Tagesbudget:** `CLOUD_DAILY_BUDGET_USD` für Anthropic und TypeSafe; Zähler in Redis aus `usage` × Preistabelle; überschritten → `nicht_pruefbar` mit `reason: budget_exceeded`.
 - **Offene ADRs (Status „proposed“):** 0012 Embedding-Modell (Kandidaten `bge-m3`, `multilingual-e5-large`, Qwen3-Embedding; Entscheidung nach Retrieval-Messung im Eval), 0013 Vektor-Speicher (pgvector vs. Qdrant vs. Redis; Entscheidung in Phase 4).
@@ -217,7 +217,9 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
   - [x] T0.6 Klassifikator-Config, `EXPLAINER`, `PRIVACY_MODE`, Secrets je Service, `egress`, `.env.example`
 - [x] Gate 0 freigegeben (2026-09-26): ADR 0007–0009 accepted
 - [x] TP1 erledigt auf `phase-1/tp1-contracts` (Nachweise: `docs/evidence/phase-1/tp1-contracts.txt`): ADR 0010, sieben Vertrags-Commits, `research` nutzt `SourceTier` aus den Verträgen
-- Aktuelles Gate: **Gate 1 – wartet auf Marcos Review** (PR für TP1; `usage`/`reason` bestätigen oder streichen)
+- [x] Gate 1: `usage`/`reason` von Marco bestätigt (2026-09-26); PR #9 wartet auf Merge
+- Arbeitsmodus ab 2026-09-26 (Marco): an Gates nicht mehr anhalten, sondern PR öffnen, im Chat melden und weiterarbeiten; anhalten nur für wichtige Freigaben (z. B. bezahlte Läufe) und Sicherheitsfragen
+- Aktuell: TP2 auf `phase-1/tp2-providers`
 - Arbeitsweise wie in Phase 0: ein PR pro Gate, Branch `phase-1/tpN-<thema>`, gestapelt
 - Nächster Task nach Freigabe: T2.1 `LlmProvider` (Branch `phase-1/tp2-providers`)
 - [x] isolierter Stack-Lauf mit `explainer` (von Marco erlaubt): alle `/readyz` 200, nur Caddy mit Host-Ports, Netze und Secrets je Service wie geplant

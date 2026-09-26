@@ -19,7 +19,7 @@ The new brief (section 7) changes the pipeline: a classifier decides the verdict
 
 **`ClaimChecked` v2** (`claims.checked`): `claim` (= `standaloneText`), `verdict`, `probabilities`, `confidence` 0..1, `confidenceLevel`, `evidence[]` (≤ 10), `bestEvidenceId?`, `cacheHit` (`none | verdict_exact | verdict_semantic | evidence_store`), `existingFactCheck? { publisher, url, rating }`, `timings { detectMs, retrieveMs, classifyMs, totalMs }` (non-negative integers), `checkedAt`, `provider { classifier, model, search, embeddings }`. `explanation` and `sources` from v1 are removed.
 
-Two fields beyond brief 7 (it asks for "at least these schemas"), confirmed or dropped by the owner at gate 1:
+Two fields beyond brief 7 (it asks for "at least these schemas"), confirmed by the owner at gate 1 (2026-09-26):
 
 - `usage { inputTokens, outputTokens, estimatedCostUsd | null }`: tokens across all model calls for this claim; cost per claim for the eval (13.5) and the cost dashboard (14.5). `null` cost = unknown model price, never a guess.
 - `reason`: why a claim is `nicht_pruefbar`: `classified_unverifiable` (the classifier chose it), `low_confidence`, `no_evidence`, `budget_exceeded`, `invalid_llm_output`, `uncited_or_foreign_source`, `provider_error`.
