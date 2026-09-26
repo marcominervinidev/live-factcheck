@@ -6,6 +6,7 @@
   "description": "Researches each detected claim via web search and page fetch, judges it with an LLM on the fetched sources only and publishes the verdict (brief 5).",
   "files": [
     "dist",
+    "prompts",
     "!dist/**/*.test.*"
   ],
   "scripts": {
@@ -16,8 +17,13 @@
     "test:int": "vitest run --project int"
   },
   "dependencies": {
+    "@lfc/contracts": "workspace:*",
     "@lfc/providers": "workspace:*",
+    "@lfc/research": "workspace:*",
     "@lfc/service-kit": "workspace:*",
+    "ioredis": "6.0.0",
+    "prom-client": "15.1.3",
+    "yaml": "2.9.1",
     "zod": "4.6.5"
   },
   "devDependencies": {

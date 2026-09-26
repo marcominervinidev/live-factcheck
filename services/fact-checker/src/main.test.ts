@@ -5,6 +5,19 @@ import { freePort, jsonLines, startServiceProcess } from '@lfc/service-kit/testi
 import { describe, expect, it } from 'vitest';
 
 const ENTRY = fileURLToPath(new URL('./main.ts', import.meta.url));
+const SOURCE_TIERS_FILE = fileURLToPath(
+  new URL('../../../config/source-tiers.yaml', import.meta.url),
+);
+
+/** Everything except Redis and the LLM/classifier, set to local mocks. */
+const MOCK_ENV = {
+  SEARCH_PROVIDER: 'mock',
+  EMBEDDINGS_PROVIDER: 'mock',
+  EMBEDDINGS_MODEL: 'mock',
+  CHECKER_RESEARCH_SOURCES: 'mock',
+  SOURCE_TIERS_FILE,
+  CHECKER_USER_AGENT_URL: 'https://github.com/marcominervinidev/live-factcheck',
+};
 
 const fatalIssues = (output: string) => {
   const fatal = jsonLines(output).find((line) => line['level'] === 'fatal');
@@ -27,6 +40,12 @@ describe('fact-checker startup', () => {
       'CHECKER_LLM_PROVIDER',
       'CHECKER_LLM_MODEL',
       'CHECKER_CLASSIFIER_PROVIDER',
+      'SEARCH_PROVIDER',
+      'EMBEDDINGS_PROVIDER',
+      'EMBEDDINGS_MODEL',
+      'CHECKER_RESEARCH_SOURCES',
+      'SOURCE_TIERS_FILE',
+      'CHECKER_USER_AGENT_URL',
     ]);
   });
 
@@ -38,6 +57,7 @@ describe('fact-checker startup', () => {
       CHECKER_LLM_PROVIDER: 'mock',
       CHECKER_LLM_MODEL: 'mock',
       CHECKER_CLASSIFIER_PROVIDER: 'mock',
+      ...MOCK_ENV,
     });
     expect(await run.exitCode).toBe(1);
     expect(run.output()).toContain('REDIS_URL');
@@ -51,6 +71,7 @@ describe('fact-checker startup', () => {
       CHECKER_LLM_PROVIDER: 'anthropic',
       CHECKER_LLM_MODEL: 'some-model',
       CHECKER_CLASSIFIER_PROVIDER: 'mock',
+      ...MOCK_ENV,
     });
     expect(await run.exitCode).toBe(1);
     expect(fatalIssues(run.output())).toContain(
@@ -70,16 +91,21 @@ describe('fact-checker startup', () => {
       CHECKER_CLASSIFIER_PROVIDER: 'typesafe',
       CHECKER_CLASSIFIER_MODEL: 'jev-1.13.0',
       TYPESAFE_API_KEY: 'ts-key',
+      ...MOCK_ENV,
+      CHECKER_RESEARCH_SOURCES: 'live',
+      GOOGLE_FACTCHECK_API_KEY: 'goog-key',
     });
     expect(await run.exitCode).toBe(1);
     expect(fatalIssues(run.output())).toEqual([
       'PRIVACY_MODE: CHECKER_CLASSIFIER_PROVIDER=typesafe sends data to a cloud service; not allowed when PRIVACY_MODE=local',
+      'PRIVACY_MODE: CHECKER_RESEARCH_SOURCES=live with GOOGLE_FACTCHECK_API_KEY sends data to a cloud service; not allowed when PRIVACY_MODE=local',
     ]);
   });
 
   it('never writes the configured API keys to any log line (DoD)', async () => {
     const apiKey = `sk-ant-test-${randomBytes(16).toString('hex')}`;
     const typesafeKey = `ts-test-${randomBytes(16).toString('hex')}`;
+    const googleKey = `goog-test-${randomBytes(16).toString('hex')}`;
     const run = startServiceProcess(ENTRY, {
       PORT: String(await freePort()),
       REDIS_URL: `redis://127.0.0.1:${String(await freePort())}`,
@@ -90,6 +116,9 @@ describe('fact-checker startup', () => {
       CHECKER_CLASSIFIER_PROVIDER: 'typesafe',
       CHECKER_CLASSIFIER_MODEL: 'jev-1.13.0',
       TYPESAFE_API_KEY: typesafeKey,
+      ...MOCK_ENV,
+      CHECKER_RESEARCH_SOURCES: 'live',
+      GOOGLE_FACTCHECK_API_KEY: googleKey,
     });
     await run.waitFor('service started');
     run.kill('SIGTERM');
@@ -97,7 +126,10 @@ describe('fact-checker startup', () => {
 
     expect(run.output()).toContain('"provider":"anthropic"');
     expect(run.output()).toContain('"provider":"typesafe"');
+    expect(run.output()).toContain('"factCheckApi":true');
     const lines = run.output().split('\n');
-    expect(lines.filter((line) => line.includes(apiKey) || line.includes(typesafeKey))).toEqual([]);
+    expect(
+      lines.filter((line) => [apiKey, typesafeKey, googleKey].some((key) => line.includes(key))),
+    ).toEqual([]);
   });
 });

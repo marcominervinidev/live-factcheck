@@ -1,0 +1,34 @@
+# Classifier questions of the fact-checker (brief 8.1, ADR 0007). English wording, because Jev's
+# primary language is English; the state (claim and snippets) stays German.
+# Jev reads questions literally (docs "jaggedness"): state the exact condition, put boundary
+# cases into the criteria. Changing a question changes the eval results: re-run the eval.
+schemaVersion: 1
+
+relevance:
+  instructions: >-
+    Is `snippets.{{id}}` about the same fact that `claim` states (same event, person, place,
+    quantity or date), so that it could confirm or refute the claim?
+  criteria:
+    'true': The snippet addresses the fact in the claim.
+    'false': The snippet is about something else or only mentions the topic in passing.
+
+sufficient:
+  instructions: >-
+    Do the snippets together contain enough information to decide whether `claim` is true,
+    mostly true, exaggerated or false?
+  criteria:
+    'true': A careful reader could decide the claim from these snippets alone.
+    'false': The snippets do not settle the claim.
+
+verdict:
+  instructions: >-
+    Judge `claim` only against the snippets. Compare numbers and dates exactly as written.
+  options:
+    stimmt: The snippets confirm the claim as stated.
+    groesstenteils_richtig: The claim is essentially right but imprecise in a detail.
+    uebertrieben: The claim has a true core but overstates or dramatises it.
+    falsch: The snippets contradict the claim.
+    nicht_pruefbar: The claim is an opinion, a prediction, or the snippets do not decide it.
+
+best:
+  instructions: Which snippet supports your judgement of `claim` most directly?

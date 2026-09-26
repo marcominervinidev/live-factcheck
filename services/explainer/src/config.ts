@@ -1,4 +1,5 @@
 import {
+  budgetConfigShape,
   checkLlmConfig,
   checkPrivacyMode,
   llmConfigShape,
@@ -18,6 +19,7 @@ export const configSchema = baseConfigSchema
     REDIS_PASSWORD: z.string().min(1),
     ...privacyModeShape,
     ...llmConfigShape('EXPLAINER'),
+    ...budgetConfigShape,
   })
   .superRefine(checkLlmConfig('EXPLAINER'))
   .superRefine(checkPrivacyMode((config) => [llmUse('EXPLAINER', config)]));
