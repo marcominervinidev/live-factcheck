@@ -99,16 +99,16 @@ The same image runs in every environment; only configuration differs (factor V).
 ```mermaid
 flowchart LR
   push[push to any branch] --> ci[ci.yml<br/>stage 0 + unit + integration<br/>backend ∥ frontend, affected only]
-  pr[pull request to main] --> prw[pr.yml<br/>contract check, hadolint, Semgrep,<br/>image build amd64 + Trivy]
+  pr[pull request to main] --> prw[pr.yml<br/>contract check, hadolint, Semgrep,<br/>image build amd64 + Trivy,<br/>API + E2E on the Compose stack]
   pr --> codeql[codeql.yml]
   ci --> gate{ci passed ∧ pr passed}
   prw --> gate
   gate --> review[owner review, merge]
-  review --> main[main.yml – planned<br/>multi-arch build, push to GHCR]
+  review --> main[main.yml<br/>multi-arch build, push to GHCR,<br/>stack tests on pushed images]
   main --> gitops[GitOps via Argo CD – phase 5]
 ```
 
-Layout and de-duplication of push and PR runs: [ADR 0005](adr/0005-ci-workflow-layout.md).
+A nightly workflow adds mutation testing, Lighthouse, Firefox and a full image scan. Layout and de-duplication of push and PR runs: [ADR 0005](adr/0005-ci-workflow-layout.md).
 
 ## Security architecture (summary)
 
@@ -117,4 +117,4 @@ Layout and de-duplication of push and PR runs: [ADR 0005](adr/0005-ci-workflow-l
 - Network segmentation: only Caddy is reachable from the host; Redis and SearXNG are internal.
 - From phase 1: gateway token in headers only, SSRF guard for every fetched URL, fetched pages treated as data (prompt injection), LLM output validated against the schema.
 
-The full threat model will be in `docs/SECURITY.md` (end of phase 0).
+Threat model, secret handling, key rotation and the leak procedure: [SECURITY.md](SECURITY.md).
