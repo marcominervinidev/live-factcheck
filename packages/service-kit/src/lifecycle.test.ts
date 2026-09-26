@@ -2,6 +2,10 @@ import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
+
+import { baseConfigSchema } from './config.js';
+import { runService } from './lifecycle.js';
 
 import { freePort, jsonLines, startServiceProcess } from './testing/process.js';
 
@@ -45,5 +49,27 @@ describe('runService', () => {
 
     expect(run.output()).toContain('fixture configured');
     expect(run.output()).not.toContain(key);
+  });
+});
+
+describe('runService typing', () => {
+  it('only accepts config schemas that include the base fields', () => {
+    // Compile-time checks: `tsc -b` fails if the expect-error line stops being an error.
+    const typecheckOnly = () => {
+      void runService({
+        name: 'typed',
+        configSchema: baseConfigSchema.extend({ EXTRA: z.string() }),
+        secretKeys: ['EXTRA'],
+        start: () => Promise.resolve({ readiness: [], stop: () => Promise.resolve() }),
+      });
+      void runService({
+        name: 'untyped',
+        // @ts-expect-error a schema without PORT, LOG_LEVEL and SHUTDOWN_TIMEOUT_MS is rejected
+        configSchema: z.object({ EXTRA: z.string() }),
+        secretKeys: [],
+        start: () => Promise.resolve({ readiness: [], stop: () => Promise.resolve() }),
+      });
+    };
+    expect(typeof typecheckOnly).toBe('function');
   });
 });
