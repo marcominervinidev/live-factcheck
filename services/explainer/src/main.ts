@@ -57,22 +57,28 @@ await runService({
       registers: [metrics],
     });
 
-    void redis.client
-      .set(
-        'status:v1:explainer',
-        JSON.stringify([
-          {
-            service: 'explainer',
-            role: 'llm',
-            provider: config.EXPLAINER_LLM_PROVIDER,
-            model: config.EXPLAINER_LLM_MODEL,
-            cloud: llmUse('EXPLAINER', config).cloud,
-          },
-        ]),
-      )
-      .catch((error: unknown) => {
-        logger.warn({ err: error }, 'could not publish provider status');
-      });
+    // The gateway reads this for GET /api/status; no keys, no URLs. Written on every (re)connect,
+    // because the service-kit client has no offline queue.
+    const publishStatus = () => {
+      redis.client
+        .set(
+          'status:v1:explainer',
+          JSON.stringify([
+            {
+              service: 'explainer',
+              role: 'llm',
+              provider: config.EXPLAINER_LLM_PROVIDER,
+              model: config.EXPLAINER_LLM_MODEL,
+              cloud: llmUse('EXPLAINER', config).cloud,
+            },
+          ]),
+        )
+        .catch((error: unknown) => {
+          logger.warn({ err: error }, 'could not publish provider status');
+        });
+    };
+    redis.client.on('ready', publishStatus);
+    if (redis.client.status === 'ready') publishStatus();
 
     const consumer = startStreamConsumer({
       redis: redis.client,

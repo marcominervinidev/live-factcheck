@@ -14,8 +14,17 @@ x-playwright: &playwright
     BASE_URL: https://${LAN_HOST:-lfc.local}:8443
     # Extra CLI arguments, e.g. '--shard=1/2 --project=webkit-iphone' in CI.
     PLAYWRIGHT_ARGS: ${PLAYWRIGHT_ARGS:-}
+    # The tests authenticate like a user of the app (ADR 0011); the token stays a file.
+    GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
+  secrets: [gateway_token]
 
 services:
+  gateway:
+    environment:
+      # Parallel test workers share one limit; the limit itself is covered by the gateway's
+      # integration test.
+      RATE_LIMIT_CHECKS_PER_MINUTE: '600'
+
   caddy:
     networks:
       edge:

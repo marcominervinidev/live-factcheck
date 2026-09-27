@@ -34,9 +34,10 @@ test('serves the runtime config without caching and without secrets', async ({ r
 });
 
 test('routes /api to the gateway', async ({ request }) => {
+  // Since phase 1 the gateway checks the token first (ADR 0011): its JSON 401, not nginx' HTML
+  // page, proves the request reached the gateway.
   const response = await request.get('/api/unknown');
-  expect(response.status()).toBe(404);
-  // Fastify's JSON 404, not nginx' HTML page: the request reached the gateway.
+  expect(response.status()).toBe(401);
   expect(response.headers()['content-type']).toContain('application/json');
 });
 
