@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import WebSocket from 'ws';
 
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- read from the secret file
 const TOKEN = readFileSync(
   process.env['GATEWAY_TOKEN_FILE'] ?? '/run/secrets/gateway_token',
   'utf8',
