@@ -87,7 +87,7 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 |---|---|
 | Freigabe dieses Plans | Entscheidungen 1–4 oben |
 | Beginn TP2 (Claude erinnert) | SonarQube-Cloud-Account und Projekt, Secret `SONAR_TOKEN` |
-| Beginn TP4 | Qwen3-Coder (und optional DeepSeek-Coder) in LM Studio laden, Server starten |
+| Beginn TP4 (Claude erinnert) | Qwen3-Coder (und optional DeepSeek-Coder) in LM Studio laden, Server starten |
 
 ## Status
 
