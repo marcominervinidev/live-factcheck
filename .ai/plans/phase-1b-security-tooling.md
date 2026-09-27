@@ -28,7 +28,7 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 |---|---|---|---|
 | 1 | SonarQube Cloud oder selbst gehostet | Cloud, Organisation = GitHub-Account `marcominervinidev` | offen (Marco) |
 | 2 | Quality Gate sofort Pflicht? | erst beratend, nach einer Woche Baseline als Pflicht-Check `sonar passed` im Ruleset | offen (Marco) |
-| 3 | Modelle für Red Team und Code-Scan | Qwen3-Coder (30B-A3B) als Standard, DeepSeek-Coder-V2-Lite als Vergleich, beide in LM Studio | offen (Marco, je nach RAM des Mac) |
+| 3 | Modelle für Red Team und Code-Scan | Mac M2 mit 16 GB, davon 8 GB für Docker: **Qwen2.5-Coder-7B-Instruct Q4_K_M** (~4,7 GB) für Angreifer und Code-Scan; Qwen3-8B als Alternative. 30B-Modelle passen nicht. promptfoo ergänzt feste Angriffsmuster, die nicht vom Modell abhängen | entschieden (2026-09-27, RAM-Angabe von Marco) |
 | 4 | Red Team in CI? | nein, lokal (GitHub-Runner können die Modelle nicht laden); nightly nur der deterministische Teil mit Mock-Providern | Vorschlag |
 
 ## TP1 – Entscheidung und Dokumentation
@@ -87,7 +87,7 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 |---|---|
 | Freigabe dieses Plans | Entscheidungen 1–4 oben |
 | Beginn TP2 (Claude erinnert) | SonarQube-Cloud-Account und Projekt, Secret `SONAR_TOKEN` |
-| Beginn TP4 (Claude erinnert) | Qwen3-Coder (und optional DeepSeek-Coder) in LM Studio laden, Server starten |
+| Beginn TP4 (Claude erinnert) | Qwen2.5-Coder-7B-Instruct (Q4_K_M) in LM Studio laden, Server auf `localhost:1234` starten; Ziel-Modell der Pipeline wählen (lokal kostenlos oder Claude Haiku nach Kostenschätzung) |
 
 ## Status
 
