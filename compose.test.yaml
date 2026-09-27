@@ -43,3 +43,24 @@ services:
     # Stage 4 sees only what a browser sees: the edge.
     networks: [edge]
     command: ['sh', '-c', 'node_modules/.bin/playwright test $${PLAYWRIGHT_ARGS}']
+
+  # Stage 5 (brief 13.5): `make eval` runs the claim set against this stack like a client.
+  # The providers under test are whatever the stack is configured with; reports go to
+  # docs/evidence/phase-1/evals/.
+  eval:
+    <<: *playwright
+    profiles: [eval]
+    working_dir: /workspace/evals
+    networks: [edge]
+    # TLS is verified against Caddy's local root CA (tls internal), read-only from its data volume.
+    volumes:
+      - .:/workspace
+      - caddy-data:/caddy-data:ro
+    environment:
+      NODE_EXTRA_CA_CERTS: /caddy-data/caddy/pki/authorities/local/root.crt
+      EVAL_BASE_URL: https://${LAN_HOST:-lfc.local}:8443
+      EVAL_LABEL: ${EVAL_LABEL:-unnamed}
+      EVAL_INCLUDE_UNREVIEWED: ${EVAL_INCLUDE_UNREVIEWED:-false}
+      EVAL_LIMIT: ${EVAL_LIMIT:-0}
+      GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
+    command: ['node_modules/.bin/tsx', '--conditions=development', 'src/run.ts']

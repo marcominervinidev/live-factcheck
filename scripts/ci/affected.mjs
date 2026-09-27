@@ -1,5 +1,5 @@
 // Computes the CI test matrices (brief 13.4): which workspaces are affected and which
-// test stages they have. Backend = packages/* and services/*, frontend = apps/*.
+// test stages they have. Backend = packages/*, services/* and evals, frontend = apps/*.
 // Usage: node scripts/ci/affected.mjs [<git-ref>]   (no ref = all workspaces)
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
@@ -28,11 +28,20 @@ const workspaces = selected.filter(({ dir }) => dir !== '');
 
 const scriptsOf = (dir) => JSON.parse(readFileSync(`${dir}/package.json`, 'utf8')).scripts ?? {};
 const select = (kind, script) =>
-  workspaces.filter(
-    ({ dir }) =>
-      (kind === 'frontend' ? dir.startsWith('apps/') : /^(packages|services)\//.test(dir)) &&
-      script in scriptsOf(dir),
-  );
+  workspaces
+    .filter(
+      ({ dir }) =>
+        (kind === 'frontend'
+          ? dir.startsWith('apps/')
+          : /^(packages\/|services\/|evals$)/.test(dir)) && script in scriptsOf(dir),
+    )
+    .map((workspace) => {
+      // Coverage thresholds (brief 13.5) are enforced on one run per workspace: `test:coverage`
+      // (unit + integration together) in the integration job where it exists, else the unit run.
+      const combined = 'test:coverage' in scriptsOf(workspace.dir);
+      if (script === 'test:unit') return { ...workspace, script, coverage: !combined };
+      return { ...workspace, script: combined ? 'test:coverage' : script, coverage: combined };
+    });
 
 const matrices = {
   backend_unit: select('backend', 'test:unit'),

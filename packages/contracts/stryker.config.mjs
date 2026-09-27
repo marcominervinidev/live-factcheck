@@ -1,17 +1,19 @@
 // Stage 5 (brief 13.5): mutation testing shows whether the contract tests really check the
 // rules, not just execute them. Runs nightly, not on every push.
 //
-// Known issue (2026-09-25): Stryker 10 + Vitest 5 + zod 4 reports mutants in refine callbacks
-// as "survived" although the tests kill them when the mutation is applied by hand (see
-// .ai/plans/phase-0-fundament.md). Until that is understood the score is reported, not enforced.
-import { fileURLToPath } from 'node:url';
-
+// Command runner instead of @stryker-mutator/vitest-runner: runner 10.0.0 (built against
+// Vitest 4.1) reuses one Vitest instance, and under Vitest 5 every run after the first executes
+// zero tests. Every mutant evaluated at test time then "survived" with testsCompleted: 0, which
+// made the old score (34–45 %) meaningless. A fresh `vitest run` per mutant is slower but
+// independent of Vitest internals; the mutant is activated through __STRYKER_ACTIVE_MUTANT__.
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
-  // pnpm's strict layout hides the plugin from Stryker's own lookup; resolve it from here.
-  plugins: [fileURLToPath(import.meta.resolve('@stryker-mutator/vitest-runner'))],
-  testRunner: 'vitest',
-  vitest: { configFile: 'vitest.config.js' },
+  testRunner: 'command',
+  commandRunner: { command: 'node_modules/.bin/vitest run --project unit' },
+  coverageAnalysis: 'off',
+  // Each mutant starts Vitest anew; under parallel load that alone can exceed Stryker's default
+  // timeout and would count a slow start as "detected".
+  timeoutMS: 60_000,
   mutate: ['src/**/*.ts', '!src/**/*.test.ts', '!src/testing/**', '!src/index.ts'],
   reporters: ['clear-text', 'progress', 'html', 'json'],
   htmlReporter: { fileName: 'reports/mutation/index.html' },

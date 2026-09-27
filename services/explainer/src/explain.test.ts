@@ -132,4 +132,59 @@ describe('explain (brief 6a, ADR 0009)', () => {
       reason: 'provider_error',
     });
   });
+
+  it('passes an existing fact check and the abort signal, and records usage in the budget', async () => {
+    const recorded: string[] = [];
+    const budget: DailyBudget = {
+      ensureAvailable: () => Promise.resolve(),
+      record: (model) => {
+        recorded.push(model);
+        return Promise.resolve();
+      },
+    };
+    const requests: { user: string; signal: AbortSignal | undefined }[] = [];
+    const base = createMockLlmProvider('mock', mockExplanation);
+    const llm: LlmProvider = {
+      ...base,
+      generateStructured: (request, options) => {
+        requests.push({ user: request.user, signal: options?.signal });
+        return base.generateStructured(request, options);
+      },
+    };
+    const controller = new AbortController();
+    const outcome = await explain(
+      checked({
+        existingFactCheck: {
+          publisher: 'Correctiv',
+          url: 'https://correctiv.org/faktencheck/beispiel',
+          rating: 'Falsch',
+        },
+      }),
+      { llm, prompt, budget },
+      controller.signal,
+    );
+
+    expect(outcome.ok).toBe(true);
+    expect(requests[0]?.user).toContain('"bestehenderFaktencheck"');
+    expect(requests[0]?.user).toContain('Correctiv');
+    expect(requests[0]?.signal).toBe(controller.signal);
+    expect(recorded).toEqual(['mock']);
+  });
+
+  it('rethrows errors that are not budget or provider errors', async () => {
+    const llm = createMockLlmProvider('mock', mockExplanation);
+    const brokenBudget: DailyBudget = {
+      ensureAvailable: () => Promise.reject(new Error('redis down')),
+      record: () => Promise.resolve(),
+    };
+    await expect(explain(checked(), { llm, prompt, budget: brokenBudget })).rejects.toThrow(
+      'redis down',
+    );
+
+    const broken: LlmProvider = {
+      ...llm,
+      generateStructured: () => Promise.reject(new Error('bug')),
+    };
+    await expect(explain(checked(), { llm: broken, prompt })).rejects.toThrow('bug');
+  });
 });

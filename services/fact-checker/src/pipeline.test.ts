@@ -283,4 +283,90 @@ describe('checkClaim (brief 9.6)', () => {
     // queries (llm) + relevance + decision (classifier)
     expect(recorded).toEqual(['mock', 'mock', 'mock']);
   });
+
+  it('ignores a corrupt verdict-cache entry and checks the claim again', async () => {
+    const detected = claim('Der Zweite Weltkrieg endete 1945.');
+    const cache = memoryCache();
+    cache.values.set(verdictCacheKey(detected.normalizedText), '{not json');
+    const d = deps({ verdictCache: cache });
+    const result = await checkClaim(detected, d);
+    expect(result).toMatchObject({ verdict: 'stimmt', cacheHit: 'none' });
+    expect(d.researchCalls).toBe(1);
+  });
+
+  it('judges from fact checks alone when no page was found', async () => {
+    const research = mockResearch(now);
+    const onlyFactChecks = async (input: { claim: string; queries: readonly string[] }) => ({
+      ...(await research(input)),
+      documents: [],
+    });
+    const result = await checkClaim(
+      claim('Der Zweite Weltkrieg ist erst 20 Jahre vorbei.'),
+      deps({ research: onlyFactChecks }),
+    );
+    expect(ClaimChecked.safeParse(result).success).toBe(true);
+    expect(result.evidence.map((e) => e.tier)).toEqual(['faktencheck']);
+    expect(result.existingFactCheck).toBeDefined();
+  });
+
+  it('passes the abort signal to every external call', async () => {
+    const signals: (AbortSignal | undefined)[] = [];
+    const controller = new AbortController();
+    const classifier = classifierWith(mockClassifier);
+    await checkClaim(
+      claim('Der Zweite Weltkrieg endete 1945.'),
+      deps({
+        llm: {
+          ...llm,
+          generateStructured: (request, options) => {
+            signals.push(options?.signal);
+            return llm.generateStructured(request, options);
+          },
+        },
+        classifier: {
+          ...classifier,
+          ask: (state, questions, options) => {
+            signals.push(options?.signal);
+            return classifier.ask(state, questions, options);
+          },
+        },
+        research: (input, signal) => {
+          signals.push(signal);
+          return mockResearch(now)(input);
+        },
+      }),
+      controller.signal,
+    );
+    // queries, research, relevance, decision
+    expect(signals).toEqual([
+      controller.signal,
+      controller.signal,
+      controller.signal,
+      controller.signal,
+    ]);
+  });
+
+  it('rethrows errors that are not budget, LLM or classifier errors (the consumer retries)', async () => {
+    const text = claim('Der Zweite Weltkrieg endete 1945.');
+    const budget: DailyBudget = {
+      ensureAvailable: () => Promise.reject(new Error('redis down')),
+      record: () => Promise.resolve(),
+    };
+    await expect(checkClaim(text, deps({ budget }))).rejects.toThrow('redis down');
+
+    const brokenLlm: LlmProvider = {
+      ...llm,
+      generateStructured: () => Promise.reject(new Error('bug in llm')),
+    };
+    await expect(checkClaim(text, deps({ llm: brokenLlm }))).rejects.toThrow('bug in llm');
+
+    const classifier = classifierWith(mockClassifier);
+    const brokenClassifier: ClassifierProvider = {
+      ...classifier,
+      ask: () => Promise.reject(new Error('bug in classifier')),
+    };
+    await expect(checkClaim(text, deps({ classifier: brokenClassifier }))).rejects.toThrow(
+      'bug in classifier',
+    );
+  });
 });

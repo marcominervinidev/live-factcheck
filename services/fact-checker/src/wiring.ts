@@ -115,13 +115,18 @@ export function createPipelineDeps(config: Config, redis: Redis): PipelineDeps {
 export function providerStatus(config: Config): ProviderStatus['providers'] {
   const service = 'fact-checker';
   const live = config.CHECKER_RESEARCH_SOURCES === 'live';
+  const llmCloud = llmUse('CHECKER', config).cloud;
+  // The llm classifier sends the claim through the checker's LLM, so it is as cloud as that LLM.
+  const classifierCloud =
+    classifierUse('CHECKER', config).cloud ||
+    (config.CHECKER_CLASSIFIER_PROVIDER === 'llm' && llmCloud);
   return [
     {
       service,
       role: 'llm',
       provider: config.CHECKER_LLM_PROVIDER,
       model: config.CHECKER_LLM_MODEL,
-      cloud: llmUse('CHECKER', config).cloud,
+      cloud: llmCloud,
     },
     {
       service,
@@ -130,7 +135,7 @@ export function providerStatus(config: Config): ProviderStatus['providers'] {
       ...(config.CHECKER_CLASSIFIER_MODEL === undefined
         ? {}
         : { model: config.CHECKER_CLASSIFIER_MODEL }),
-      cloud: classifierUse('CHECKER', config).cloud,
+      cloud: classifierCloud,
     },
     {
       service,

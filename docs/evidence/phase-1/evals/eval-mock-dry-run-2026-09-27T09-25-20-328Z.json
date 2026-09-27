@@ -1,0 +1,2868 @@
+[
+  {
+    "id": "ww2-end-1945",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "f64c0ce1-3fbf-4a17-9dfc-62e3fca21eac",
+      "speaker": "A",
+      "claim": "Der Zweite Weltkrieg endete in Europa im Mai 1945.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "1477c79b-f72f-426a-b29d-8881e9e9568a",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.377Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "2a932faa-5b33-4881-88fe-c87c38fc26ff",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.377Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 3,
+        "classifyMs": 1,
+        "totalMs": 6
+      },
+      "checkedAt": "2026-09-27T09:25:20.380Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 52.17708299999998
+  },
+  {
+    "id": "ww2-20-years",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "c28c2f90-653e-498c-bddc-63ce4c8a6d28",
+      "speaker": "A",
+      "claim": "Der Zweite Weltkrieg ist erst 20 Jahre vorbei.",
+      "verdict": "falsch",
+      "probabilities": {
+        "stimmt": 0.01,
+        "groesstenteils_richtig": 0.01,
+        "uebertrieben": 0.03,
+        "falsch": 0.93,
+        "nicht_pruefbar": 0.02
+      },
+      "confidence": 0.9125000000000001,
+      "confidenceLevel": "hoch",
+      "evidence": [
+        {
+          "evidenceId": "d2a4dd61-e5fc-41dd-8858-26ffb19cd029",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.410Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "0b684748-d938-47a6-8740-c65a361c2b1c",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.410Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "0dcae439-079a-4b8f-8f3e-d33bc88c4c3f",
+          "title": "Der Zweite Weltkrieg ist erst 20 Jahre vorbei",
+          "url": "https://faktencheck.example.org/zweiter-weltkrieg",
+          "publisher": "Beispiel-Faktencheck",
+          "retrievedAt": "2026-09-27T09:25:20.410Z",
+          "tier": "faktencheck",
+          "snippet": "Der Zweite Weltkrieg ist erst 20 Jahre vorbei – Bewertung: Falsch"
+        }
+      ],
+      "bestEvidenceId": "d2a4dd61-e5fc-41dd-8858-26ffb19cd029",
+      "cacheHit": "none",
+      "existingFactCheck": {
+        "publisher": "Beispiel-Faktencheck",
+        "url": "https://faktencheck.example.org/zweiter-weltkrieg",
+        "rating": "Falsch"
+      },
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 1,
+        "totalMs": 1
+      },
+      "checkedAt": "2026-09-27T09:25:20.410Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    "clientLatencyMs": 11.910208000000011
+  },
+  {
+    "id": "ww1-start-1914",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "165d0164-bbcb-4909-baf3-c7d049085922",
+      "speaker": "A",
+      "claim": "Der Erste Weltkrieg begann 1914.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "30b47fe9-c922-4297-b1af-76357a763eda",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.419Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "1f79782c-6e12-4e94-8f97-796e44b6a2b3",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.419Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 1
+      },
+      "checkedAt": "2026-09-27T09:25:20.420Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 28.974500000000035
+  },
+  {
+    "id": "ww1-ten-years",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "4da187c6-a233-417d-a7f7-edd62ef0bcd8",
+      "speaker": "A",
+      "claim": "Der Erste Weltkrieg dauerte zehn Jahre.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "46e832c0-3e14-4ebe-bcb0-7799db9a4736",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.447Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "f4119ca8-2058-4f61-aa15-cbc76c4eb334",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.447Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.448Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 5.85795799999994
+  },
+  {
+    "id": "wall-fall-1989",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "a95ae40c-792b-4c27-adc7-67b20350d933",
+      "speaker": "A",
+      "claim": "Die Berliner Mauer fiel im November 1989.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "fa2f1a2f-57fd-4683-b04c-3503829b2fd5",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.452Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "65c363e9-8fbe-4dae-879b-9685c8ed44c7",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.452Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 1
+      },
+      "checkedAt": "2026-09-27T09:25:20.452Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 5.446333000000095
+  },
+  {
+    "id": "wall-fall-1991",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "4933beb5-ce9a-48b0-9c7c-6c8f419a8f26",
+      "speaker": "A",
+      "claim": "Die Berliner Mauer fiel 1991.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "6217a24b-58f8-4575-ac49-ba780ff9dfa1",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.458Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "84a3c950-72d7-480a-95da-56f8a8c1ff6c",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.458Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 1
+      },
+      "checkedAt": "2026-09-27T09:25:20.458Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 5.854959000000008
+  },
+  {
+    "id": "wall-30-years",
+    "expected": "groesstenteils_richtig",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "7bf6b628-f745-4d68-bfa0-649f3a69298c",
+      "speaker": "A",
+      "claim": "Die Berliner Mauer stand fast 30 Jahre.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "bfaed98a-9c89-4489-b75e-66cf8b308b2c",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.464Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "cac813ac-320c-4f8a-a403-febf0a9e7912",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.464Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.464Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 5.502583999999956
+  },
+  {
+    "id": "reunification-1990",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "13905a22-2385-44c3-a0bd-baf480c8a9c9",
+      "speaker": "A",
+      "claim": "Die deutsche Wiedervereinigung fand am 3. Oktober 1990 statt.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "5932598b-ee28-4c3f-9ab6-d46f8cd22e38",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.470Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "89fd15f2-2d9d-406d-a34b-917b29abc60f",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.470Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.470Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 6.521250000000009
+  },
+  {
+    "id": "basic-law-1949",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "a2e425b1-dac5-42d0-8316-afce33600efc",
+      "speaker": "A",
+      "claim": "Das Grundgesetz trat 1949 in Kraft.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "c9ece5ad-2eca-4f48-98d0-31e78c04771f",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.477Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "0df0dbc6-a1ce-440d-9324-f56e57e8ba87",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.477Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.477Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 5.505832999999939
+  },
+  {
+    "id": "adenauer-first",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "7ae3ac60-cefc-4901-b5b5-3ef3a8c4e32f",
+      "speaker": "A",
+      "claim": "Konrad Adenauer war der erste Bundeskanzler der Bundesrepublik Deutschland.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "2de4ce31-2068-4a91-8c47-3a7757151d43",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.483Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "1a7c8c88-7705-4b9f-ba95-bb04f85b42aa",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.483Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.483Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 5.8178329999999505
+  },
+  {
+    "id": "kohl-first",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "2b6539fc-0858-4acb-8ee3-7813a23349a6",
+      "speaker": "A",
+      "claim": "Helmut Kohl war der erste Bundeskanzler der Bundesrepublik Deutschland.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "cb89c2aa-2af1-4662-bd65-38eabacd819b",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.487Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "6bf12f26-f5bd-4541-8563-5c0fbfb1d9e1",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.487Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.487Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 4.983165999999983
+  },
+  {
+    "id": "merkel-16-years",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "dc4c4f42-b289-4d3f-b08a-1161c63c143a",
+      "speaker": "A",
+      "claim": "Angela Merkel war 16 Jahre lang Bundeskanzlerin.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "76469e15-7875-4714-8c99-2ec09f1cca9c",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.493Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "fc7f1e91-7168-49c9-a767-4273615f0d4f",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.493Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 1
+      },
+      "checkedAt": "2026-09-27T09:25:20.493Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 4.8054579999999305
+  },
+  {
+    "id": "merkel-25-years",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "307942fe-1e52-4954-8143-554e0c7c60cb",
+      "speaker": "A",
+      "claim": "Angela Merkel war 25 Jahre lang Bundeskanzlerin.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "ad285bec-65f2-47e5-9df7-208caa486f26",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.497Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "ae7e7fb6-1be1-4f6c-9811-9d1df481da5d",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.497Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.497Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 4.719208000000094
+  },
+  {
+    "id": "berlin-capital",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "60177f40-486a-4544-a3f8-af8fa5fa3a97",
+      "speaker": "A",
+      "claim": "Berlin ist die Hauptstadt Deutschlands.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "5a9ce041-9ce3-4dda-a535-3a78b35b4b84",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.502Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "851d445b-9971-4391-a7dd-155e9f107e92",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.502Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 1
+      },
+      "checkedAt": "2026-09-27T09:25:20.502Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 6.131083000000103
+  },
+  {
+    "id": "bonn-capital",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "81a35aca-3af2-4c70-b7f4-a410c317b17c",
+      "speaker": "A",
+      "claim": "Bonn ist heute die Hauptstadt Deutschlands.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "fdb850a5-53bc-4027-8504-22ead157b77b",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.514Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "e84e0cdc-58e5-43eb-93ea-a98aefcc5b81",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.514Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 1
+      },
+      "checkedAt": "2026-09-27T09:25:20.515Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 11.845500000000015
+  },
+  {
+    "id": "states-16",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "78ace433-31b3-43a2-8e5a-0321d25fdcdb",
+      "speaker": "A",
+      "claim": "Deutschland hat 16 Bundesländer.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "83db1242-e842-498c-9dd3-0f641ae7045d",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.519Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "9830c8db-bccc-4601-871d-75e7b89ec04b",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.519Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.519Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.4786670000000868
+  },
+  {
+    "id": "states-20",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "5caba273-52bf-424d-a11e-d828560ad9a0",
+      "speaker": "A",
+      "claim": "Deutschland hat 20 Bundesländer.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "9b3c9169-ad0e-4911-a4b7-6eb9b276e7be",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.524Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "a7e5c93f-ee26-41d5-b377-8d2e2222e459",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.524Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.524Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 4.842249999999922
+  },
+  {
+    "id": "zugspitze-highest",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "82b22603-210a-405e-b131-7d6378edb35b",
+      "speaker": "A",
+      "claim": "Die Zugspitze ist der höchste Berg Deutschlands.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "7e9e6779-9e45-4c8b-9d31-2185a4f955d8",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.529Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "27669208-2f8d-42b8-a264-eb1fe2fbae11",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.529Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.529Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 4.714084000000071
+  },
+  {
+    "id": "zugspitze-3000",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "578f7227-e961-4eda-a0bb-7725056e41e3",
+      "speaker": "A",
+      "claim": "Die Zugspitze ist über 3.000 Meter hoch.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "7c7ad565-3ba6-45c8-89b4-90870e8eab5a",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.543Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "a0afd610-f685-487a-8fe4-e6b65e60d3a7",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.543Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.543Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 13.69812499999989
+  },
+  {
+    "id": "rhine-longer-danube",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "0195f8d6-f57a-488d-a7cd-0b98bb20bb0d",
+      "speaker": "A",
+      "claim": "Der Rhein ist länger als die Donau.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "78ba75e3-f66e-49bb-847c-9a2129dc5ba6",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.546Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "e22b9334-82df-4bc7-8ba6-2a62d3c01d7f",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.546Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 1
+      },
+      "checkedAt": "2026-09-27T09:25:20.546Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 2.8115000000000236
+  },
+  {
+    "id": "hamburg-largest",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "95deb46e-723c-4d91-aefb-fd5cf26aad6b",
+      "speaker": "A",
+      "claim": "Hamburg ist die größte Stadt Deutschlands.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "c05d8a0b-6a7b-49c2-a6bd-02468ea39ce2",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.550Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "51266b5a-6f40-4a9f-b669-2463f64b52ce",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.550Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.550Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.849290999999994
+  },
+  {
+    "id": "berlin-over-3m",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "4a0a847d-775c-4c45-9881-22e463ac27bc",
+      "speaker": "A",
+      "claim": "Berlin hat über drei Millionen Einwohner.",
+      "verdict": "groesstenteils_richtig",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.65,
+        "uebertrieben": 0.1,
+        "falsch": 0.03,
+        "nicht_pruefbar": 0.02
+      },
+      "confidence": 0.5625,
+      "confidenceLevel": "mittel",
+      "evidence": [
+        {
+          "evidenceId": "32c58c8f-93c2-4ffc-8adc-1e9b94930cdd",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.553Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "1301196c-4cda-482b-8607-e2a757586b09",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.553Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "bestEvidenceId": "32c58c8f-93c2-4ffc-8adc-1e9b94930cdd",
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.553Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    "clientLatencyMs": 3.956250000000068
+  },
+  {
+    "id": "berlin-over-10m",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "63c3799e-6aab-4821-be40-240c3b885c8b",
+      "speaker": "A",
+      "claim": "Berlin hat über zehn Millionen Einwohner.",
+      "verdict": "groesstenteils_richtig",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.65,
+        "uebertrieben": 0.1,
+        "falsch": 0.03,
+        "nicht_pruefbar": 0.02
+      },
+      "confidence": 0.5625,
+      "confidenceLevel": "mittel",
+      "evidence": [
+        {
+          "evidenceId": "970886f6-ea96-4ea6-bfee-8ee11af5db3d",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.557Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "f7ac4a28-1612-40e7-9fee-11b089ec3e07",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.557Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "bestEvidenceId": "970886f6-ea96-4ea6-bfee-8ee11af5db3d",
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.557Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    "clientLatencyMs": 3.992417000000046
+  },
+  {
+    "id": "germany-over-80m",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "6a635892-b0ee-4df2-bd55-bd660aa9587c",
+      "speaker": "A",
+      "claim": "In Deutschland leben mehr als 80 Millionen Menschen.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "1db4bb59-c25b-4f63-8401-4b05d9578b51",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.561Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "19284fb2-9a02-40eb-9020-ad369fde99e2",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.561Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.562Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.818292000000042
+  },
+  {
+    "id": "germany-over-100m",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "1d2acf03-78fd-4f64-a50d-125f598b6dd3",
+      "speaker": "A",
+      "claim": "In Deutschland leben über 100 Millionen Menschen.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "16e4727d-84ef-424a-994a-8aab345aae19",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.565Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "c56005ff-0cf8-4566-bda6-8c372dae39e3",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.565Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 1
+      },
+      "checkedAt": "2026-09-27T09:25:20.565Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.7560829999999896
+  },
+  {
+    "id": "germany-double-france",
+    "expected": "uebertrieben",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "ff604b0c-a689-486c-98ca-43a77b3e7c8b",
+      "speaker": "A",
+      "claim": "Deutschland hat fast doppelt so viele Einwohner wie Frankreich.",
+      "verdict": "groesstenteils_richtig",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.65,
+        "uebertrieben": 0.1,
+        "falsch": 0.03,
+        "nicht_pruefbar": 0.02
+      },
+      "confidence": 0.5625,
+      "confidenceLevel": "mittel",
+      "evidence": [
+        {
+          "evidenceId": "bf09e914-b79f-495c-bebe-ead8b54fc350",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.568Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "0f7c9334-641b-4f01-a974-065512f7f3de",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.568Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "bestEvidenceId": "bf09e914-b79f-495c-bebe-ead8b54fc350",
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.568Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    "clientLatencyMs": 3.3349580000000287
+  },
+  {
+    "id": "berlin-most-populous-state",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "59040834-bfe7-423d-84d5-8cca35eba109",
+      "speaker": "A",
+      "claim": "In Berlin leben mehr Menschen als in jedem anderen Bundesland.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "430b250b-ed32-4388-8fdc-273a0d9016e8",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.573Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "cd42abbc-eb07-4806-a45a-ce781df649b6",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.573Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.573Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 5.409209000000033
+  },
+  {
+    "id": "lake-constance-borders",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "c4c1cb66-9783-4445-b504-e382dc2c0e9a",
+      "speaker": "A",
+      "claim": "Der Bodensee grenzt an Deutschland, Österreich und die Schweiz.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "84526eea-83e9-4720-a97f-61de2c8ebf88",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.578Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "a3fb6c66-b35b-40cd-8a30-03f8ce4587b2",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.578Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.579Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 4.611291999999935
+  },
+  {
+    "id": "euro-cash-2002",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "db0af777-32ef-45fd-ba1b-c1c6f0889800",
+      "speaker": "A",
+      "claim": "Der Euro wurde 2002 als Bargeld in Deutschland eingeführt.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "5fc72410-0c5b-4b9e-9bf6-cbc0c59172cb",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.581Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "c398fe3c-2d46-4329-9191-662f26cd76e9",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.581Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.581Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.028750000000059
+  },
+  {
+    "id": "titanic-1912",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "2e15fc8f-e4b0-48b9-9f14-8ebbc4b8699c",
+      "speaker": "A",
+      "claim": "Die Titanic sank im Jahr 1912.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "afd3da04-39e5-47cf-a45f-4c9f3fd038d6",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.586Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "6a9042a4-9707-4f03-8b69-98a2866bb544",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.586Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.586Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 4.513958000000002
+  },
+  {
+    "id": "titanic-third-voyage",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "4388dc30-d010-46c0-b2c7-3cb0dd296a41",
+      "speaker": "A",
+      "claim": "Die Titanic sank auf ihrer dritten Fahrt.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "0d605c3d-1f7e-45dc-b8e8-897bdcbb2fbb",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.590Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "b3c70bc9-fac8-4e60-8dfc-2eaf1435a48f",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.590Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.590Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 4.006542000000081
+  },
+  {
+    "id": "french-revolution-1789",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "99f0f5e8-1b2b-4e90-83f9-79d4536bddf8",
+      "speaker": "A",
+      "claim": "Die Französische Revolution begann 1789.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "3cc1bb37-aab7-463e-ba98-f38121cd4ecc",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.593Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "963a0709-3147-4901-9497-77a486168104",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.593Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.593Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 2.648207999999954
+  },
+  {
+    "id": "moon-landing-1969",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "70a7d47d-6f0d-46c9-aeaa-56273a8cb62a",
+      "speaker": "A",
+      "claim": "Neil Armstrong betrat 1969 als erster Mensch den Mond.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "9c32835f-4a74-4856-b0dd-7f32242b8319",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.597Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "32d05ccb-39e8-4f38-a03e-0cfdcc84c2bb",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.597Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.597Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.9125839999999243
+  },
+  {
+    "id": "faust-goethe",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "3ff3317c-9e68-4b65-9442-208fc63109ef",
+      "speaker": "A",
+      "claim": "Johann Wolfgang von Goethe schrieb den Faust.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "d993f72c-bee6-4ccc-93a0-3b2dca20d5de",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.601Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "3efc98fb-d801-4f3e-a29d-5466d7af69d5",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.601Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.601Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.817542000000003
+  },
+  {
+    "id": "faust-schiller",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "a8a02b66-0ccb-4c62-84da-c22feca6f813",
+      "speaker": "A",
+      "claim": "Friedrich Schiller schrieb den Faust.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "376e2372-84be-4a8e-af99-d8a014fda0b4",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.603Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "655d4c17-15b1-4a44-82e6-35f2409799dd",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.603Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.603Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 2.298000000000002
+  },
+  {
+    "id": "water-boils-100",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "01f2eca0-672c-48b9-8a9d-7b11a6ccf76a",
+      "speaker": "A",
+      "claim": "Wasser siedet auf Meereshöhe bei 100 Grad Celsius.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "c495fedf-f07c-4f5e-81e5-76199a4ba9be",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.607Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "5e23fbea-9660-4c38-b851-bad8a9557b50",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.607Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.607Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 4.601499999999987
+  },
+  {
+    "id": "water-boils-80",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "d83a5bba-b316-4fe2-bdd3-36e73d19d001",
+      "speaker": "A",
+      "claim": "Wasser siedet auf Meereshöhe bei 80 Grad Celsius.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "6d14942e-1cdf-4f95-8706-bd80b7d809b4",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.612Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "10bdbeac-80ce-4696-8786-0e7169afbb9c",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.612Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.612Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.8396670000000768
+  },
+  {
+    "id": "moon-distance",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "76651919-0fce-4728-bbec-9f9d2ce66ca3",
+      "speaker": "A",
+      "claim": "Der Mond ist im Mittel etwa 384.000 Kilometer von der Erde entfernt.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "04441c4e-7f05-4fb4-befd-c1e77dcd22eb",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.614Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "8e051bbe-02ea-4c5b-8619-b3c337209858",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.614Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.614Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 2.474790999999982
+  },
+  {
+    "id": "sun-planet",
+    "expected": "falsch",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "496fdd6a-3755-4ce7-8284-23e5c2248bea",
+      "speaker": "A",
+      "claim": "Die Sonne ist ein Planet.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "783d38a0-669a-46a1-89c0-7da7c208306e",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.617Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "d2ee97af-e897-4511-aa8d-7ef3214add54",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.617Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.617Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.9284999999999854
+  },
+  {
+    "id": "everest-9000",
+    "expected": "groesstenteils_richtig",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "d809884e-1844-4b52-88d3-4659b8a55a50",
+      "speaker": "A",
+      "claim": "Der Mount Everest ist rund 9.000 Meter hoch.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "c2b252f0-46d7-43c8-9618-3229fa08074e",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.622Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "16837b24-6c55-49c3-bdea-52db4275be76",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.622Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.623Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 5.195791999999983
+  },
+  {
+    "id": "light-speed",
+    "expected": "stimmt",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "127c8812-0265-4866-a338-04929238f7b7",
+      "speaker": "A",
+      "claim": "Licht legt in einer Sekunde rund 300.000 Kilometer zurück.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "cc6f613c-d83c-4528-9b4b-3d695b448761",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.626Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "016f37ea-1263-4196-a07d-67eaf4c75454",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.626Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.627Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.3025410000000193
+  },
+  {
+    "id": "opinion-berlin",
+    "expected": "nicht_pruefbar",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "ea5b2786-9531-4ea3-873e-e403e48d2dad",
+      "speaker": "A",
+      "claim": "Ich finde, Berlin ist die schönste Stadt Deutschlands.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.03,
+        "groesstenteils_richtig": 0.03,
+        "uebertrieben": 0.02,
+        "falsch": 0.02,
+        "nicht_pruefbar": 0.9
+      },
+      "confidence": 0.875,
+      "confidenceLevel": "hoch",
+      "evidence": [
+        {
+          "evidenceId": "587826b5-15b4-496b-8c4c-b1fc03585eaf",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.629Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "e2954478-4ae2-40b0-a4c4-1ace1191cf77",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.629Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.629Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 2.557875000000081
+  },
+  {
+    "id": "opinion-food",
+    "expected": "nicht_pruefbar",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "ae49ed27-ac44-40b1-a5b2-aacf9b4e0dc4",
+      "speaker": "A",
+      "claim": "Das Essen in Bayern ist besser als in Hamburg.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "3eedf8cf-f91a-4095-9426-bb61af09d429",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.633Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        },
+        {
+          "evidenceId": "1ba20b3f-465d-4318-99eb-0a708aef4324",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.633Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.633Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 3.2849169999999503
+  },
+  {
+    "id": "opinion-goethe",
+    "expected": "nicht_pruefbar",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "c9e16653-5e28-4a97-804f-b4dcb4f6ba86",
+      "speaker": "A",
+      "claim": "Goethe war der größte deutsche Dichter.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "474147d6-b026-407a-b58b-ec1e29836a4c",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.635Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "947d26bb-ecff-49a3-980e-1f7799ee16a4",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.635Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.635Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 2.0573329999999714
+  },
+  {
+    "id": "forecast-cars-2050",
+    "expected": "nicht_pruefbar",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "d27d3913-f443-4de1-bb3d-a54d7a703028",
+      "speaker": "A",
+      "claim": "Im Jahr 2050 werden alle Autos in Deutschland elektrisch fahren.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "ef83aaca-0c2d-439b-bab5-c8366dd2afa9",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.637Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "15074d2f-6e76-443e-af4a-505b3986cd0b",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.637Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.637Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 2.04362500000002
+  },
+  {
+    "id": "forecast-weather",
+    "expected": "nicht_pruefbar",
+    "checked": {
+      "schemaVersion": 2,
+      "sessionId": "9818489c-327e-4a55-bde5-6d44af35b52f",
+      "claimId": "0e5b286c-39cb-4cf1-8707-01a84f4044f1",
+      "speaker": "A",
+      "claim": "Nächsten Sommer wird es in Deutschland einen neuen Hitzerekord geben.",
+      "verdict": "nicht_pruefbar",
+      "probabilities": {
+        "stimmt": 0.2,
+        "groesstenteils_richtig": 0.1,
+        "uebertrieben": 0.1,
+        "falsch": 0.1,
+        "nicht_pruefbar": 0.5
+      },
+      "confidence": 0.375,
+      "confidenceLevel": "niedrig",
+      "evidence": [
+        {
+          "evidenceId": "496f6048-8f8a-4480-b7ad-77083fde23d8",
+          "title": "Zweiter Weltkrieg",
+          "url": "https://de.wikipedia.org/wiki/Zweiter_Weltkrieg",
+          "publisher": "Wikipedia",
+          "retrievedAt": "2026-09-27T09:25:20.641Z",
+          "tier": "referenz",
+          "snippet": "Der Zweite Weltkrieg war vom 1. September 1939 bis zum 2. September 1945 der zweite global geführte Krieg. In Europa endete er am 8. Mai 1945 mit der bedingungslosen Kapitulation der Wehrmacht."
+        },
+        {
+          "evidenceId": "49216aa3-458b-43fe-9a20-4de4cb89203d",
+          "title": "Bevölkerungsstand",
+          "url": "https://www.destatis.de/DE/Themen/Gesellschaft-Umwelt/Bevoelkerung/_inhalt.html",
+          "publisher": "Statistisches Bundesamt",
+          "retrievedAt": "2026-09-27T09:25:20.641Z",
+          "tier": "amtlich",
+          "snippet": "Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner und ist damit die bevölkerungsreichste Stadt Deutschlands."
+        }
+      ],
+      "cacheHit": "none",
+      "timings": {
+        "detectMs": 0,
+        "retrieveMs": 0,
+        "classifyMs": 0,
+        "totalMs": 0
+      },
+      "checkedAt": "2026-09-27T09:25:20.641Z",
+      "provider": {
+        "classifier": "mock",
+        "model": "mock",
+        "search": "searxng",
+        "embeddings": "mock"
+      },
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "estimatedCostUsd": 0
+      },
+      "reason": "classified_unverifiable"
+    },
+    "clientLatencyMs": 4.148791000000074
+  }
+]
