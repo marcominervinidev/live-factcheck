@@ -1,5 +1,5 @@
-// Stage 5 (brief 13.5): mutation testing shows whether the contract tests really check the
-// rules, not just execute them. Runs nightly, not on every push.
+// Stage 5 (brief 13.5): mutation testing shows whether the provider tests really check the
+// adapters, not just execute them. Runs nightly, not on every push.
 //
 // Command runner instead of @stryker-mutator/vitest-runner: runner 10.0.0 (built against
 // Vitest 4.1) reuses one Vitest instance, and under Vitest 5 every run after the first executes
