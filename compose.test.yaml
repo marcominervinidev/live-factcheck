@@ -52,7 +52,12 @@ services:
     profiles: [eval]
     working_dir: /workspace/evals
     networks: [edge]
+    # TLS is verified against Caddy's local root CA (tls internal), read-only from its data volume.
+    volumes:
+      - .:/workspace
+      - caddy-data:/caddy-data:ro
     environment:
+      NODE_EXTRA_CA_CERTS: /caddy-data/caddy/pki/authorities/local/root.crt
       EVAL_BASE_URL: https://${LAN_HOST:-lfc.local}:8443
       EVAL_LABEL: ${EVAL_LABEL:-unnamed}
       EVAL_INCLUDE_UNREVIEWED: ${EVAL_INCLUDE_UNREVIEWED:-false}

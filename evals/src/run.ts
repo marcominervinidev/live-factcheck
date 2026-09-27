@@ -33,9 +33,8 @@ const OUT_DIR = env(
 const INCLUDE_UNREVIEWED = process.env['EVAL_INCLUDE_UNREVIEWED'] === 'true';
 const TIMEOUT_MS = Number(env('EVAL_TIMEOUT_MS', '90000'));
 const LIMIT = Number(env('EVAL_LIMIT', '0'));
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- read from the secret file
 const TOKEN = readFileSync(env('GATEWAY_TOKEN_FILE', '/run/secrets/gateway_token'), 'utf8').trim();
-// Caddy's local CA is not trusted inside the container; the connection stays inside the stack.
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 
 const headers = { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json' };
 
@@ -44,9 +43,7 @@ async function openSession(): Promise<{
   sessionId: string;
   verdicts: Map<string, (c: ClaimChecked) => void>;
 }> {
-  const socket = new WebSocket(`${BASE_URL.replace(/^http/, 'ws')}/ws/session`, {
-    rejectUnauthorized: false,
-  });
+  const socket = new WebSocket(`${BASE_URL.replace(/^http/, 'ws')}/ws/session`);
   const verdicts = new Map<string, (c: ClaimChecked) => void>();
   const sessionId = await new Promise<string>((resolve, reject) => {
     socket.once('error', reject);
