@@ -92,4 +92,7 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 ## Status
 
 - [x] Plan freigegeben (Marco, 2026-09-27); Entscheidungen 1–4 wie vorgeschlagen, sofern Marco nichts anderes sagt
-- Nächster Task nach Freigabe: T1 (ADR und Dokumentation), erst nach Gate 8 von Phase 1
+- [x] TP1 ADR 0014 und Dokumentation (PR #20)
+- [ ] TP2 SonarQube Cloud: wartet auf Marco (Account, Projekt, Secret `SONAR_TOKEN`); daher TP3 vorgezogen
+- [x] TP3 OWASP ZAP (PR `phase-1b/tp3-zap`): FAIL 0 / WARN 0 / PASS 64 nach Fix der Cross-Origin-Header; Nachweis `docs/evidence/phase-1b/tp3-zap.txt`
+- Nächster Task: TP4 promptfoo-Red-Team (braucht LM Studio mit Qwen3-Coder, Claude erinnert Marco); bis dahin der deterministische Teil (feste Injection-Fälle als Stufe-3-Tests)
