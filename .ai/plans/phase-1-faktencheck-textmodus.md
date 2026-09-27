@@ -122,7 +122,7 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 
 **T2.1 `LlmProvider`** (`generateStructured({ system, user, schema, effort? })` → `{ value, usage, model, provider }` oder typisierter Fehler): `anthropic` (`messages.parse` + `zodOutputFormat`, Refusal/`max_tokens`), `openai-compatible` (JSON-Modus, genau ein Reparaturversuch), `mock`. Prompts als Dateien mit Platzhaltern (`renderPrompt`).
 **T2.2 `ClassifierProvider` `llm` + `mock`:** Choice/Score/Bool, Wahrscheinlichkeiten normalisiert, Konfidenzformel, `confidenceLevel` aus Schwellen.
-**T2.3 `ClassifierProvider` `typesafe`:** `@typesafe-ai/sdk` (Version gepinnt), Key explizit aus Config, eigener Logger ohne Request-Bodies, Timeout/Retries aus Config, Sprechernamen → Platzhalter, `state` ≤ 32k Tokens (abschneiden mit Warnung). Tests gegen lokalen Fake-HTTP-Server (`baseURL`), kein Netz.
+**T2.3 `ClassifierProvider` `typesafe`:** `@typesafe-ai/sdk` (Version gepinnt), Key explizit aus Config, eigener Logger ohne Request-Bodies, Timeout/Retries aus Config, Sprechernamen → Platzhalter, `state` ≤ 32k Tokens (umgesetzt als Ablehnung → `nicht_pruefbar` statt Abschneiden, siehe Nachtrag ADR 0007). Tests gegen lokalen Fake-HTTP-Server (`baseURL`), kein Netz.
 **T2.4 `EmbeddingProvider`:** `openai-compatible` (`/embeddings`), `mock` (Hash-Vektoren).
 **T2.5 `SearchProvider` `searxng`**, Preistabelle (Anthropic, Jev; unbekannt → `null`), Budget-Zähler (Redis).
 - Verifikation: `tb pnpm --filter @lfc/providers test:unit`, Coverage ≥ 80 %.

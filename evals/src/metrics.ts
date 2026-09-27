@@ -132,10 +132,15 @@ export function summarize(outcomes: readonly Outcome[]): Summary {
   );
   const hit = (o: Outcome & { checked: ClaimChecked }) =>
     o.checked.verdict === o.item.expected ? 1 : 0;
-  const pairs = answered.map((o) => ({
-    probabilities: o.checked.probabilities,
-    expected: o.item.expected,
-  }));
+  // Calibration only over real classifier distributions: a check that stopped early (budget,
+  // provider error, nothing found) carries a placeholder uniform distribution with confidence 0,
+  // which would distort Brier and ECE (review, phase 1). Accuracy still counts it.
+  const pairs = answered
+    .filter((o) => o.checked.confidence > 0)
+    .map((o) => ({
+      probabilities: o.checked.probabilities,
+      expected: o.item.expected,
+    }));
   const { ece, bins } = calibration(pairs);
   const checkable = answered.filter((o) => o.item.expected !== 'nicht_pruefbar');
 

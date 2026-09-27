@@ -115,6 +115,8 @@ const PROPERTIES: Readonly<Record<string, string>> = {
 };
 
 const Snak = z.object({
+  /** Wikidata marks the current value of e.g. a population as `preferred`. */
+  rank: z.enum(['preferred', 'normal', 'deprecated']).optional(),
   mainsnak: z.object({
     datavalue: z
       .object({
@@ -138,8 +140,15 @@ const WikidataEntities = z.object({
 const TimeValue = z.object({ time: z.string(), precision: z.number() });
 const QuantityValue = z.object({ amount: z.string() });
 
+const RANK_ORDER = { preferred: 0, normal: 1, deprecated: 2 } as const;
+
 function propertyText(values: readonly z.infer<typeof Snak>[]): string | undefined {
-  for (const snak of values) {
+  // Preferred statements first (the current population, not the first one ever recorded);
+  // deprecated ones never (review, phase 1).
+  const ordered = [...values]
+    .filter((snak) => snak.rank !== 'deprecated')
+    .sort((a, b) => RANK_ORDER[a.rank ?? 'normal'] - RANK_ORDER[b.rank ?? 'normal']);
+  for (const snak of ordered) {
     const data = snak.mainsnak.datavalue;
     if (data?.type === 'time') {
       const time = TimeValue.safeParse(data.value);

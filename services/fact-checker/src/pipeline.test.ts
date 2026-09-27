@@ -25,7 +25,7 @@ import { z } from 'zod';
 
 import { mockClassifier, mockLlm, mockResearch } from './mocks.js';
 import type { PipelineDeps } from './pipeline.js';
-import { checkClaim, verdictCacheKey } from './pipeline.js';
+import { checkClaim, fallbackQueries, verdictCacheKey } from './pipeline.js';
 import { loadQuestionTexts } from './questions.js';
 
 const now = () => new Date('2026-09-26T10:00:00.000Z');
@@ -231,8 +231,20 @@ describe('checkClaim (brief 9.6)', () => {
       claim('Der Zweite Weltkrieg endete 1945.'),
       deps({ classifier: classifierWith(insufficient) }),
     );
-    expect(result).toMatchObject({ verdict: 'nicht_pruefbar', reason: 'no_evidence' });
+    expect(result).toMatchObject({
+      verdict: 'nicht_pruefbar',
+      reason: 'no_evidence',
+      confidenceLevel: 'niedrig',
+    });
     expect(result.evidence.length).toBeGreaterThan(0);
+  });
+
+  it('falls back to the claim plus its names and numbers as search queries', () => {
+    expect(fallbackQueries('Der Zweite Weltkrieg endete 1945 in Europa.')).toEqual([
+      'Der Zweite Weltkrieg endete 1945 in Europa.',
+      'Zweite Weltkrieg 1945 Europa',
+    ]);
+    expect(fallbackQueries('Das stimmt so nicht.')).toEqual(['Das stimmt so nicht.']);
   });
 
   it('stops before any model call when the daily budget is exhausted', async () => {
@@ -282,7 +294,7 @@ describe('checkClaim (brief 9.6)', () => {
         },
       }),
     );
-    expect(queries).toEqual([['Der Zweite Weltkrieg endete 1945.']]);
+    expect(queries).toEqual([['Der Zweite Weltkrieg endete 1945.', 'Zweite Weltkrieg 1945']]);
   });
 
   it('records spend against the budget for every model call', async () => {

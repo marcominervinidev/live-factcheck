@@ -1,4 +1,5 @@
 import type { SearchProvider, SearchResult } from '@lfc/providers';
+import { z } from 'zod';
 
 import type { TextCache } from './cache.js';
 import { sha256 } from './cache.js';
@@ -7,6 +8,27 @@ import type { FactCheckSource } from './sources/factcheck.js';
 import type { FactCheckHit, SourceDocument } from './sources/types.js';
 import type { createWebSource } from './sources/web.js';
 import type { createWikidataSource, createWikipediaSource } from './sources/wiki.js';
+
+const CachedPage = z.object({
+  url: z.string(),
+  status: z.number(),
+  contentType: z.string(),
+  text: z.string(),
+});
+const CachedResults = z.array(
+  z.object({ url: z.string(), title: z.string(), snippet: z.string() }),
+);
+
+/** A cache entry that does not parse or fit its shape is a miss, never a crash (review, phase 1). */
+function fromCache<T>(schema: z.ZodType<T>, hit: string | null): T | undefined {
+  if (hit === null) return undefined;
+  try {
+    const parsed = schema.safeParse(JSON.parse(hit));
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Level 3 of ADR 0008: fetched pages and API answers cached by URL (never errors). */
 export function cachedFetcher(
@@ -17,8 +39,8 @@ export function cachedFetcher(
   return {
     async fetchText(url, options) {
       const key = `page:v1:${sha256(`${url}\n${options.accept.join(',')}`)}`;
-      const hit = await cache.get(key);
-      if (hit !== null) return JSON.parse(hit) as FetchedText;
+      const hit: FetchedText | undefined = fromCache(CachedPage, await cache.get(key));
+      if (hit !== undefined) return hit;
       const page = await fetcher.fetchText(url, options);
       await cache.set(key, JSON.stringify(page), ttlSeconds);
       return page;
@@ -36,10 +58,11 @@ export function cachedSearch(
     name: search.name,
     async search(query, options) {
       const key = `search:v1:${search.name}:${sha256(`${options.language}\n${String(options.limit)}\n${query}`)}`;
-      const hit = await cache.get(key);
-      if (hit !== null) return JSON.parse(hit) as SearchResult[];
+      const hit: SearchResult[] | undefined = fromCache(CachedResults, await cache.get(key));
+      if (hit !== undefined) return hit;
       const results = await search.search(query, options);
-      await cache.set(key, JSON.stringify(results), ttlSeconds);
+      // An empty answer is usually a rate-limited upstream engine: not worth keeping an hour.
+      if (results.length > 0) await cache.set(key, JSON.stringify(results), ttlSeconds);
       return results;
     },
   };

@@ -218,6 +218,21 @@ async function writeCachedVerdict(
   );
 }
 
+/**
+ * Heuristic queries when the LLM fails (brief 8.1): the claim itself plus its names and numbers
+ * (capitalised words not at the start of the sentence, and digits), which search engines match
+ * better than a full German sentence.
+ */
+export function fallbackQueries(claim: string): readonly string[] {
+  const words = claim
+    .replace(/[.!?,;:„“"()]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  const entities = words.filter((word, i) => (i > 0 && /^\p{Lu}/u.test(word)) || /\d/.test(word));
+  const keywords = entities.join(' ');
+  return keywords !== '' && keywords !== claim ? [claim, keywords] : [claim];
+}
+
 /** Step 3: search queries from the LLM; if it fails, the claim itself is the query. */
 async function generateQueries(
   claim: string,
@@ -241,7 +256,7 @@ async function generateQueries(
   } catch (error) {
     if (!(error instanceof LlmError)) throw error;
     await spending.add(deps.llm.model, error.usage);
-    return [claim];
+    return fallbackQueries(claim);
   }
 }
 
@@ -422,11 +437,12 @@ function toVerdictFields(
   else if (level === 'niedrig') reason = 'low_confidence';
 
   if (reason !== undefined) {
-    // low_confidence keeps its real level; the other reasons are reported without a level claim.
+    // classified_unverifiable keeps its level (how sure the classifier is that the claim cannot
+    // be checked); without sufficient evidence or with low confidence the level is niedrig.
     return {
       ...base,
       verdict: 'nicht_pruefbar',
-      confidenceLevel: reason === 'low_confidence' ? 'niedrig' : level,
+      confidenceLevel: reason === 'classified_unverifiable' ? level : 'niedrig',
       reason,
     };
   }

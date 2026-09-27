@@ -169,6 +169,18 @@ describe('summarize', () => {
     expect(md).toContain('| verdict_exact | 1 |');
   });
 
+  it('leaves placeholder distributions of stopped checks out of the calibration', () => {
+    const stopped = {
+      item: item('f', 'stimmt'),
+      checked: checked('nicht_pruefbar', 0, { reason: 'budget_exceeded' }),
+    };
+    const withStopped = summarize([...outcomes, stopped]);
+    const without = summarize(outcomes);
+    expect(withStopped.brier).toBeCloseTo(without.brier, 10);
+    expect(withStopped.ece).toBeCloseTo(without.ece, 10);
+    expect(withStopped.answered).toBe(without.answered + 1);
+  });
+
   it('renders an empty run with dashes instead of NaN, marked as reviewed-only', () => {
     const s = summarize([{ item: item('x', 'stimmt') }]);
     const md = markdownReport(

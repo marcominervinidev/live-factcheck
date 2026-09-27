@@ -139,6 +139,8 @@ services:
 
   fact-checker:
     <<: *node-service
+    # SIGTERM lets the message in progress finish (a check runs up to 60 s) before Docker sends SIGKILL.
+    stop_grace_period: 70s
     build:
       context: .
       dockerfile: services/fact-checker/Dockerfile
@@ -179,6 +181,8 @@ services:
 
   explainer:
     <<: *node-service
+    # SIGTERM lets the message in progress finish (an explanation runs up to 45 s) before Docker sends SIGKILL.
+    stop_grace_period: 55s
     build:
       context: .
       dockerfile: services/explainer/Dockerfile
