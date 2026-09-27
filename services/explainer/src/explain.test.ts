@@ -187,4 +187,19 @@ describe('explain (brief 6a, ADR 0009)', () => {
     };
     await expect(explain(checked(), { llm: broken, prompt })).rejects.toThrow('bug');
   });
+
+  it.each([
+    ['a foreign domain', 'Mehr Details unter evil.example nachlesen.', false],
+    ['a foreign URL', 'Siehe https://evil.example/x für Details.', false],
+    ['an own source', 'Laut de.wikipedia.org endete der Krieg 1945.', true],
+    ['abbreviations only', 'Der Krieg endete z. B. laut u.a. Historikern 1945.', true],
+  ])(
+    'discards an explanation that cites %s outside the evidence (brief 15.5)',
+    async (_label, text, ok) => {
+      const llm = createMockLlmProvider('mock', () => ({ explanation: text }));
+      const outcome = await explain(checked(), { llm, prompt });
+      expect(outcome.ok).toBe(ok);
+      if (!outcome.ok) expect(outcome.reason).toBe('uncited_or_foreign_source');
+    },
+  );
 });

@@ -139,4 +139,34 @@ describe('robots policy', () => {
       false,
     );
   });
+
+  it('does not cache a failure caused by our own abort (no day-long block for one slow site)', async () => {
+    const cache = memoryCache();
+    const controller = new AbortController();
+    controller.abort();
+    const fetcher = fetcherAnswering(() => new FetchFailedError('aborted'));
+    const robots = policy(fetcher, cache);
+    expect(await robots.isAllowed('https://example.org/x', { signal: controller.signal })).toBe(
+      false,
+    );
+    expect(cache.keys()).toEqual([]);
+  });
+
+  it('caches an unreachable robots.txt only for a few minutes', async () => {
+    const ttls: number[] = [];
+    const cache = memoryCache();
+    const recording = {
+      ...cache,
+      set: (key: string, value: string, ttl: number) => {
+        ttls.push(ttl);
+        return cache.set(key, value, ttl);
+      },
+    };
+    const robots = policy(
+      fetcherAnswering(() => new FetchFailedError('HTTP 503', { status: 503 })),
+      recording,
+    );
+    expect(await robots.isAllowed('https://example.org/x')).toBe(false);
+    expect(ttls).toEqual([300]);
+  });
 });

@@ -19,7 +19,12 @@ export type ExplainOutcome =
   | { readonly ok: true; readonly event: ClaimExplained }
   | {
       readonly ok: false;
-      readonly reason: 'budget_exceeded' | 'invalid_llm_output' | 'refused' | 'provider_error';
+      readonly reason:
+        | 'budget_exceeded'
+        | 'invalid_llm_output'
+        | 'uncited_or_foreign_source'
+        | 'refused'
+        | 'provider_error';
     };
 
 /**
@@ -76,6 +81,11 @@ export async function explain(
       signal === undefined ? {} : { signal },
     );
     await deps.budget?.record(result.model, result.usage);
+    // Brief 15.5: a link or domain in the answer must belong to our own evidence, otherwise an
+    // injected snippet ("Details unter evil.example") would reach every card. Discarded.
+    if (!citesOnlyOwnSources(result.value.explanation, checked)) {
+      return { ok: false, reason: 'uncited_or_foreign_source' };
+    }
     return {
       ok: true,
       event: ClaimExplainedSchema.parse({
@@ -94,6 +104,32 @@ export async function explain(
       reason: error.kind === 'invalid_output' ? 'invalid_llm_output' : error.kind,
     };
   }
+}
+
+/** URLs and bare domains such as `evil.example` or `www.x.de/pfad`; German abbreviations like
+ * "z. B." or "u.a." do not match because a top-level domain has at least two letters. */
+const LINK_PATTERN = /\bhttps?:\/\/[^\s)]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b/gi;
+
+function hostOf(value: string): string | undefined {
+  try {
+    return new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`).hostname
+      .toLowerCase()
+      .replace(/^www\./, '');
+  } catch {
+    return undefined;
+  }
+}
+
+function citesOnlyOwnSources(explanation: string, checked: ClaimChecked): boolean {
+  const own = new Set(
+    [...checked.evidence.map((e) => e.url), checked.existingFactCheck?.url]
+      .flatMap((url) => (url === undefined ? [] : [hostOf(url)]))
+      .filter((host): host is string => host !== undefined),
+  );
+  return [...explanation.matchAll(LINK_PATTERN)].every(([match]) => {
+    const host = hostOf(match);
+    return host !== undefined && own.has(host);
+  });
 }
 
 const VERDICT_TEXT: Readonly<Record<string, string>> = {
