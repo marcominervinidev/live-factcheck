@@ -5,8 +5,10 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/testing/**'],
+      exclude: ['src/**/*.test.ts', 'src/testing/**', 'src/index.ts'],
       reportsDirectory: 'reports/coverage',
+      // Brief 13.5; measured over unit and integration tests together (test:coverage where both exist).
+      thresholds: { lines: 80, branches: 80 },
     },
     projects: [
       {

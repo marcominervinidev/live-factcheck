@@ -5,8 +5,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/testing/**'],
+      // run.ts is the CLI against a live stack, proven by the dry run in docs/evidence/phase-1/evals/.
+      exclude: ['src/**/*.test.ts', 'src/run.ts'],
       reportsDirectory: 'reports/coverage',
+      // Brief 13.5; measured over unit and integration tests together (test:coverage where both exist).
+      thresholds: { lines: 80, branches: 80 },
     },
     projects: [
       {

@@ -13,7 +13,8 @@
     "dev": "tsx watch --conditions=development src/main.ts",
     "start": "node dist/main.js",
     "test:unit": "vitest run --project unit",
-    "test:int": "vitest run --project int"
+    "test:int": "vitest run --project int",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@lfc/service-kit": "workspace:*",
