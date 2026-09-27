@@ -13,8 +13,9 @@ The product is the vehicle; the project is primarily a **DevOps and platform eng
 
 | Phase | Scope | State |
 |---|---|---|
-| 0 – Foundation | monorepo, contracts, service skeletons, hardened images, Compose stack, CI, agent tooling | **in review** (gate 7 of 7) |
-| 1 – Text mode | LLM and search adapters, fact-checker, result cards, eval set | planned |
+| 0 – Foundation | monorepo, contracts, service skeletons, hardened images, Compose stack, CI, agent tooling | done |
+| 1 – Text mode | LLM, classifier and search adapters, live research, fact-checker, explainer, result cards, eval set | **in review** (gate 8 of 8) |
+| 1b – Security tooling | SonarQube Cloud, OWASP ZAP, LLM red teaming (promptfoo), local LLM code scan | planned |
 | 2 – Live transcription | audio capture, WebSocket path, STT adapters, claim extraction, iPhone over HTTPS | planned |
 | 3 – Speakers and UX | diarization, speaker names, latency | planned |
 | 4 – Persistence | Postgres, session history, retention | planned |
@@ -101,9 +102,11 @@ tools/toolbox/       dev container: the only place Node tooling runs
 | 1 unit | Vitest, Testing Library | next to the code (`*.test.ts`) | pre-commit (affected), every push |
 | 2a integration (backend) | services against a real Redis (Testcontainers) | `*.int.test.ts` | every push |
 | 2b integration (frontend) | the app in Chromium and WebKit/iPhone against a mocked backend, axe | `apps/web/tests/` | every push |
-| 3 API | every service's ops endpoints, TLS, headers, routing | `tests/api/` | every PR, after merge |
+| 3 API | ops endpoints, TLS (verified against Caddy's CA), headers, routing, auth, text mode end to end (verdict before explanation) | `tests/api/` | every PR, after merge |
 | 4 E2E | user journeys through Caddy in Chromium, WebKit/iPhone (Firefox nightly) | `tests/e2e/` | every PR (sharded), after merge |
-| 5 quality | Lighthouse, mutation testing (Stryker) | `apps/web/lighthouserc.json`, `packages/contracts` | nightly |
+| 5 quality | Lighthouse, mutation testing (Stryker), claim eval (accuracy, calibration, latency, cost) | `apps/web/lighthouserc.json`, `packages/{contracts,providers}`, `evals/` | nightly; eval on demand |
+
+Coverage must stay at 80 % lines and branches in every workspace (enforced in CI). In CI every Playwright test records trace, video and screenshot; each PR gets a comment linking the reports.
 
 `make test` runs stages 0–4 locally, everything in containers.
 
@@ -120,7 +123,30 @@ make ready                           # /readyz of every service + the app throug
 open https://localhost               # the app (Caddy's local CA; trust it once)
 ```
 
-Everything runs with `mock` providers by default, so no API key is needed. Other targets: `make dev` (hot reload), `make test`, `make scan`, `make check-ports`, `make logs`, `make down`; `make help` lists them all. If macOS Apache already uses port 80, set `LFC_HTTP_PORT=8081` in `.env` (copy it from `.env.example`).
+Everything runs with `mock` providers by default, so no API key is needed. Other targets: `make dev` (hot reload), `make test`, `make scan`, `make check-ports`, `make logs`, `make down`; `make help` lists them all. If another program already uses port 80 or 443 (e.g. macOS Apache), set `LFC_HTTP_PORT=8080` or `LFC_HTTPS_PORT` in `.env` (copy it from `.env.example`).
+
+After pulling a new version, run `make secrets-init` again: it adds secret files that new services need and never overwrites existing ones.
+
+### Trying text mode
+
+1. `make up`, then open `https://localhost` (or your `LAN_HOST`).
+2. Open **Einstellungen** and paste the access token from the file `gateway_token` in your secrets directory (`~/.config/live-factcheck/secrets/`). It is the key for this app's own API, not a Claude or other provider key; the browser keeps it locally.
+3. Type a claim, e.g. *"Der Zweite Weltkrieg ist erst 20 Jahre vorbei."*, and press **Prüfen**. The card shows the verdict with its confidence first and the explanation a moment later; tap it for the sources.
+
+With the default `mock` providers the verdicts come from a small fixed corpus, which is enough to try the flow. For real checks, configure real providers.
+
+### Real providers
+
+Providers are chosen per task in `.env` (see `.env.example`); keys go only into the secret files.
+
+| Provider | Settings | Key file |
+|---|---|---|
+| Claude | `CHECKER_LLM_PROVIDER=anthropic`, `CHECKER_LLM_MODEL=claude-opus-5`; explainer and extractor likewise (e.g. `claude-haiku-4-5`) | `anthropic_api_key` |
+| LM Studio / Ollama on the Mac | `CHECKER_LLM_PROVIDER=openai-compatible`, `CHECKER_LLM_BASE_URL=http://host.docker.internal:1234/v1` (Ollama: port `11434`) | none |
+| Classifier | `CHECKER_CLASSIFIER_PROVIDER=llm` (uses the checker's LLM) or `typesafe` with `CHECKER_CLASSIFIER_MODEL=jev-1.13.0` | `typesafe_api_key` |
+| Live research | `CHECKER_RESEARCH_SOURCES=live` (Wikipedia, Wikidata, web search via the bundled SearXNG); Google Fact Check with a key | `google_factcheck_api_key` |
+
+`host.docker.internal` is how containers reach LM Studio or Ollama on the Mac. `PRIVACY_MODE=local` makes the workers refuse any provider that would send data to a cloud service. `CLOUD_DAILY_BUDGET_USD` caps the daily spend of each worker; when it is used up, claims end as *nicht prüfbar* instead of calling the model. After changing `.env` or a key file: `docker compose up -d --force-recreate`.
 
 ### Trusting the local certificate
 
