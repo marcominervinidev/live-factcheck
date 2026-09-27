@@ -14,8 +14,11 @@ export default defineConfig({
   use: {
     baseURL: process.env['BASE_URL'] ?? 'https://lfc.local:8443',
     ignoreHTTPSErrors: true,
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    // CI records every test (trace, video, screenshot) so the owner can review the run from the
+    // HTML report attached to each PR; locally only what is needed to debug a retry.
+    trace: CI ? 'on' : 'on-first-retry',
+    video: CI ? 'on' : 'off',
+    screenshot: CI ? 'on' : 'only-on-failure',
   },
   projects: [
     { name: 'chromium-desktop', use: { ...devices['Desktop Chrome'] } },

@@ -191,11 +191,11 @@ jobs:
         with:
           report_paths: ${{ matrix.workspace.dir }}/reports/junit.xml
           check_name: ${{ github.job }} · ${{ matrix.workspace.name }}
-      - name: playwright report
-        if: ${{ failure() }}
+      - name: playwright report (videos and traces, linked in the PR comment)
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: playwright-report-frontend-int
+          name: playwright-report-stage-2b
           path: |
             ${{ matrix.workspace.dir }}/playwright-report
             ${{ matrix.workspace.dir }}/test-results
