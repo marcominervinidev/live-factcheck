@@ -5,6 +5,7 @@ export type MessageKey = keyof typeof de;
 
 const messages: Record<MessageKey, string> = de;
 
-export function t(key: MessageKey): string {
-  return messages[key];
+/** A message with `{name}` placeholders filled in; unknown placeholders stay visible. */
+export function t(key: MessageKey, params: Readonly<Record<string, string>> = {}): string {
+  return messages[key].replace(/\{(\w+)\}/g, (match, name: string) => params[name] ?? match);
 }

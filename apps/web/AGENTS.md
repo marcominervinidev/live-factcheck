@@ -10,3 +10,7 @@ Rules for the frontend only. Repo-wide rules: `/AGENTS.md`.
 - Accessibility: colour is never the only signal; every status has icon and text.
 - Tests: unit tests next to the code (`*.test.ts(x)`, jsdom, Testing Library). The backend is the system boundary: stub `fetch`/WebSocket, never internal modules.
 - Dockerfile: `dev` runs Vite with HMR; `runtime` is nginx-unprivileged (uid 101) with a read-only root filesystem and `/tmp` as tmpfs. `docker/40-runtime-config.sh` writes `/tmp/config.json` from `WEB_GATEWAY_URL` and refuses unsafe values.
+- Honest display (brief 11): medium confidence is "unsicher" in a neutral colour, no percentage outside the details view, every card carries the disclaimer, no per-person scores. `src/lib/format.ts` is the only place that maps verdicts to labels, icons and colours.
+- Server messages are validated with `@lfc/contracts` (`WsServerMessage`, `ApiError`, …) before they touch state; invalid messages are dropped.
+- The gateway token lives only in `localStorage` (`src/state/settings.ts`, ADR 0011) and is sent only in the `Authorization` header or the WebSocket `auth` message, never in a URL.
+- Stage 2b uses `tests/mock-backend.ts` (routeWebSocket + route) with contract-shaped events; keep it in sync when contracts change.

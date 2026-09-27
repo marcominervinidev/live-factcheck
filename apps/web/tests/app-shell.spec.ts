@@ -8,7 +8,9 @@ test.describe('app shell', () => {
     await app.open();
 
     await expect(app.title).toHaveText('Live-Faktencheck');
-    await expect(app.emptyFeed).toHaveText('Noch keine Behauptungen geprüft.');
+    await expect(app.emptyFeed).toHaveText(
+      'Noch keine Behauptungen geprüft. Tippe eine Behauptung ein, um zu starten.',
+    );
     expect(await a11yViolations()).toEqual([]);
   });
 

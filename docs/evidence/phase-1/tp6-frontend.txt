@@ -1,0 +1,30 @@
+# Phase 1 · TP6 (frontend) – evidence, 2026-09-26
+
+## Stage 1 (apps/web, Vitest + Testing Library): 41 passed
+format (verdict labels, icons, "Unsicher: …" for medium confidence), claims store, WebSocket
+client (auth first, reconnect with backoff 0.5 s → 30 s, no retry after unauthorized, invalid
+messages dropped, explanation timeout 30 s), ClaimCard (pending state, chip with icon and text,
+badges, best evidence, sources rel=noopener, neutral colour for "unsicher", reason for
+nicht_pruefbar, no prominent percentage, disclaimer on every card), REST client (token only in
+the header), App shell.
+
+## Stage 2b (Playwright against vite preview, mocked backend via routeWebSocket/route, axe): 30 passed
+chromium-desktop, chromium-mobile, webkit-iphone: text mode pending → verdict → explanation,
+"unsicher" and opinion, missing explanation after 30 s (page.clock), reconnect after a server
+drop, no horizontal overflow on the phone viewport, settings page (token, providers, Jev notice),
+wrong token → unauthorized without retry; no serious or critical axe violations.
+
+## Stages 3 and 4 on an isolated stack (lfc-verify, throwaway secrets, torn down)
+stage 3: 28 passed
+stage 4 (smoke + text mode × chromium-desktop, chromium-mobile, webkit-iphone): 6 passed
+
+## Browser walk-through with screenshots (tests/e2e/scripts/ui-screens.mjs, iPhone 15 profile)
+screens/01-start-without-token.png, 02-settings-providers.png, 03-verdict-and-explanation.png,
+04-feed-uncertain-opinion-distribution.png; console errors: none (strict CSP).
+Note: with the mock classifier every snippet counts as relevant, so unrelated sources can appear;
+real classifiers filter them with the relevance question.
+
+## CI finding fixed on the way
+ci on phase-1/tp4-pipeline failed: the fact-checker fail-fast test timed out (> 20 s) on the
+runner because tsx transpiled the research stack before validating the config. The pipeline is
+now imported after config validation (2.6 s locally); merged forward into TP5/TP6.
