@@ -9,11 +9,19 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: CI,
   retries: CI ? 1 : 0,
-  reporter: CI ? [['list'], ['junit', { outputFile: 'reports/junit.xml' }]] : [['list']],
+  reporter: CI
+    ? [
+        ['list'],
+        ['junit', { outputFile: 'reports/junit.xml' }],
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+      ]
+    : [['list']],
   outputDir: 'test-results',
   use: {
     baseURL: process.env['BASE_URL'] ?? 'https://lfc.local:8443',
     // Caddy's local CA is not trusted inside the test container.
     ignoreHTTPSErrors: true,
+    // Request/response traces for the PR report (see e2e config).
+    trace: CI ? 'on' : 'off',
   },
 });
