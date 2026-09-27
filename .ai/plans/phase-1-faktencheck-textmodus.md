@@ -225,7 +225,16 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 - [x] TP5 erledigt auf `phase-1/tp5-gateway` (Nachweise: `docs/evidence/phase-1/tp5-gateway.txt`): ADR 0011, Stufe 3 im isolierten Stack 28/28; bekannte Grenze: Reconnect startet neue Session (ADR 0011)
 - [x] TP6 erledigt auf `phase-1/tp6-frontend` (Nachweise: `docs/evidence/phase-1/tp6-frontend.txt`, Screenshots unter `docs/evidence/phase-1/screens/`)
 - Offen (Marco): die gestapelten PRs #8–#14 zielen nicht auf `main`, deshalb läuft `pr.yml` (Image-Build, Trivy, Stack-Tests) dort nicht; lokal im isolierten Stack geprüft
-- Nächster Task: TP7 (Eval-Set, `pnpm eval`, Renovate, Coverage-Schwellen) auf `phase-1/tp7-eval`
+- TP7 auf `phase-1/tp7-eval` (Stand 2026-09-27):
+  - [x] T7.1 46 Behauptungen als Startset (`reviewed:false`, Quelle `agent-seed`); **offen: Review durch Marco**, Ausbau auf ≥ 200
+  - [x] T7.2 `pnpm eval` mit Metriken und Reviewed-Gate; Mock-Probelauf unter `docs/evidence/phase-1/evals/`
+  - [x] T7.3 `make eval`; `nightly.yml` mit `workflow_dispatch` (`eval: true`, Setup `mock|claude`, Environment `eval` mit Pflicht-Freigabe, Secret `ANTHROPIC_EVAL_API_KEY`)
+  - [ ] T7.4 bezahlte DoD-Läufe: warten auf Marcos OK (Kostenschätzung im Chat) und auf reviewte Labels
+  - [x] T7.5 Coverage-Schwelle 80/80 in allen Workspaces, einmal pro Workspace in der CI (`test:coverage` im Integrations-Job); `evals` läuft jetzt in der CI
+  - [x] T7.5 Stryker: Ursache geklärt (Vitest-Runner 10.0.0 ist gegen Vitest 4.1 gebaut und führt unter Vitest 5 ab dem zweiten Lauf keine Tests aus, `testsCompleted: 0`). Lösung: Command-Runner mit frischem `vitest run` pro Mutant, `timeoutMS` 60 s. contracts jetzt 79,8 % (vorher scheinbar 34–45 %); `providers` im Nightly
+  - [x] T7.6 `renovate.json` (validiert); Aktivierung der GitHub-App durch Marco
+  - [x] Antigravity-Befunde: `checkClaim` in Schritte zerlegt, `Spending` statt verstreuter Zähler, benannte Grenzen; ClaimCard-Aufteilung optional (später)
+- Nächster Task: TP7-Nachweise, PR #15, danach TP8
 - Arbeitsweise wie in Phase 0: ein PR pro Gate, Branch `phase-1/tpN-<thema>`, gestapelt
 - [x] isolierter Stack-Lauf mit `explainer` (von Marco erlaubt): alle `/readyz` 200, nur Caddy mit Host-Ports, Netze und Secrets je Service wie geplant
 - [x] Brief auf die vereinbarten Entscheidungen zurückgesetzt (Rücknahme war unbeabsichtigt)
@@ -234,3 +243,25 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 - Voraussetzung für den Merge: PR #5, #6, #7 zuerst
 
 ## Session-Log
+
+### 2026-09-27T09:31Z – compaction (auto)
+
+- branch: `phase-1/tp7-eval`, HEAD `702a767`
+- uncommitted:
+
+```
+ M .ai/plans/phase-1-faktencheck-textmodus.md
+ M evals/vitest.config.js
+ M packages/contracts/vitest.config.js
+ M packages/providers/vitest.config.js
+ M packages/research/vitest.config.js
+ M packages/service-kit/vitest.config.js
+ M pnpm-lock.yaml
+ M services/claim-extractor/vitest.config.js
+ M services/explainer/vitest.config.js
+ M services/fact-checker/vitest.config.js
+ M services/gateway/package.json
+ M services/gateway/src/api.int.test.ts
+ M services/gateway/vitest.config.js
+ M services/transcription/vitest.config.js
+```
