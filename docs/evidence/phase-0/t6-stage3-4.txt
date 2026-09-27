@@ -1,0 +1,32 @@
+# env: COMPOSE_PROJECT_NAME=lfc-verify LFC_HTTP_PORT=8082 LFC_HTTPS_PORT=8444 SECRETS_DIR=<throwaway>
+
+$ make test-api
+Running 17 tests using 4 workers
+  ✓   1 edge.spec.ts:19:1 › redirects plain HTTP to HTTPS on the default port (59ms)
+  ✓   2 edge.spec.ts:25:1 › serves the runtime config without caching and without secrets (65ms)
+  ✓   3 edge.spec.ts:32:1 › routes /api to the gateway (46ms)
+  ✓   4 edge.spec.ts:4:1 › serves the app over HTTPS with the security headers (45ms)
+  ✓   5 edge.spec.ts:39:1 › sends no CORS headers, so cross-origin browser calls are blocked (22ms)
+  ✓   6 ops.spec.ts:10:5 › gateway › is alive and ready with its Redis dependency (25ms)
+  ✓   7 ops.spec.ts:19:5 › gateway › exposes Prometheus metrics labelled with the service name (24ms)
+  ✓   8 ops.spec.ts:19:5 › transcription › exposes Prometheus metrics labelled with the service name (15ms)
+  ✓  10 ops.spec.ts:28:5 › gateway › answers unknown routes with 404 and no stack trace (12ms)
+  ✓   9 ops.spec.ts:10:5 › transcription › is alive and ready with its Redis dependency (21ms)
+  ✓  11 ops.spec.ts:28:5 › transcription › answers unknown routes with 404 and no stack trace (12ms)
+  ✓  12 ops.spec.ts:10:5 › claim-extractor › is alive and ready with its Redis dependency (20ms)
+  ✓  14 ops.spec.ts:28:5 › claim-extractor › answers unknown routes with 404 and no stack trace (12ms)
+  ✓  13 ops.spec.ts:19:5 › claim-extractor › exposes Prometheus metrics labelled with the service name (27ms)
+  ✓  16 ops.spec.ts:19:5 › fact-checker › exposes Prometheus metrics labelled with the service name (23ms)
+  ✓  15 ops.spec.ts:10:5 › fact-checker › is alive and ready with its Redis dependency (47ms)
+  ✓  17 ops.spec.ts:28:5 › fact-checker › answers unknown routes with 404 and no stack trace (12ms)
+  17 passed (1.0s)
+exit code: 0
+
+$ make test-e2e   # chromium-desktop, chromium-mobile, webkit-iphone, firefox-desktop
+Running 4 tests using 4 workers
+  ✓  4 [chromium-desktop] › smoke.spec.ts:6:1 › the app loads over HTTPS and reaches the ready state (481ms)
+  ✓  3 [chromium-mobile] › smoke.spec.ts:6:1 › the app loads over HTTPS and reaches the ready state (580ms)
+  ✓  2 [webkit-iphone] › smoke.spec.ts:6:1 › the app loads over HTTPS and reaches the ready state (754ms)
+  ✓  1 [firefox-desktop] › smoke.spec.ts:6:1 › the app loads over HTTPS and reaches the ready state (1.2s)
+  4 passed (3.0s)
+exit code: 0

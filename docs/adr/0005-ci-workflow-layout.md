@@ -28,3 +28,18 @@ Brief 13.3 and 14.2 split the pipeline by trigger: fast stages on every push, ex
 - A PR's required checks come from two workflows; both aggregate jobs must be listed in the ruleset.
 - A PR opened from a fork would get no `push` run; that is acceptable for a personal portfolio repo with no external contributors.
 - When a workspace is added, it is picked up automatically as soon as it has a `test:unit` or `test:int` script.
+
+## Update 2026-09-25 (TP6): full layout
+
+| Workflow | Trigger | Stages |
+|---|---|---|
+| `ci.yml` | push, all branches | 0, 1, 2a (backend), 2b (frontend, Playwright container); aggregate `ci passed` |
+| `pr.yml` | pull request to `main` | contract check, hadolint, Semgrep, image build (amd64) + Trivy per image, stages 3 and 4 via `stack-tests.yml` (E2E in 2 shards); aggregate `pr passed` |
+| `codeql.yml` | PR, `main`, weekly | CodeQL for JS/TS and Actions |
+| `main.yml` | push to `main` | multi-arch build, push to GHCR (`:<sha>`, `:main`), stages 3 and 4 against the pushed images; aggregate `main passed` |
+| `nightly.yml` | daily, manual | Stryker (contracts), full browser matrix incl. Firefox + Lighthouse via `stack-tests.yml`, Trivy HIGH/CRITICAL incl. unfixed (report only) |
+| `stack-tests.yml` | `workflow_call` | reusable: start the Compose stack (built locally or pulled from GHCR), API tests, sharded E2E, optional Lighthouse, merged HTML report |
+
+- The image list for all matrices comes from `scripts/ci/images.mjs` (every workspace with a Dockerfile plus `deploy/compose/*` infrastructure images such as Caddy).
+- Stack tests reuse one workflow instead of copying steps: YAML anchors cannot cross files, and a composite action could not hold the shard matrix.
+- Compose image names are parameterised (`LFC_REGISTRY`, `LFC_TAG`), so `main.yml` tests exactly the images it pushed.

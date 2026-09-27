@@ -1,0 +1,35 @@
+# Test overlay (brief 13.2 stages 3 and 4): runs the Playwright suites as containers inside the
+# stack networks. Caddy gets the alias lfc.local (its LAN name), so TLS works via SNI.
+#   make test-api   make test-e2e
+
+x-playwright: &playwright
+  image: mcr.microsoft.com/playwright:v1.63.0-noble
+  profiles: [test]
+  ipc: host
+  volumes:
+    - .:/workspace
+  environment:
+    CI: ${CI:-false}
+    BASE_URL: https://lfc.local:8443
+    # Extra CLI arguments, e.g. '--shard=1/2 --project=webkit-iphone' in CI.
+    PLAYWRIGHT_ARGS: ${PLAYWRIGHT_ARGS:-}
+
+services:
+  caddy:
+    networks:
+      edge:
+        aliases: [lfc.local]
+
+  api-tests:
+    <<: *playwright
+    working_dir: /workspace/tests/api
+    # Stage 3 talks to every service directly (internal) and to the edge through Caddy.
+    networks: [edge, internal]
+    command: ['sh', '-c', 'node_modules/.bin/playwright test $${PLAYWRIGHT_ARGS}']
+
+  e2e-tests:
+    <<: *playwright
+    working_dir: /workspace/tests/e2e
+    # Stage 4 sees only what a browser sees: the edge.
+    networks: [edge]
+    command: ['sh', '-c', 'node_modules/.bin/playwright test $${PLAYWRIGHT_ARGS}']

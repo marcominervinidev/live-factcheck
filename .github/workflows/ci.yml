@@ -155,11 +155,46 @@ jobs:
     permissions:
       contents: read
       checks: write
+    # Stage 2b: Playwright against the built app with a mocked backend; the official image ships
+    # the browsers (Chromium, WebKit) and their system dependencies.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
     strategy:
       fail-fast: false
       matrix:
         workspace: ${{ fromJSON(needs.changes.outputs.frontend_int) }}
-    steps: *test-steps
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "${WORKSPACE}..."
+        env:
+          WORKSPACE: ${{ matrix.workspace.name }}
+      - name: test
+        working-directory: ${{ matrix.workspace.dir }}
+        run: pnpm run test:int
+        env:
+          # Playwright runs as root inside the container image.
+          HOME: /root
+      - name: report
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6.5.0
+        with:
+          report_paths: ${{ matrix.workspace.dir }}/reports/junit.xml
+          check_name: ${{ github.job }} · ${{ matrix.workspace.name }}
+      - name: playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report-frontend-int
+          path: |
+            ${{ matrix.workspace.dir }}/playwright-report
+            ${{ matrix.workspace.dir }}/test-results
+          retention-days: 7
 
   # Single required check for branch protection: green only if every stage above
   # succeeded or was skipped because nothing relevant changed.

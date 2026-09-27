@@ -4,8 +4,10 @@ SHELL := /bin/sh
 TB := scripts/tb
 COMPOSE := docker compose
 DEV := $(COMPOSE) -f docker-compose.yml -f compose.dev.yaml
+TEST := $(COMPOSE) -f docker-compose.yml -f compose.test.yaml
 SECRETS_DIR ?= $(HOME)/.config/live-factcheck/secrets
 TRIVY := aquasec/trivy:0.74.0
+PLAYWRIGHT := docker run --rm --ipc=host -e CI -v $(CURDIR):/workspace mcr.microsoft.com/playwright:v1.63.0-noble
 IMAGES := caddy web gateway transcription claim-extractor fact-checker
 
 .PHONY: help up up-local dev down logs ready check-ports lint test test-unit test-integration \
@@ -49,14 +51,17 @@ lint: ## Stage 0: typecheck, lint, format check, boundaries, MCP config parity
 test-unit: ## Stage 1: unit tests of all workspaces
 	$(TB) pnpm test:unit
 
-test-integration: ## Stage 2a: integration tests with Testcontainers (backend); 2b follows in TP6
-	$(TB) pnpm test:int
+test-integration: ## Stages 2a (backend, Testcontainers) and 2b (frontend, Playwright, mocked backend)
+	$(TB) pnpm --filter '!@lfc/web' -r --if-present test:int
+	$(PLAYWRIGHT) sh -c 'cd /workspace/apps/web && node_modules/.bin/playwright test -c tests/playwright.config.ts'
 
-test-api: ## Stage 3: system/API tests against the stack (arrive in TP6)
-	@echo "No API tests yet: tests/api arrives in TP6 of phase 0."
+test-api: ## Stage 3: API tests against the running stack (starts it with the test overlay)
+	$(TEST) up -d --build --wait
+	$(TEST) run --rm api-tests
 
-test-e2e: ## Stage 4: E2E tests with Playwright (arrive in TP6)
-	@echo "No E2E tests yet: tests/e2e arrives in TP6 of phase 0."
+test-e2e: ## Stage 4: E2E browser tests against the running stack (Chromium, WebKit/iPhone)
+	$(TEST) up -d --build --wait
+	$(TEST) run --rm e2e-tests
 
 test: lint test-unit test-integration test-api test-e2e ## Stages 0-4
 

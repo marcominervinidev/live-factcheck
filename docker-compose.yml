@@ -2,6 +2,7 @@
 #   make up      build and start everything, wait until healthy
 #   make ready   check /readyz of every service
 # Only caddy publishes host ports. Secrets come from SECRETS_DIR outside the repo.
+# Images: lfc/<service>:local by default; CI sets LFC_REGISTRY/LFC_TAG to test pushed images.
 name: live-factcheck
 
 x-hardening: &hardening
@@ -36,7 +37,7 @@ services:
     build:
       context: .
       dockerfile: deploy/compose/caddy/Dockerfile
-    image: lfc/caddy:local
+    image: ${LFC_REGISTRY:-lfc}/caddy:${LFC_TAG:-local}
     # Host ports are configurable because macOS may already run Apache on 80 (LFC_HTTP_PORT).
     # The HTTP port only redirects; keep HTTPS on 443 so redirects and iPhone URLs need no port.
     ports:
@@ -67,7 +68,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       target: runtime
-    image: lfc/web:local
+    image: ${LFC_REGISTRY:-lfc}/web:${LFC_TAG:-local}
     environment:
       WEB_GATEWAY_URL: /api
     networks: [edge]
@@ -86,7 +87,7 @@ services:
       context: .
       dockerfile: services/gateway/Dockerfile
       target: runtime
-    image: lfc/gateway:local
+    image: ${LFC_REGISTRY:-lfc}/gateway:${LFC_TAG:-local}
     environment:
       <<: *redis-env
       PORT: '8080'
@@ -102,7 +103,7 @@ services:
       context: .
       dockerfile: services/transcription/Dockerfile
       target: runtime
-    image: lfc/transcription:local
+    image: ${LFC_REGISTRY:-lfc}/transcription:${LFC_TAG:-local}
     environment:
       <<: *redis-env
       PORT: '8080'
@@ -118,7 +119,7 @@ services:
       context: .
       dockerfile: services/claim-extractor/Dockerfile
       target: runtime
-    image: lfc/claim-extractor:local
+    image: ${LFC_REGISTRY:-lfc}/claim-extractor:${LFC_TAG:-local}
     environment:
       <<: *redis-env
       PORT: '8080'
@@ -138,7 +139,7 @@ services:
       context: .
       dockerfile: services/fact-checker/Dockerfile
       target: runtime
-    image: lfc/fact-checker:local
+    image: ${LFC_REGISTRY:-lfc}/fact-checker:${LFC_TAG:-local}
     environment:
       <<: *redis-env
       PORT: '8080'

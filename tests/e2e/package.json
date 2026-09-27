@@ -1,0 +1,15 @@
+{
+  "name": "@lfc/e2e-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Stage 4: end-to-end browser tests against the running stack (brief 13.2).",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.13.6",
+    "typescript": "6.0.3"
+  }
+}
