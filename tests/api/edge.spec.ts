@@ -16,6 +16,9 @@ test('serves the app over HTTPS with the security headers', async ({ request }) 
   expect(headers['x-content-type-options']).toBe('nosniff');
   expect(headers['x-frame-options']).toBe('DENY');
   expect(headers['referrer-policy']).toBe('no-referrer');
+  expect(headers['cross-origin-opener-policy']).toBe('same-origin');
+  expect(headers['cross-origin-resource-policy']).toBe('same-origin');
+  expect(headers['cross-origin-embedder-policy']).toBe('require-corp');
   expect(headers['server']).toBeUndefined();
 });
 
@@ -40,6 +43,18 @@ test('routes /api to the gateway', async ({ request }) => {
   expect(response.status()).toBe(401);
   expect(response.headers()['content-type']).toContain('application/json');
 });
+
+// Regression for the phase 1 security review (blocker B1): Caddy matches the decoded path and
+// forwards the encoded one; the gateway must still demand the token.
+for (const path of ['/%61pi/status', '/ap%69/status', '/%61%70%69/status', '/api/%73tatus']) {
+  test(`does not expose the API without a token via the encoded path ${path}`, async ({
+    request,
+  }) => {
+    const response = await request.get(path);
+    expect(response.status()).toBe(401);
+    expect(await response.text()).not.toContain('privacyMode');
+  });
+}
 
 test('sends no CORS headers, so cross-origin browser calls are blocked', async ({ request }) => {
   const response = await request.get('/api/unknown', {
