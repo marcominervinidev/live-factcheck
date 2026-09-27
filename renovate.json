@@ -1,0 +1,66 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Brief 14.2, 15.2: dependency updates as small PRs through the normal CI gates; the owner merges.",
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests",
+    ":semanticCommits",
+    ":semanticCommitScopeDisabled"
+  ],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 5,
+  "labels": ["dependencies"],
+  "minimumReleaseAge": "3 days",
+  "internalChecksFilter": "strict",
+  "rangeStrategy": "pin",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "minimumReleaseAge": null,
+    "schedule": ["at any time"]
+  },
+  "packageRules": [
+    {
+      "description": "Minor and patch updates of dev tooling in one PR.",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev tooling"
+    },
+    {
+      "description": "The Playwright image and the npm packages must stay on the same version.",
+      "matchPackageNames": ["@playwright/test", "playwright", "mcr.microsoft.com/playwright"],
+      "groupName": "playwright"
+    },
+    {
+      "description": "Vitest and its plugins move together.",
+      "matchPackageNames": ["vitest", "@vitest/**"],
+      "groupName": "vitest"
+    },
+    {
+      "description": "zod is the contract runtime (ADR 0002, 0010): never automatically, always reviewed.",
+      "matchPackageNames": ["zod"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Node stays on the LTS line of .nvmrc and the base images.",
+      "matchPackageNames": ["node"],
+      "allowedVersions": "<25"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Images in Makefile variables and workflow run steps (docker run image:tag@digest).",
+      "managerFilePatterns": ["/^Makefile$/", "/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "(?<depName>(?:[a-z0-9.-]+/)?[a-z0-9._-]+/[a-z0-9._-]+):(?<currentValue>v?[0-9][\\w.-]*)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}
