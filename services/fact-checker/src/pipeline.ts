@@ -67,6 +67,16 @@ const CachedVerdict = z.object({
   provider: z.unknown(),
 });
 
+/** A corrupt cache entry counts as a miss instead of blocking the claim forever. */
+function parseJson(raw: string | null): unknown {
+  if (raw === null) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export const verdictCacheKey = (normalizedText: string) => `verdict:v1:${sha256(normalizedText)}`;
 
 /** Sum of two costs; unknown (`null`) wins, so an unknown price is never shown as zero. */
@@ -172,9 +182,7 @@ export async function checkClaim(
 
   // 1. Exact verdict cache (ADR 0008).
   const cacheKey = verdictCacheKey(detected.normalizedText);
-  const cached = CachedVerdict.safeParse(
-    JSON.parse((await deps.verdictCache.get(cacheKey)) ?? 'null'),
-  );
+  const cached = CachedVerdict.safeParse(parseJson(await deps.verdictCache.get(cacheKey)));
   if (cached.success) {
     const candidate = ClaimCheckedSchema.safeParse({
       ...cached.data,
