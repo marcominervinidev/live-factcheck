@@ -7,7 +7,8 @@ export type ClassifierProviderName = (typeof CLASSIFIER_PROVIDERS)[number];
 /** Tasks with their own classifier config. `DETECTOR` (claim-extractor) follows in phase 2. */
 export type ClassifierTask = 'CHECKER';
 
-/** Jev's API key is shared by every task that uses `typesafe`. */
+/** Name of the env variable with Jev's API key, shared by every task that uses `typesafe`. */
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a variable name, not a key
 export const TYPESAFE_API_KEY = 'TYPESAFE_API_KEY';
 
 interface Keys<T extends ClassifierTask> {
