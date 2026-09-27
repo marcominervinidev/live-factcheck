@@ -1,0 +1,24 @@
+# Phase 1 · TP2 (adapters in packages/providers) – evidence, 2026-09-26
+
+## Unit tests with coverage (@lfc/providers, all against a local fake API server, no network)
+llm/anthropic 6 · llm/openai-compatible 5 · llm/factory 4 · llm/prompt 5 · llm/config 8 ·
+classifier/answers 10 · classifier/llm 4 · classifier/typesafe 5 · classifier/factory 8 ·
+classifier/config 5 · embeddings 6 · search 3 · budget 3 · privacy 19          -> 91 passed
+Coverage: lines 94.52 %, branches 84.04 %, functions 95.31 % (threshold 80 %, brief 13.5)
+
+## Behaviour covered
+- structured output validated with zod; exactly one repair attempt carrying the validation
+  errors; usage of both attempts summed; invalid_output after that (brief 8)
+- Claude: request carries output_config.format json_schema; refusal -> `refused` without retry;
+  max_tokens truncation -> repair; HTTP 500 -> provider_error, API key not in any message
+- LM Studio/Ollama: response_format json_schema; placeholder key when none configured;
+  prose around JSON -> repair; finish_reason length -> invalid; unreachable server -> provider_error
+- classifier: one shared confidence formula (Jev docs examples reproduced), normalisation,
+  state delimited as data in the llm prompt, sums outside 0.9–1.1 rejected, bool -> noul mapping,
+  pinned Jev model, Jev token budget checked before any call, thresholds 0.75/0.45 -> hoch/mittel/niedrig
+- embeddings: prefixes (e5), order restored by index, mixed dimensions rejected, mock closer for shared words
+- search: SearXNG JSON API in German, only unique http(s) URLs, limit, errors typed
+- budget: per UTC day, shared key with 2-day TTL, unknown cost counted as 0
+
+## Stage 0
+make lint: typecheck, eslint, prettier, depcruise (123 modules) clean

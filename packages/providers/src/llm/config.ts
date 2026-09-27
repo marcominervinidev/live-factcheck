@@ -11,12 +11,17 @@ const providerField = () => z.enum(LLM_PROVIDERS);
 const baseUrlField = () => z.url({ protocol: /^https?$/ }).optional();
 const modelField = () => z.string().min(1);
 const apiKeyField = () => z.string().min(1).optional();
+// Per attempt; the SDKs retry 408/409/429/5xx and connection errors (brief 8: configurable).
+const timeoutField = () => z.coerce.number().int().positive().default(30_000);
+const retriesField = () => z.coerce.number().int().min(0).max(5).default(2);
 
 interface Keys<T extends LlmTask> {
   provider: `${T}_LLM_PROVIDER`;
   baseUrl: `${T}_LLM_BASE_URL`;
   model: `${T}_LLM_MODEL`;
   apiKey: `${T}_LLM_API_KEY`;
+  timeout: `${T}_LLM_TIMEOUT_MS`;
+  retries: `${T}_LLM_MAX_RETRIES`;
 }
 
 export type LlmConfigShape<T extends LlmTask> = Record<
@@ -25,7 +30,9 @@ export type LlmConfigShape<T extends LlmTask> = Record<
 > &
   Record<Keys<T>['baseUrl'], ReturnType<typeof baseUrlField>> &
   Record<Keys<T>['model'], ReturnType<typeof modelField>> &
-  Record<Keys<T>['apiKey'], ReturnType<typeof apiKeyField>>;
+  Record<Keys<T>['apiKey'], ReturnType<typeof apiKeyField>> &
+  Record<Keys<T>['timeout'], ReturnType<typeof timeoutField>> &
+  Record<Keys<T>['retries'], ReturnType<typeof retriesField>>;
 
 export type LlmConfig<T extends LlmTask> = z.infer<z.ZodObject<LlmConfigShape<T>>>;
 
@@ -35,10 +42,15 @@ function keys<T extends LlmTask>(task: T): Keys<T> {
     baseUrl: `${task}_LLM_BASE_URL`,
     model: `${task}_LLM_MODEL`,
     apiKey: `${task}_LLM_API_KEY`,
+    timeout: `${task}_LLM_TIMEOUT_MS`,
+    retries: `${task}_LLM_MAX_RETRIES`,
   };
 }
 
-/** Env fields `<TASK>_LLM_{PROVIDER,BASE_URL,MODEL,API_KEY}`. Model names are never hard-coded. */
+/**
+ * Env fields `<TASK>_LLM_{PROVIDER,BASE_URL,MODEL,API_KEY,TIMEOUT_MS,MAX_RETRIES}`.
+ * Model names are never hard-coded.
+ */
 export function llmConfigShape<T extends LlmTask>(task: T): LlmConfigShape<T> {
   const k = keys(task);
   // Computed template-literal keys widen to `string`; the mapped type restores them.
@@ -47,6 +59,8 @@ export function llmConfigShape<T extends LlmTask>(task: T): LlmConfigShape<T> {
     [k.baseUrl]: baseUrlField(),
     [k.model]: modelField(),
     [k.apiKey]: apiKeyField(),
+    [k.timeout]: timeoutField(),
+    [k.retries]: retriesField(),
   } as LlmConfigShape<T>;
 }
 
@@ -95,5 +109,33 @@ export function describeLlmConfig<T extends LlmTask>(
     provider: values[k.provider] as LlmProviderName,
     model: values[k.model] as string,
     ...(baseUrl === undefined ? {} : { baseUrl: new URL(baseUrl).origin }),
+  };
+}
+
+/** The validated settings of one task, read by the factory. */
+export interface ResolvedLlmConfig {
+  readonly provider: LlmProviderName;
+  readonly model: string;
+  readonly baseUrl?: string;
+  readonly apiKey?: string;
+  readonly timeoutMs: number;
+  readonly maxRetries: number;
+}
+
+export function resolveLlmConfig<T extends LlmTask>(
+  task: T,
+  config: LlmConfig<T>,
+): ResolvedLlmConfig {
+  const k = keys(task);
+  const values = config as Record<string, unknown>;
+  const baseUrl = values[k.baseUrl] as string | undefined;
+  const apiKey = values[k.apiKey] as string | undefined;
+  return {
+    provider: values[k.provider] as LlmProviderName,
+    model: values[k.model] as string,
+    ...(baseUrl === undefined ? {} : { baseUrl }),
+    ...(apiKey === undefined ? {} : { apiKey }),
+    timeoutMs: values[k.timeout] as number,
+    maxRetries: values[k.retries] as number,
   };
 }

@@ -11,7 +11,14 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: 'unit', include: ['src/**/*.test.ts'], exclude: ['src/**/*.int.test.ts'] },
+        test: {
+          name: 'unit',
+          include: ['src/**/*.test.ts'],
+          exclude: ['src/**/*.int.test.ts'],
+          // These tests start the service as a real child process (tsx); in the pre-commit hook
+          // several services do that in parallel, which can exceed Vitest's 5 s default.
+          testTimeout: 20_000,
+        },
       },
       {
         extends: true,
