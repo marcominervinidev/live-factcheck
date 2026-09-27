@@ -1,23 +1,48 @@
 export { HttpUrl, IsoDateTimeUtc, LanguageTag, OffsetMs, Speaker, Uuid } from './common.js';
+export { TopicDetected } from './topic-detected.js';
 export { TranscriptSegment } from './transcript-segment.js';
 export { ClaimDetected } from './claim-detected.js';
 export {
+  CacheHit,
+  CheckProvider,
+  CheckTimings,
   ClaimChecked,
-  Confidence,
+  ExistingFactCheck,
+  UncheckableReason,
+  Usage,
+} from './claim-checked.js';
+export {
+  ClaimExplained,
   Explanation,
   MAX_EXPLANATION_LENGTH,
   MAX_EXPLANATION_SENTENCES,
-  ProviderInfo,
-  Source,
-  Verdict,
   countSentences,
-} from './claim-checked.js';
+} from './claim-explained.js';
+export { Evidence, MAX_SNIPPET_LENGTH, SourceTier } from './evidence.js';
+export {
+  ConfidenceLevel,
+  PROBABILITY_SUM_TOLERANCE,
+  VERDICTS,
+  Verdict,
+  VerdictProbabilities,
+} from './verdict.js';
 export {
   ClaimCheckedEvent,
   ClaimDetectedEvent,
+  ClaimExplainedEvent,
   EventEnvelope,
   STREAMS,
+  TopicDetectedEvent,
   TranscriptSegmentEvent,
   sessionEventsChannel,
 } from './envelope.js';
 export type { EventType } from './envelope.js';
+export {
+  ApiError,
+  ApiErrorCode,
+  CheckClaimAccepted,
+  CheckClaimRequest,
+  ProviderRole,
+  ProviderStatus,
+} from './api.js';
+export { WsAuth, WsClientMessage, WsErrorCode, WsServerMessage } from './ws.js';

@@ -4,4 +4,3 @@ export {
   SourceTiersFile,
   parseSourceTiers,
 } from './source-tiers.js';
-export type { SourceTier } from './source-tiers.js';

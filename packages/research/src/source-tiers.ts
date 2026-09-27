@@ -1,12 +1,9 @@
+import { SourceTier } from '@lfc/contracts';
 import { parse } from 'yaml';
 import { z } from 'zod';
 
-/**
- * Source tiers (brief 9.1). Mirrors the `tier` values of the Evidence contract (brief 7);
- * switches to the contracts export once `Evidence` exists (plan T1.1).
- */
-export const SOURCE_TIERS = ['faktencheck', 'amtlich', 'referenz', 'presse', 'sonstige'] as const;
-export type SourceTier = (typeof SOURCE_TIERS)[number];
+/** Source tiers (brief 9.1), shared with the Evidence contract. */
+export const SOURCE_TIERS = SourceTier.options;
 
 // Lower-case host names without scheme, port or path, e.g. `bund.de`.
 const Domain = z
