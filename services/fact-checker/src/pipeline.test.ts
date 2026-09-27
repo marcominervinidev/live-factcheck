@@ -29,8 +29,11 @@ import { checkClaim, verdictCacheKey } from './pipeline.js';
 import { loadQuestionTexts } from './questions.js';
 
 const now = () => new Date('2026-09-26T10:00:00.000Z');
-let tick = 0;
-const clock = () => (tick += 10);
+/** A fresh fake clock per deps(), so timings never depend on test order. */
+const fakeClock = () => {
+  let tick = 0;
+  return () => (tick += 10);
+};
 
 function memoryCache(): TextCache & { values: Map<string, string> } {
   const values = new Map<string, string>();
@@ -87,7 +90,7 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps & { researchC
     queriesPrompt: loadPromptTemplate(new URL('../prompts/queries.md', import.meta.url)),
     questions: loadQuestionTexts(new URL('../prompts/questions.yaml', import.meta.url)),
     now,
-    clock,
+    clock: fakeClock(),
     ...overrides,
   });
 }
@@ -155,6 +158,17 @@ describe('checkClaim (brief 9.6)', () => {
       claimId: again.claimId,
     });
     expect(second.usage).toEqual({ inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 });
+  });
+
+  it('keeps the provider that produced a cached verdict', async () => {
+    const d = deps();
+    const first = await checkClaim(claim('Der Zweite Weltkrieg endete 1945.'), d);
+    const other = await checkClaim(
+      claim('Der Zweite Weltkrieg endete 1945.'),
+      deps({ verdictCache: d.verdictCache, searchName: 'searxng' }),
+    );
+    expect(other.cacheHit).toBe('verdict_exact');
+    expect(other.provider).toEqual(first.provider);
   });
 
   it('does not share the cache between claims that differ only in a number', async () => {

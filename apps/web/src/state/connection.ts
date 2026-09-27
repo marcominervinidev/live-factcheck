@@ -44,13 +44,37 @@ interface ConnectionStore {
   disconnect: () => void;
 }
 
-const browserSocket: SocketFactory = (url) => new WebSocket(url) as unknown as SocketLike;
+/** Adapts the browser WebSocket to SocketLike without a type cast. */
+const browserSocket: SocketFactory = (url) => {
+  const ws = new WebSocket(url);
+  const adapter: SocketLike = {
+    onopen: null,
+    onmessage: null,
+    onclose: null,
+    send: (data) => {
+      ws.send(data);
+    },
+    close: (code) => {
+      ws.close(code);
+    },
+  };
+  ws.onopen = (event) => adapter.onopen?.call(adapter, event);
+  ws.onmessage = (event: MessageEvent<unknown>) =>
+    adapter.onmessage?.call(adapter, { data: event.data });
+  ws.onclose = (event) => adapter.onclose?.call(adapter, { code: event.code });
+  return adapter;
+};
 
 let socket: SocketLike | null = null;
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let attempt = 0;
 let stopped = true;
 const explanationTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+const clearExplanationTimer = (claimId: string) => {
+  clearTimeout(explanationTimers.get(claimId));
+  explanationTimers.delete(claimId);
+};
 
 export const useConnection = create<ConnectionStore>((set, get) => {
   const open = (url: string, token: string, factory: SocketFactory) => {
@@ -83,6 +107,10 @@ export const useConnection = create<ConnectionStore>((set, get) => {
         useClaims.getState().applyEvent(message.event);
         if (message.event.type === 'claim.checked') {
           const { claimId } = message.event.payload;
+          // At-least-once delivery: a repeated verdict restarts the one timer, and a claim whose
+          // explanation already arrived needs none (review, phase 1).
+          clearExplanationTimer(claimId);
+          if (useClaims.getState().claims[claimId]?.explained !== undefined) return;
           explanationTimers.set(
             claimId,
             setTimeout(() => {
@@ -91,8 +119,7 @@ export const useConnection = create<ConnectionStore>((set, get) => {
             }, EXPLANATION_TIMEOUT_MS),
           );
         } else if (message.event.type === 'claim.explained') {
-          clearTimeout(explanationTimers.get(message.event.payload.claimId));
-          explanationTimers.delete(message.event.payload.claimId);
+          clearExplanationTimer(message.event.payload.claimId);
         }
       }
     };
@@ -123,6 +150,10 @@ export const useConnection = create<ConnectionStore>((set, get) => {
     disconnect: () => {
       stopped = true;
       clearTimeout(retryTimer);
+      explanationTimers.forEach((timer) => {
+        clearTimeout(timer);
+      });
+      explanationTimers.clear();
       const current = socket;
       socket = null;
       current?.close(1000);

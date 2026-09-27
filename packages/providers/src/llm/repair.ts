@@ -55,7 +55,14 @@ export async function withOneRepair<T>(
   const note =
     `Your previous answer was rejected:\n${firstCheck.problem}\n` +
     'Answer again with a single JSON object that satisfies the schema exactly.';
-  const second = await ask(note);
+  let second: RawAnswer;
+  try {
+    second = await ask(note);
+  } catch (error) {
+    // The first attempt's tokens were spent; they must still reach the budget (review, phase 1).
+    if (!(error instanceof LlmError)) throw error;
+    throw new LlmError(error.kind, error.message, addUsage(usage, error.usage), { cause: error });
+  }
   usage = addUsage(usage, second.usage);
   const secondCheck = validate(request.schema, second.text);
   if ('value' in secondCheck) {

@@ -144,7 +144,8 @@ export function providerStatus(config: Config): ProviderStatus['providers'] {
       model: config.EMBEDDINGS_MODEL,
       cloud: embeddingsUse(config).cloud,
     },
-    { service, role: 'search', provider: live ? config.SEARCH_PROVIDER : 'mock', cloud: false },
+    // SearXNG runs in the stack but forwards the claim-derived queries to external engines.
+    { service, role: 'search', provider: live ? config.SEARCH_PROVIDER : 'mock', cloud: live },
     ...(live && config.GOOGLE_FACTCHECK_API_KEY !== undefined
       ? [{ service, role: 'factcheck' as const, provider: 'google-factcheck', cloud: true }]
       : []),

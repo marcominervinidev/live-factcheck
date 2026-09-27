@@ -66,7 +66,7 @@ describe('fact-checker wiring', () => {
       ['llm', 'anthropic', true],
       ['classifier', 'llm', true],
       ['embeddings', 'mock', false],
-      ['search', 'searxng', false],
+      ['search', 'searxng', true],
       ['factcheck', 'google-factcheck', true],
     ]);
     expect(JSON.stringify(live)).not.toContain('k'.repeat(20));

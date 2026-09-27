@@ -158,4 +158,30 @@ describe('connection store', () => {
       explained: explained(),
     });
   });
+
+  it('does not report a missing explanation after a repeated verdict or a disconnect', () => {
+    useConnection.getState().connect('wss://lfc.local/ws/session', 't', factory);
+    last().open();
+    const verdict = {
+      type: 'event',
+      schemaVersion: 1,
+      event: { type: 'claim.checked', schemaVersion: 2, payload: checked() },
+    };
+    last().receive(verdict);
+    last().receive({
+      type: 'event',
+      schemaVersion: 1,
+      event: { type: 'claim.explained', schemaVersion: 2, payload: explained() },
+    });
+    // The same verdict again (at-least-once delivery) must not start a new timer.
+    last().receive(verdict);
+    vi.advanceTimersByTime(EXPLANATION_TIMEOUT_MS);
+    expect(useClaims.getState().claims[CLAIM_ID]?.explanationMissing).toBe(false);
+
+    useClaims.getState().reset();
+    last().receive(verdict);
+    useConnection.getState().disconnect();
+    vi.advanceTimersByTime(EXPLANATION_TIMEOUT_MS);
+    expect(useClaims.getState().claims[CLAIM_ID]?.explanationMissing).toBe(false);
+  });
 });

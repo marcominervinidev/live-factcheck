@@ -51,6 +51,13 @@ describe('daily cloud budget', () => {
     expect(budgetCostUsd('claude-opus-5', { inputTokens: 1_000_000, outputTokens: 0 })).toBe(5);
   });
 
+  it('fails closed on a corrupt counter value', async () => {
+    const { store, values } = memoryStore();
+    values.set('budget:v1:cloud:2026-09-26', 'not-a-number');
+    const budget = createDailyBudget(store, 1, day('2026-09-26T12:00:00Z'));
+    await expect(budget.ensureAvailable()).rejects.toBeInstanceOf(BudgetExceededError);
+  });
+
   it('ignores calls without tokens', async () => {
     const { store, values } = memoryStore();
     await createDailyBudget(store, 1).record('unknown', { inputTokens: 0, outputTokens: 0 });

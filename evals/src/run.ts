@@ -6,7 +6,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { ClaimChecked } from '@lfc/contracts';
-import { ProviderStatus, WsServerMessage } from '@lfc/contracts';
+import { CheckClaimAccepted, ProviderStatus, WsServerMessage } from '@lfc/contracts';
 import WebSocket from 'ws';
 
 import type { ClaimItem } from './dataset.js';
@@ -63,18 +63,41 @@ async function openSession(): Promise<{
   return { socket, sessionId, verdicts };
 }
 
+/** Sends one claim; waits out a rate limit once. Returns undefined when it was not accepted. */
+async function submit(
+  item: ClaimItem,
+  sessionId: string,
+  retried = false,
+): Promise<string | undefined> {
+  try {
+    const response = await fetch(`${BASE_URL}/api/claims/check`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ schemaVersion: 1, sessionId, text: item.claim }),
+    });
+    if (response.status === 429 && !retried) {
+      await new Promise((resolve) => setTimeout(resolve, 60_000));
+      return await submit(item, sessionId, true);
+    }
+    const accepted = CheckClaimAccepted.safeParse(await response.json());
+    if (response.status === 202 && accepted.success) return accepted.data.claimId;
+    console.error(`${item.id}: not accepted (HTTP ${String(response.status)})`);
+  } catch (error) {
+    console.error(
+      `${item.id}: request failed (${error instanceof Error ? error.message : 'unknown'})`,
+    );
+  }
+  return undefined;
+}
+
 async function evaluate(
   item: ClaimItem,
   session: Awaited<ReturnType<typeof openSession>>,
 ): Promise<Outcome> {
   const started = performance.now();
-  const response = await fetch(`${BASE_URL}/api/claims/check`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ schemaVersion: 1, sessionId: session.sessionId, text: item.claim }),
-  });
-  if (response.status !== 202) throw new Error(`${item.id}: HTTP ${String(response.status)}`);
-  const { claimId } = (await response.json()) as { claimId: string };
+  const claimId = await submit(item, session.sessionId);
+  // One failed request must not throw away a (possibly paid) run: it counts as unanswered.
+  if (claimId === undefined) return { item };
   const checked = await new Promise<ClaimChecked | undefined>((resolve) => {
     const timer = setTimeout(() => {
       resolve(undefined);

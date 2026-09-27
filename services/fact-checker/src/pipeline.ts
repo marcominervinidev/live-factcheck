@@ -454,7 +454,17 @@ export async function checkClaim(
   const spending = new Spending(deps.budget);
   const timings = { retrieveMs: 0, classifyMs: 0 };
 
-  const finish = (fields: VerdictFields): ClaimChecked => {
+  const currentProvider = {
+    classifier: deps.classifier.name,
+    model: deps.classifier.model.slice(0, 128),
+    search: deps.searchName,
+    embeddings: deps.embeddings.name,
+  };
+  const finish = (
+    fields: VerdictFields,
+    // A cached verdict keeps the provider that produced it (eval provider comparison).
+    provider: ClaimChecked['provider'] = currentProvider,
+  ): ClaimChecked => {
     const totalMs = Math.max(0, Math.round(deps.clock() - started));
     return ClaimCheckedSchema.parse({
       schemaVersion: 2,
@@ -471,12 +481,7 @@ export async function checkClaim(
         totalMs,
       },
       checkedAt: deps.now().toISOString(),
-      provider: {
-        classifier: deps.classifier.name,
-        model: deps.classifier.model.slice(0, 128),
-        search: deps.searchName,
-        embeddings: deps.embeddings.name,
-      },
+      provider,
       usage: { ...spending.usage, estimatedCostUsd: spending.costUsd },
     });
   };
@@ -492,7 +497,8 @@ export async function checkClaim(
 
   // 1. Exact verdict cache (ADR 0008).
   const cached = await readCachedVerdict(detected, deps);
-  if (cached !== undefined) return finish({ ...cached, cacheHit: 'verdict_exact' });
+  if (cached !== undefined)
+    return finish({ ...cached, cacheHit: 'verdict_exact' }, cached.provider);
 
   // 2. Budget for cloud calls (brief 15.5).
   try {

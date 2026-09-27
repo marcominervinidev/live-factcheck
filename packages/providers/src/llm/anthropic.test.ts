@@ -85,6 +85,21 @@ describe('anthropic provider', () => {
     expect(server.requests).toHaveLength(2);
   });
 
+  it('keeps the tokens of the first attempt when the repair call fails (budget stays correct)', async () => {
+    server.respond(anthropicMessage('not json'), {
+      status: 500,
+      body: { type: 'error', error: { type: 'api_error' } },
+    });
+    const error = await provider()
+      .generateStructured(request)
+      .catch((e: unknown) => e);
+
+    expect(error).toMatchObject({
+      kind: 'provider_error',
+      usage: { inputTokens: 100, outputTokens: 20 },
+    });
+  });
+
   it('treats a truncated answer (max_tokens) like invalid output and repairs', async () => {
     server.respond(
       anthropicMessage('{"verdict":"sti', 'max_tokens'),

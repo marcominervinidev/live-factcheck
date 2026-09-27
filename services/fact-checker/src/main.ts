@@ -68,7 +68,6 @@ await runService({
       registers: [metrics],
     });
 
-    // The gateway reads this for GET /api/status (plan T5.4); no keys, no URLs.
     // The gateway reads this for GET /api/status; no keys, no URLs. Written on every (re)connect,
     // because the service-kit client has no offline queue.
     const publishStatus = () => {
