@@ -35,6 +35,23 @@ services:
     working_dir: /workspace/tests/api
     # Stage 3 talks to every service directly (internal) and to the edge through Caddy.
     networks: [edge, internal]
+    # TLS is verified against Caddy's local root CA (tls internal).
+    volumes:
+      - .:/workspace
+      # Only the public root certificate: the CA's private keys never leave the caddy container
+      # (the owner's devices trust this CA; security review, phase 1).
+      - type: volume
+        source: caddy-data
+        target: /caddy-ca/root.crt
+        read_only: true
+        volume:
+          subpath: caddy/pki/authorities/local/root.crt
+    environment:
+      CI: ${CI:-false}
+      BASE_URL: https://${LAN_HOST:-lfc.local}:8443
+      PLAYWRIGHT_ARGS: ${PLAYWRIGHT_ARGS:-}
+      GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
+      NODE_EXTRA_CA_CERTS: /caddy-ca/root.crt
     command: ['sh', '-c', 'node_modules/.bin/playwright test $${PLAYWRIGHT_ARGS}']
 
   e2e-tests:
@@ -52,12 +69,19 @@ services:
     profiles: [eval]
     working_dir: /workspace/evals
     networks: [edge]
-    # TLS is verified against Caddy's local root CA (tls internal), read-only from its data volume.
+    # TLS is verified against Caddy's local root CA (tls internal).
     volumes:
       - .:/workspace
-      - caddy-data:/caddy-data:ro
+      # Only the public root certificate: the CA's private keys never leave the caddy container
+      # (the owner's devices trust this CA; security review, phase 1).
+      - type: volume
+        source: caddy-data
+        target: /caddy-ca/root.crt
+        read_only: true
+        volume:
+          subpath: caddy/pki/authorities/local/root.crt
     environment:
-      NODE_EXTRA_CA_CERTS: /caddy-data/caddy/pki/authorities/local/root.crt
+      NODE_EXTRA_CA_CERTS: /caddy-ca/root.crt
       EVAL_BASE_URL: https://${LAN_HOST:-lfc.local}:8443
       EVAL_LABEL: ${EVAL_LABEL:-unnamed}
       EVAL_INCLUDE_UNREVIEWED: ${EVAL_INCLUDE_UNREVIEWED:-false}

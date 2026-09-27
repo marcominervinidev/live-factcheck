@@ -42,6 +42,7 @@ export const test = base.extend<Fixtures>({
 
   // Depends on `app`: registered after its catch-all 404 route, so these routes win.
   backend: async ({ page, app: _app, token }, use) => {
+    // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- null check, not a secret comparison
     if (token !== null) {
       await page.addInitScript((value) => {
         window.localStorage.setItem('lfc.gatewayToken', value);

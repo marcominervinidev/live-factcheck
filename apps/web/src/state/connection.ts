@@ -30,6 +30,7 @@ export function sessionUrl(
   gatewayUrl: string,
   location: Pick<Location, 'protocol' | 'host'>,
 ): string {
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored literal prefix, linear
   const origin = /^https?:\/\//.test(gatewayUrl)
     ? new URL(gatewayUrl)
     : { protocol: location.protocol, host: location.host };

@@ -13,6 +13,7 @@ function readToken(): string | null {
 
 function writeToken(token: string | null): void {
   try {
+    // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- null check, not a secret comparison
     if (token === null) window.localStorage.removeItem(STORAGE_KEY);
     else window.localStorage.setItem(STORAGE_KEY, token);
   } catch {

@@ -21,9 +21,7 @@ interface Message {
 
 /** Opens an authenticated session through Caddy (wss) and collects every message. */
 async function openSession(baseURL: string) {
-  const socket = new WebSocket(`${baseURL.replace(/^https/, 'wss')}/ws/session`, {
-    rejectUnauthorized: false,
-  });
+  const socket = new WebSocket(`${baseURL.replace(/^https/, 'wss')}/ws/session`);
   const messages: Message[] = [];
   socket.on('message', (data: Buffer) =>
     messages.push(JSON.parse(data.toString('utf8')) as Message),
@@ -146,9 +144,7 @@ test.describe('gateway protection (brief 15.5)', () => {
   });
 
   test('WebSocket without auth is closed', async ({ baseURL }) => {
-    const socket = new WebSocket(`${(baseURL ?? '').replace(/^https/, 'wss')}/ws/session`, {
-      rejectUnauthorized: false,
-    });
+    const socket = new WebSocket(`${(baseURL ?? '').replace(/^https/, 'wss')}/ws/session`);
     const code = await new Promise<number>((resolve) =>
       socket.once('close', (c: number) => {
         resolve(c);

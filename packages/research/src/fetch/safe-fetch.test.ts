@@ -81,7 +81,9 @@ const routes: Record<string, (req: IncomingMessage, res: ServerResponse) => void
 beforeAll(async () => {
   server = createServer((req, res) => {
     hits.push(req.url ?? '');
-    const route = routes[req.url ?? ''];
+    const url = req.url ?? '';
+    // Own keys only, so a request path can never dispatch to an inherited method (CodeQL).
+    const route = Object.hasOwn(routes, url) ? routes[url] : undefined;
     if (route === undefined) {
       res.writeHead(404);
       res.end();
