@@ -1,0 +1,25 @@
+# SearXNG for the fact-checker's research (brief 9). Only reachable on the internal network.
+# server.secret_key is overridden at start by SEARXNG_SECRET from the Compose secret.
+use_default_settings: true
+
+general:
+  instance_name: live-factcheck
+  enable_metrics: false
+
+server:
+  secret_key: 'overridden-by-SEARXNG_SECRET'
+  limiter: false
+  public_instance: false
+  image_proxy: false
+  method: GET
+
+search:
+  safe_search: 0
+  default_lang: de
+  formats:
+    - html
+    - json
+
+outgoing:
+  request_timeout: 5.0
+  useragent_suffix: 'live-factcheck (+https://github.com/marcominervinidev/live-factcheck)'

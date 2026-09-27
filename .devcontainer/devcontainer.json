@@ -1,0 +1,28 @@
+{
+  // IDE support inside the toolbox container (brief 12): types, autocompletion, ESLint and
+  // Prettier run against the same Node, pnpm and node_modules as hooks and CI.
+  "name": "live-factcheck toolbox",
+  "dockerComposeFile": ["../compose.toolbox.yaml"],
+  "service": "toolbox",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "none",
+  "remoteUser": "node",
+  "postCreateCommand": "pnpm install --frozen-lockfile",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "vitest.explorer",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-containers",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "typescript.tsdk": "node_modules/typescript/lib"
+      }
+    }
+  }
+}

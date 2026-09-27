@@ -34,12 +34,15 @@ export interface LoadedConfig<Config> {
 /**
  * Validates the environment against `schema` (fail fast, brief 4.1 factor III).
  * Secrets can be passed directly or as a file path in `<KEY>_FILE` (Compose/Kubernetes secrets).
+ * An empty value (e.g. Compose `${VAR:-}` or an empty secret file) counts as "not set": optional
+ * fields stay undefined and required fields fail with a clear message.
  */
 export function loadConfig<Schema extends z.ZodObject>(
   schema: Schema,
   options: LoadConfigOptions<Extract<keyof z.infer<Schema>, string>>,
 ): LoadedConfig<z.infer<Schema>> {
   const env = options.env ?? process.env;
+  const isSet = (value: string | undefined): value is string => value !== undefined && value !== '';
   const resolved: Record<string, string | undefined> = { ...env };
   const issues: string[] = [];
   const secretValues: string[] = [];
@@ -49,11 +52,11 @@ export function loadConfig<Schema extends z.ZodObject>(
     const direct = env[key];
     const filePath = env[fileKey];
 
-    if (direct !== undefined && filePath !== undefined) {
+    if (isSet(direct) && isSet(filePath)) {
       issues.push(`${key}: set either ${key} or ${fileKey}, not both`);
       continue;
     }
-    if (filePath !== undefined) {
+    if (isSet(filePath)) {
       try {
         resolved[key] = readFileSync(filePath, 'utf8').trim();
       } catch {
@@ -62,8 +65,14 @@ export function loadConfig<Schema extends z.ZodObject>(
       }
     }
     const value = resolved[key];
-    if (value !== undefined && value !== '') {
+    if (isSet(value)) {
       secretValues.push(value);
+    }
+  }
+
+  for (const [key, value] of Object.entries(resolved)) {
+    if (!isSet(value)) {
+      resolved[key] = undefined;
     }
   }
 

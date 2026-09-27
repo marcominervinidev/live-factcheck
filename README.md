@@ -13,7 +13,7 @@ The product is the vehicle; the project is primarily a **DevOps and platform eng
 
 | Phase | Scope | State |
 |---|---|---|
-| 0 – Foundation | monorepo, contracts, service skeletons, hardened images, Compose stack, CI, agent tooling | **in progress** (gate 4 of 7) |
+| 0 – Foundation | monorepo, contracts, service skeletons, hardened images, Compose stack, CI, agent tooling | **in progress** (gate 5 of 7) |
 | 1 – Text mode | LLM and search adapters, fact-checker, result cards, eval set | planned |
 | 2 – Live transcription | audio capture, WebSocket path, STT adapters, claim extraction, iPhone over HTTPS | planned |
 | 3 – Speakers and UX | diarization, speaker names, latency | planned |
@@ -95,11 +95,14 @@ Host requirements: Docker, Git, VS Code. Node and Python are not installed on th
 
 ```sh
 make toolbox install hooks-install   # dev container, dependencies, pre-commit hook
-make lint                            # typecheck, lint, format, module boundaries
-scripts/tb pnpm test:unit            # unit tests of all workspaces
+make secrets-init                    # ~/.config/live-factcheck/secrets: internal secrets generated,
+                                     # external API keys empty (only needed for real providers)
+make up                              # build and start the stack, wait until healthy
+make ready                           # /readyz of every service + the app through Caddy
+open https://localhost               # the app (Caddy's local CA; trust it once)
 ```
 
-The full stack (`make up`, `https://localhost`) arrives with gate 5 of phase 0.
+Everything runs with `mock` providers by default, so no API key is needed. Other targets: `make dev` (hot reload), `make test`, `make scan`, `make check-ports`, `make logs`, `make down`; `make help` lists them all. If macOS Apache already uses port 80, set `LFC_HTTP_PORT=8081` in `.env`.
 
 ## Recommended branch protection
 

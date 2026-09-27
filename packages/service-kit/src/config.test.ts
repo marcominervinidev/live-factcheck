@@ -80,6 +80,25 @@ describe('loadConfig', () => {
     expect(issues.some((issue) => issue.startsWith('REDIS_PASSWORD:'))).toBe(true);
   });
 
+  it('treats empty values as not set (Compose ${VAR:-}, empty secret files)', () => {
+    const optionalSchema = schema.extend({ OPTIONAL_URL: z.url().optional() });
+    const emptyKeyFile = join(dir, 'empty-key');
+    writeFileSync(emptyKeyFile, '');
+    const loaded = loadConfig(optionalSchema.extend({ API_KEY: z.string().min(1).optional() }), {
+      secretKeys: ['REDIS_PASSWORD', 'API_KEY'],
+      env: { ...validEnv, OPTIONAL_URL: '', API_KEY_FILE: emptyKeyFile },
+    });
+    expect(loaded.config.OPTIONAL_URL).toBeUndefined();
+    expect(loaded.config.API_KEY).toBeUndefined();
+    expect(loaded.secretValues).toEqual(['s3cret-value']);
+  });
+
+  it('reports an empty required value as missing', () => {
+    const issues = loadIssues({ ...validEnv, REDIS_URL: '' });
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatch(/^REDIS_URL: .*received undefined/);
+  });
+
   it('lists every problem at once and never echoes values', () => {
     const issues = loadIssues({ PORT: 'eighty', REDIS_PASSWORD: 'leaky-value-123' });
     expect(issues.map((issue) => issue.split(':')[0])).toEqual(['PORT', 'REDIS_URL']);

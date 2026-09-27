@@ -23,6 +23,10 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 - `make help` lists all targets; `make lint` runs stage 0 (typecheck, lint, format check, boundaries)
 - `make toolbox` rebuilds/starts the toolbox, `make install` installs deps with the frozen lockfile
 - `make hooks-install` installs the git pre-commit shim (lefthook in the toolbox)
+- Stack: `make up` (production images, waits until healthy), `make ready`, `make check-ports`, `make logs`, `make down`; `make dev` for hot reload via `docker compose watch`
+- Tests: `make test-unit`, `make test-integration`, `make test` (stages 0–4); `make scan` (Trivy on all local images)
+- Diagnose containers with `docker compose ps|logs|exec` (runtime images have no shell; use `scripts/ready.sh` patterns with a throwaway curl container). There is no Docker MCP server by design.
+- To verify the stack yourself, use a throwaway secrets directory, never the owner's `SECRETS_DIR`.
 - Never install Node, pnpm or Python packages on the host.
 
 ## Workflow
