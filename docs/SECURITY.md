@@ -1,12 +1,12 @@
 # Security
 
-Security is part of the definition of done from phase 0 (brief 15). This document holds the threat model, how secrets are handled, how to rotate a key, and what to do when one leaks. Decisions behind it: [ADR 0003](adr/0003-container-images-and-hardening.md) (images), [ADR 0004](adr/0004-compose-network-topology.md) (stack), [ADR 0006](adr/0006-agent-tooling-layout.md) (agent tooling).
+Security is part of the definition of done from phase 0 (brief 15). This document holds the threat model, how secrets are handled, how to rotate a key, and what to do when one leaks. Decisions behind it: [ADR 0003](adr/0003-container-images-and-hardening.md) (images), [ADR 0004](adr/0004-compose-network-topology.md) (stack), [ADR 0006](adr/0006-agent-tooling-layout.md) (agent tooling), [ADR 0007](adr/0007-classifier-architecture.md) (classifier, Jev, privacy mode), [ADR 0011](adr/0011-gateway-authentication.md) (gateway token).
 
 ## What we protect
 
 | Asset | Why it matters |
 |---|---|
-| API keys (Anthropic, Deepgram/AssemblyAI, Brave/Tavily) | direct cost; a leaked key can run up a bill in hours |
+| API keys (Anthropic, TypeSafe/Jev, Google Fact Check; later Deepgram/AssemblyAI) | direct cost; a leaked key can run up a bill in hours |
 | Conversation audio and transcripts | spoken words of people who did not publish them (§ 201 StGB, GDPR); audio is never stored, transcripts only with `PERSIST_TRANSCRIPTS=true` (from phase 4), transcript text is never logged |
 | Gateway token, Redis password (Postgres from phase 4) | access to sessions and the event pipeline |
 | Supply chain (dependencies, images, CI) | a poisoned dependency or action runs with the pipeline's permissions |
@@ -16,21 +16,40 @@ Security is part of the definition of done from phase 0 (brief 15). This documen
 
 | Attacker | Path | Main defences |
 |---|---|---|
-| Someone in the same LAN | calls the API or opens the app | gateway token (phase 1), TLS, only Caddy exposed, Redis and SearXNG unreachable from outside |
-| A malicious web page found during research | prompt injection in fetched content; SSRF via crafted URLs | fetched text is delimited as data, no side-effect tools for the LLM, schema-validated output, cited URLs must be from the fetched list; SSRF guard on every fetch incl. redirects (phase 1, brief 15.5) |
+| Someone in the same LAN | calls the API or opens the app | gateway token on every REST and WebSocket request, rate limit on checks, TLS, only Caddy exposed, Redis and SearXNG unreachable from outside |
+| A malicious web page found during research | prompt injection in fetched content; SSRF via crafted URLs | see "Research and LLM calls" below |
 | A compromised dependency or action | code execution in CI or at install time | lockfile with `--frozen-lockfile`, pnpm `minimumReleaseAge`, install scripts denied by default (`allowBuilds`), actions pinned by SHA, minimal `permissions`, Trivy, Semgrep, CodeQL |
 | A coding agent making a mistake | reads or commits a secret, weakens a rule | secrets live outside the repo, agent hooks and permission deny rules, gitleaks pre-commit and in CI, branch protection with required checks, owner review of every diff |
 | Someone who obtained a key | uses it elsewhere | spending limits per provider, separate project keys, rotation procedure below |
+| Someone who can send many claims | runs up LLM cost | gateway token, rate limit, daily cloud budget per worker (`CLOUD_DAILY_BUDGET_USD`) |
 
 ## Secrets
 
 - **Where they live:** one file per secret in `SECRETS_DIR`, by default `~/.config/live-factcheck/secrets` (directory `0700`, files `0600`), outside the repository and outside every agent's workspace. `make secrets-init` creates the directory: internal secrets (Redis passwords, SearXNG key, gateway token) get random values, and external API keys stay empty for you to fill in.
 - **How services get them:** as Compose secrets mounted under `/run/secrets/<name>`. Services read `<NAME>_FILE` (service-kit `loadConfig`); no secret value appears in the environment of any app container (`docs/evidence/phase-0/t5-security.txt`). The MCP server containers are the exception, see known risks.
-- **Least privilege:** gateway and transcription get the Redis password, the two LLM workers additionally get the LLM key, and web gets nothing. Redis uses ACL users: services connect as `app` (no admin or dangerous commands), the Redis MCP server as the read-only `mcp` user, and `default` is disabled.
+- **Least privilege:** every service gets only its own secrets: gateway the Redis password and the gateway token; transcription the Redis password; claim-extractor and explainer additionally the Anthropic key; fact-checker the Anthropic, TypeSafe and Google Fact Check keys; web nothing. Redis uses ACL users: services connect as `app` (no admin or dangerous commands), the Redis MCP server as the read-only `mcp` user, and `default` is disabled.
 - **Never:** in git, in an image or build argument, in the frontend bundle or `/config.json`, in logs, errors, metrics or traces. Logs redact secret fields by name and additionally scrub every known secret value from each line (`packages/service-kit/src/logger.ts`, tested).
 - **Recommended:** use a dedicated Anthropic API key in its own Claude Console workspace with a spending limit, and do the same with the STT and search providers. For the GitHub MCP server, prefer a fine-grained token limited to this repository (`GITHUB_MCP_TOKEN`) over the broad `gh` login.
 - **Filling the files without plain text on disk (optional):** load them from the macOS keychain, for example
   `security find-generic-password -s lfc-anthropic -w > ~/.config/live-factcheck/secrets/anthropic_api_key`.
+
+## Gateway token (ADR 0011)
+
+- One shared token (`gateway_token`, at least 32 characters, generated by `make secrets-init`) protects the only public API. REST expects `Authorization: Bearer <token>`; the WebSocket expects `{ type: "auth", token }` as its first message within 5 s. The token never appears in a URL, so it cannot end up in access logs.
+- Comparison in constant time on SHA-256 digests (length does not leak). Every failure is a plain `401` / close code `4401` with no further hint.
+- Deny by default: the check is decided on the route the request actually matched, not on the raw URL, so percent-encoded paths (`/%61pi/…`) cannot slip past it; only the internal ops endpoints and the WebSocket (own auth) are public. Unknown paths answer `401`.
+- The app keeps the token in the browser's `localStorage`. Any script on the origin could read it, which is why the strict CSP is a security control here: no third-party scripts, no inline scripts, and evidence text is always rendered as text, never as HTML.
+- `GET /api/status` shows only provider names, models and whether data leaves the network, never keys.
+
+## Research and LLM calls (brief 15.5, 15.6)
+
+- **SSRF:** every page fetch goes through one fetcher that resolves the host itself and connects only to public addresses (private, loopback, link-local and other reserved ranges are refused, IPv6 only in `2000::/3`), for the first request and for every redirect (at most 3). Only `http`/`https`, ports 80/443, an allowlist of content types, a size limit (at most 5 MB) and a timeout. Headers are dropped on cross-origin redirects, and `robots.txt` is respected with our own linear-time matcher.
+- **Prompt injection:** fetched text, snippets and the claim itself are passed as data inside a tag with a random suffix per request, never as instructions. The classifier only picks among our own keys (`S1…`, `F1…`), so it cannot cite a source we did not fetch; an explanation that names a link or domain outside the checked evidence is discarded. Every model answer is validated against a schema; an invalid answer after one repair attempt ends as `nicht_pruefbar`, never as a guess. No model has tools with side effects.
+- **Budget:** each worker with a cloud model checks and books a daily budget in Redis before and after every call (`CLOUD_DAILY_BUDGET_USD`). When it is used up, claims end as `nicht_pruefbar` (`budget_exceeded`) instead of calling the model. A corrupt counter counts as used up (fails closed).
+- **No endless retries:** a stream message whose handler keeps failing is dropped as a dead letter after three deliveries, so one bad input cannot spend the budget in a loop. Third-party data (fact-check fields, page dates) is cut to the contract limits where it enters.
+- **Privacy mode:** `PRIVACY_MODE=local` makes every worker refuse to start if a configured provider would send data to a cloud service. Unknown hosts count as cloud (fail closed).
+- **Jev (TypeSafe):** runs in the USA. Only the claim and snippets are sent, no speaker names; the settings page says so. It is off in local mode.
+- **Logs:** claim text, snippets and tokens are never logged; logs carry ids, verdicts, confidence, reasons and timings.
 
 ## Rotating a key
 
@@ -52,7 +71,8 @@ Security is part of the definition of done from phase 0 (brief 15). This documen
 ## Container and network hardening
 
 - All containers run as numeric non-root users with a read-only root filesystem, `cap_drop: [ALL]`, `no-new-privileges`, CPU and memory limits and a healthcheck. Node runtime images are distroless with no shell, and the app code is root-owned, so the process cannot modify it.
-- Networks: `edge` (Caddy only, carries the published ports), `frontend` (Caddy, web, gateway; internal), `internal` (services and Redis; no internet, no host access), `egress` (only for services that need the internet, today SearXNG). Only Caddy publishes host ports; web and gateway cannot reach the internet or the host.
+- Networks: `edge` (Caddy only, carries the published ports), `frontend` (Caddy, web, gateway; internal), `internal` (services and Redis; no internet, no host access), `egress` (only for services that need the internet: SearXNG, fact-checker and explainer for research and cloud models). Only Caddy publishes host ports; web and gateway cannot reach the internet or the host.
+- Caddy's local CA signs the certificates your devices trust. Its private keys never leave the caddy container: test and eval containers get only `root.crt` (a single-file volume subpath).
 - Caddy sets HSTS, a strict CSP (`script-src 'self'`, no `eval`; zod runs `jitless` for that reason), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and a `Permissions-Policy` that allows only the microphone for the app itself. It sends no CORS headers.
 
 ## Known risks and trade-offs
@@ -65,6 +85,7 @@ Security is part of the definition of done from phase 0 (brief 15). This documen
 | The GitHub MCP server falls back to the `gh` token, which has broad scopes | convenience | set a fine-grained `GITHUB_MCP_TOKEN` |
 | MCP server containers get their token or password as an environment variable (visible via `docker inspect` while they run) | the official images accept credentials only via env | fine-grained GitHub token; the Redis MCP connects as the read-only `mcp` ACL user (no admin, no writes) |
 | The edge-facing images (nginx, Caddy on Alpine) contain a BusyBox shell | upstream ships it; there are no distroless variants | both run non-root, read-only, without capabilities; web has no internet access, Caddy only the published ports |
+| The gateway token in `localStorage` is readable by any script on the origin | a single-user LAN app without a login flow (ADR 0011) | strict CSP, no third-party scripts, evidence rendered as text only |
 | The agent-side secrets guard is a regex over the whole tool input (it also blocks in-container secret paths, but cannot catch every indirection, and it also blocks harmless text that merely mentions them) | comfort and early warning only | real secrets are outside the repo; gitleaks, CI and review are the enforcing layers |
 
 ## Reporting a vulnerability

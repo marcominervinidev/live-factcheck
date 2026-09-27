@@ -1,0 +1,74 @@
+Phase 1 · TP8 – reviews and their fixes (2026-09-27)
+=====================================================
+
+Reviewed: git diff origin/main...origin/phase-1/tp7-eval (TP1–TP7), by the subagents
+`reviewer` and `security-reviewer`, plus Semgrep and CodeQL on PR #16. Fixes on the PR #16
+branch (phase-1/tp7-eval), commits 031aaf2 … 760c58e.
+
+Blockers (both fixed, with regression tests)
+  B1 gateway: token check bypassed with percent-encoded paths (/%61pi/status gave 200 without a
+     token; reproduced by both reviewers). Fix: deny by default on the matched route; only ops
+     endpoints and the WebSocket are public; unknown paths 401.
+     Tests: api.int.test.ts (/%61pi/status, /ap%69/status, /%61%70%69/status, /API/status,
+     /api/unknown, /nothing → 401; /healthz → 200); stage 3 ops.spec.ts (gateway 401).
+  B2 streams: a failing message was redelivered forever (XAUTOCLAIM every 60 s), each attempt
+     spending the daily budget. Fix: dead letter after maxDeliveries (3), logged and acked.
+     Test: streams.int.test.ts (handler always fails → exactly 3 attempts, nothing pending).
+
+Security review
+  S1 high    = B1
+  S2 medium  eval/api-test containers mounted the whole caddy-data volume incl. the private keys
+             of the local CA that the owner's devices trust → only root.crt via a single-file
+             volume subpath (probe: the key is not visible in the container).
+  S3 medium  oversized/blank fact-check fields failed the contract → capped at the source (see R3)
+  S4 low     a second auth frame while the session was created opened another session → invalid
+             message, socket closed; join/close race closed as well. Test in api.int.test.ts.
+
+Code review (R = reviewer finding)
+  R3  fact-check fields to contract limits, blank titles dropped                        fixed
+  R4  best evidence could be cut from the 10 items → ordered best, fact checks, snippets   fixed
+  R5  embedding failures / timeout during ranking threw → nicht_pruefbar provider_error    fixed
+  R6  page dates with expanded years (+020245-…) broke the contract → dropped              fixed
+  R7  explanation not checked for foreign links (brief 15.5) → discarded when a URL or
+      domain is outside the evidence                                                       fixed
+  R8  one slow robots.txt blocked a domain for 24 h → own abort not cached, 5xx 5 min      fixed
+  R9  batch of 10 + 60 s idle → duplicate checks across replicas → batch 1, idle > timeout fixed
+  R10 paid claude eval keeps mock embeddings                                               OPEN (owner decision)
+  R11 one failed HTTP answer aborted the eval run → counted as unanswered, 429 retried once fixed
+  R12 research cache reads unchecked; empty search results cached → schema check, not cached fixed
+  R13 failed repair call lost the first attempt's tokens → kept for the budget             fixed
+  R14 NaN budget counter failed open → fails closed                                        fixed
+  R15 = S4                                                                                  fixed
+  R16 corrupt worker status gave 500 → skipped                                             fixed
+  R17 search reported as local although SearXNG forwards queries → cloud when live         fixed
+      (Wikipedia/Wikidata rows would need a contract change: not done, noted)
+  R18 level of nicht_pruefbar: classified_unverifiable keeps its level, others niedrig      fixed
+  R19 placeholder uniform distributions in Brier/ECE → excluded (confidence 0)             fixed
+  R20 cache hit overwrote the original provider → kept                                     fixed
+  R21 heuristic query fallback (names, numbers) instead of the bare claim                  fixed
+  R22 Jev state above 32k rejected instead of truncated → documented (ADR 0007 amendment)  documented
+  R23 Wikidata: preferred rank first, deprecated skipped                                   fixed
+  R24 stop grace period above the handler timeouts (fact-checker 70 s, explainer 55 s)     fixed
+  R25 web: one explanation timer per claim, cleared on disconnect; typed socket adapter    fixed
+  R26 duplicated comment                                                                   fixed
+  R27–R30 missing tests                                                                     added with each fix
+  R28 shared test clock → per-test fake clock                                              fixed
+  R31 stage 3 shares verdict:v1:* keys with earlier runs                                   accepted: CI and
+      isolated runs start from an empty Redis (down -v); noted for phase 2
+
+Scanners on PR #16
+  Semgrep (CI rule sets, all severities): 6 findings → 2 real (rejectUnauthorized false in the
+    stage 3 tests; now TLS is verified against the Caddy CA), 4 false positives with nosemgrep and
+    reason. Local rerun: Findings: 0 (0 blocking).
+  CodeQL: 4 high → polynomial ReDoS in the embedded-IPv4 check (linear now), 2× disabled
+    certificate validation (fixed as above), dynamic dispatch in a test server (own-key guard).
+    4 medium js/file-access-to-http (the token read from its secret file and sent as the auth
+    header, by design) remain as alerts for the owner to triage.
+
+Verification after all fixes (isolated stack lfc-verify, throwaway secrets)
+  stage 3 API tests                 28 passed (TLS verified against Caddy's root CA)
+  stage 4 E2E (chromium desktop/mobile, webkit-iphone)  6 passed
+  stage 2b (Playwright, mocked backend)                  30 passed
+  claim text in fact-checker log    0 occurrences
+  unit tests per workspace green (gateway 36 incl. int, service-kit streams 7 int,
+  fact-checker 22 pipeline, research 149, providers 95, evals 15, web 55)
