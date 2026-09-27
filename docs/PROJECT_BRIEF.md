@@ -401,6 +401,7 @@ Weitere Regeln: Timeouts, maximale Seitenzahl und maximale Tokens pro Quelle sin
 | **3 System/API Backend** | Kompletter Backend-Stack per Compose mit `mock`-Providern. API- und WebSocket-Tests über das `gateway`: Behauptung rein, Urteil raus; dazu Fehlerfälle, Auth, Rate Limits, Größenlimits, SSRF-Abwehr | — | Playwright `APIRequestContext` |
 | **4 E2E** | Frontend und Backend zusammen per Compose, weiterhin mit `mock`-Providern. Nur wenige kritische Nutzerwege: Textmodus, Live-Modus mit WAV-Fixture, Einwilligungsdialog, Reconnect nach Verbindungsabbruch | | Playwright |
 | **5 Qualität und Nicht-funktional** | Evals der LLM-Qualität, Mutationstests, ab Phase 5 Lasttests | Lighthouse (Performance, PWA) | `pnpm eval`, Stryker, k6, Lighthouse CI |
+| **Sicherheits-Scans** (ab Phase 1b) | statische Analyse (Code Smells, Security Hotspots), DAST gegen den laufenden Stack, LLM-Red-Teaming der Pipeline, lokaler LLM-Code-Scan (nie blockierend) | dieselbe statische Analyse deckt auch das Frontend ab | SonarQube Cloud (+ SonarQube for IDE, MCP-Server), OWASP ZAP Baseline, promptfoo, lokales LLM per LM Studio |
 | **Manuell** | — | Smoke-Test auf dem echten iPhone per Checkliste (13.6) | `docs/testing/iphone-smoke.md` |
 
 Tests liegen neben dem Code, den sie prüfen (`*.test.ts` für Unit, `*.int.test.ts` für Integration). System- und E2E-Tests liegen unter `tests/api/` und `tests/e2e/`, Frontend-Integrationstests unter `apps/web/tests/`. Die Playwright-Tests nutzen Page Objects, Fixtures und stabile `data-testid`-Selektoren.
@@ -433,6 +434,7 @@ Die E2E-Tests laufen bewusst schon im PR und nicht erst nach dem Merge. Sonst w�
 - Coverage-Schwelle für Stufe 1 und 2 zusammen: 80 % Zeilen und Branches für `packages/*` und die Service-Logik. Die Schwelle darf nie sinken; steigt die Coverage, wird die Schwelle nachgezogen.
 - Neue Logik ohne Tests meldet der `reviewer` als Befund.
 - Mutationstests (Stryker) laufen nightly für `contracts`, `providers` und die Deduplizierung. Sie zeigen, ob die Tests wirklich etwas prüfen.
+- Ab Phase 1b: SonarQube Cloud als weiteres Qualitätstor auf neuem Code (Code Smells, Duplikate, kognitive Komplexität, Security Hotspots, Coverage-Verlauf), zunächst beratend, nach einer Baseline-Woche als Pflicht-Check. Details und Begründung: ADR 0014.
 - **Evals** vergleichen die Provider-Setups (Jev, Claude, lokale Modelle) mit denselben Daten. Sie laufen manuell oder wöchentlich mit eigenen, budgetbegrenzten API-Keys, nie bei jedem Push. Es gibt zwei Eval-Sets, beide versioniert unter `evals/`:
   - **Erkennung** (`evals/detection.de.jsonl`, Ziel: mehrere hundert Segmente): Gesprächsausschnitte, gelabelt mit „enthält prüfwürdige Behauptung ja/nein“ und der erwarteten eigenständigen Formulierung. Gemessen werden Precision, Recall und F1. Precision ist für die Live-Nutzung besonders wichtig, weil Fehlalarme den Feed zumüllen.
   - **Urteil** (`evals/claims.de.jsonl`, Ziel: mindestens 200 Behauptungen): Behauptungen mit erwartetem Urteil. Gemessen werden die Trefferquote und die **Kalibrierung** (Brier-Score, Expected Calibration Error, Reliability-Diagramm), dazu Latenz p50/p95 pro Pfad (9.6) und Kosten pro Behauptung.
@@ -476,6 +478,7 @@ Welche Teststufe wann läuft, legt Abschnitt 13.3 fest; die Parallelisierung bes
   - System-/API-Tests (Stufe 3) und E2E-Tests (Stufe 4), gesharded, gegen den per Compose gestarteten Stack
 - **`main.yml` nach dem Merge:** Multi-Arch-Build (`linux/amd64` und `linux/arm64`), Push nach GHCR, Stufe 3 und 4 gegen die gepushten Images, ab Phase 5 Aktualisierung des Image-Tags im GitOps-Repo.
 - **`nightly.yml`:** Stufe 5, vollständige Browser-Matrix, erneuter Scan; die Evals zusätzlich per `workflow_dispatch`.
+- Ab Phase 1b zusätzlich: ein `sonar`-Job in `ci.yml` (SonarQube Cloud) und ein OWASP-ZAP-Baseline-Schritt in der Stack-Test-Pipeline. LLM-Red-Teaming und der lokale LLM-Code-Scan laufen manuell (`make redteam`, `make llm-scan`), nicht in der CI, weil GitHub-Runner kein lokales Modell laden können (ADR 0014).
 - Doppelte Läufe desselben Commits (Push und PR) werden vermieden; wie genau, entscheidest du per ADR.
 
 Alle Testläufe nutzen `mock`-Provider; die CI braucht also keine echten API-Keys.
@@ -584,6 +587,16 @@ Sicherheit gehört ab Phase 0 zur Definition of Done und ist kein späteres Them
   - Im Einwilligungsdialog werden alle aktiven externen Anbieter genannt.
   - Im lokalen Modus ist Jev deaktiviert.
 
+### 15.7 Security-Scanning und Red-Teaming (ab Phase 1b)
+
+Statische und dynamische Prüfwerkzeuge ergänzen die Reviews, ersetzen sie aber nicht (Begründung und Abgrenzung: ADR 0014).
+
+- **Statische Analyse:** SonarQube Cloud auf jedem Push, Quality Gate für neuen Code (Code Smells, Duplikate, kognitive Komplexität, Security Hotspots, Coverage-Verlauf). SonarQube for IDE im Connected Mode für beide Editoren; ein SonarQube-MCP-Server, damit Claude Code und Antigravity offene Befunde vor einem PR abfragen können.
+- **DAST:** OWASP-ZAP-Baseline-Scan gegen den laufenden Test-Stack, mit einer Regeldatei für begründete Ausnahmen.
+- **LLM-Red-Teaming:** gezielte Angriffe auf die LLM-Pipeline (Prompt-Injection über präparierte Quellen, Manipulation von Klassifikator und Erklärung, Versuch fremder Links oder eines Datenabflusses) nach den OWASP-LLM-Top-10, mit einem lokalen Modell (z. B. über LM Studio) als Angreifer. Feste Angriffsfälle laufen zusätzlich deterministisch in Stufe 3.
+- **Lokaler LLM-Code-Scan:** ein lokales Modell gibt eine zweite Meinung zu Sicherheitsschwachstellen im Diff, als SARIF-Report. Er ist **nie ein Pflicht-Check**, weil LLM-Befunde nicht deterministisch sind und viele Fehlalarme enthalten.
+- Agenten dürfen einen Sicherheitsbefund nie selbst als *won't fix*, *false positive* oder *safe* abweisen oder eine Regel abschalten. Jede Ausnahme (z. B. `nosemgrep`) braucht eine im Code dokumentierte Begründung und wird im PR genannt; entschieden wird sie von mir.
+
 ## 16. Repo-Struktur (Vorschlag)
 
 ```
@@ -686,6 +699,10 @@ Diese Phase legt das Grundgerüst an:
 **Phase 1: Faktencheck im Textmodus**
 LLM-Adapter (`anthropic`, `openai-compatible`, `mock`), `ClassifierProvider` (`llm`, `mock` und `typesafe`, sobald ich Jev-Zugang habe), `EmbeddingProvider`, die drei Quellenstufen aus 9.1, Chunking und Ranking im Speicher, der `fact-checker` mit exaktem Urteils-Cache, der `explainer`, der Textmodus im Frontend und die Ergebnis-Karten nach Abschnitt 11. Dazu das Urteils-Eval-Set und `pnpm eval` mit Kalibrierungsmetriken. Dazu kommen Frontend-Integrationstests mit gemocktem Backend (2b), System-/API-Tests für den Textmodus (3), die Coverage-Schwellen aus 13.5 und Renovate bzw. Dependabot.
 *DoD:* Eine eingetippte Behauptung wird mit Claude, mit LM Studio bzw. Ollama und (falls verfügbar) mit Jev als Klassifikator geprüft. Alle Varianten funktionieren, das Urteil erscheint vor der Erklärung, und ein Eval-Report vergleicht Trefferquote, Kalibrierung, Latenz und Kosten.
+
+**Phase 1b: Security-Tooling**
+Ergänzt die Reviews aus Phase 0/1 um SonarQube Cloud (statische Analyse, Quality Gate, MCP-Server für beide Agent-Tools), einen OWASP-ZAP-Baseline-Scan gegen den Test-Stack, LLM-Red-Teaming der Pipeline mit einem lokalen Modell (promptfoo) und einen lokalen, nie blockierenden LLM-Code-Scan (Abschnitt 15.7, ADR 0014). Plan: `.ai/plans/phase-1b-security-tooling.md`.
+*DoD:* SonarQube Cloud analysiert jeden Push und zeigt ein Dashboard; ein ZAP-Lauf liegt als Report vor; ein Red-Team-Lauf gegen die Text-Pipeline zeigt, dass Prompt-Injection und fremde Links abgewiesen werden; die zwei Blocker aus dem Phase-1-Review sind als feste Regressionstests abgesichert.
 
 **Phase 2: Live-Transkription**
 Audioaufnahme im Browser, WebSocket-Pfad, `transcription` mit einem Cloud-Adapter und dem lokalen Adapter (`stt-local`), `claim-extractor` mit Vorfilter, Klassifikator und eigenständiger Formulierung, das Erkennungs-Eval-Set, Live-Transkript mit markierten Behauptungen und Zeitleiste, Einwilligungsdialog und Test auf dem iPhone über HTTPS. Ab jetzt laufen die E2E-Tests mit WAV-Fixture in Chromium und mit synthetischem MediaStream in WebKit. Die iPhone-Smoke-Checkliste wird angelegt und einmal durchlaufen.

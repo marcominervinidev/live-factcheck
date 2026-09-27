@@ -9,7 +9,7 @@ This repo is built with a coding agent: Claude Code as the primary tool and Goog
 | Rules | `AGENTS.md` (root, per package) | `CLAUDE.md` imports `@AGENTS.md` | reads root `AGENTS.md`; nested ones via `.agents/rules/*.md` |
 | Roles (reviewer, security-reviewer, platform-engineer) | `.ai/prompts/` | `.claude/agents/` | `.agents/agents/` |
 | Skills (`new-service`, `new-event-contract`, `adr`, `evidence`) | `.agents/skills/` | `.claude/skills` (symlink) | `.agents/skills/` |
-| MCP servers | GitHub, Context7, Redis, Playwright | `.mcp.json` | `.agents/mcp_config.json` |
+| MCP servers | GitHub, Context7, Redis, Playwright, SonarQube (from phase 1b) | `.mcp.json` | `.agents/mcp_config.json` |
 | Hooks | – | `.claude/settings.json` (comfort only) | – |
 | Real guards | `lefthook.yml`, `.github/workflows/`, branch ruleset, `CODEOWNERS` | same | same |
 | Plan and state | `.ai/plans/`, ADRs, git history | same | same |
@@ -42,6 +42,12 @@ Optional, recommended: create a fine-grained GitHub token limited to this reposi
 The Redis MCP server connects as the read-only ACL user `mcp` to the Compose network `live-factcheck_internal`; it works once the stack runs (`make up`).
 
 The Playwright MCP server (from phase 1, brief 1.1) runs the official image `mcr.microsoft.com/playwright/mcp`, pinned by digest, with headless Chromium and an in-memory profile. It reaches the stack as `https://lfc.local` (mapped to the Docker host, so Caddy serves the `LAN_HOST` certificate; the local CA is not trusted inside the container, hence `--ignore-https-errors`). On an isolated verification stack, add the port, e.g. `https://lfc.local:8444`. Screenshots land in `.playwright-mcp/` (git-ignored); copy the ones you need into `docs/evidence/`. Pull the image once before the first start (`docker pull mcr.microsoft.com/playwright/mcp:v0.0.82`), because a first pull can exceed the client's start timeout.
+
+## SonarQube for IDE and MCP (from phase 1b)
+
+- **SonarQube for IDE** (formerly SonarLint): install the VS Code extension, connect it in Connected Mode to the SonarQube Cloud project `live-factcheck` (Settings → Sonar). Both Claude Code's and Antigravity's editors are VS Code-based, so the same install and connection cover both.
+- **SonarQube MCP server**: official image, pinned by digest, token via `${SONAR_TOKEN}` from the environment, listed in both `.mcp.json` and `.agents/mcp_config.json` (CI checks the two stay in sync). Lets an agent read open findings before opening a PR, e.g. "any new SonarQube findings on this branch?".
+- The `SONAR_TOKEN` used by CI and by the MCP server is a personal access token from the SonarQube Cloud account, never committed; it goes into `~/.zprofile` for local MCP use and into the GitHub repo secrets for CI.
 
 ## Switching tools
 
