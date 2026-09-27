@@ -220,8 +220,9 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 - [x] Gate 1: `usage`/`reason` von Marco bestätigt (2026-09-26); PR #9 wartet auf Merge
 - Arbeitsmodus ab 2026-09-26 (Marco): an Gates nicht mehr anhalten, sondern PR öffnen, im Chat melden und weiterarbeiten; anhalten nur für wichtige Freigaben (z. B. bezahlte Läufe) und Sicherheitsfragen
 - [x] TP2 erledigt auf `phase-1/tp2-providers` (Nachweise: `docs/evidence/phase-1/tp2-providers.txt`); Budget liegt als `createDailyBudget` mit `BudgetStore`-Schnittstelle in `providers`, die Redis-Anbindung macht der fact-checker (TP4)
-- [x] TP3 erledigt auf `phase-1/tp3-research` (Nachweise: `docs/evidence/phase-1/tp3-research.txt`); `security-reviewer` über TP2+TP3 läuft
-- Aktuell: TP4 auf `phase-1/tp4-pipeline`
+- [x] TP3 erledigt auf `phase-1/tp3-research` (Nachweise: `docs/evidence/phase-1/tp3-research.txt`); `security-reviewer` über TP2+TP3: 1 hoch, 2 mittel, 4 niedrig, alle behoben (PR #10/#11)
+- [x] TP4 erledigt auf `phase-1/tp4-pipeline` (Nachweise: `docs/evidence/phase-1/tp4-pipeline.txt`); neu: `CHECKER_RESEARCH_SOURCES=live|mock` (Mock-Korpus, weil CI kein externes Netz nutzen darf, Brief 13.1)
+- Aktuell: TP5 auf `phase-1/tp5-gateway`
 - Arbeitsweise wie in Phase 0: ein PR pro Gate, Branch `phase-1/tpN-<thema>`, gestapelt
 - [x] isolierter Stack-Lauf mit `explainer` (von Marco erlaubt): alle `/readyz` 200, nur Caddy mit Host-Ports, Netze und Secrets je Service wie geplant
 - [x] Brief auf die vereinbarten Entscheidungen zurückgesetzt (Rücknahme war unbeabsichtigt)

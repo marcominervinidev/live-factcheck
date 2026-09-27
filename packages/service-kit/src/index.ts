@@ -8,3 +8,5 @@ export { createRedis } from './redis.js';
 export type { CreateRedisOptions, RedisConnection } from './redis.js';
 export { runService } from './lifecycle.js';
 export type { ServiceContext, ServiceDefinition, StartedService } from './lifecycle.js';
+export { processedMarker, publishEvent, startStreamConsumer } from './streams.js';
+export type { StreamConsumer, StreamConsumerOptions, StreamMessage } from './streams.js';

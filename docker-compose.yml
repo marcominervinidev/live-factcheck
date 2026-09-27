@@ -155,6 +155,17 @@ services:
       CHECKER_CONFIDENCE_HIGH: ${CHECKER_CONFIDENCE_HIGH:-0.75}
       CHECKER_CONFIDENCE_LOW: ${CHECKER_CONFIDENCE_LOW:-0.45}
       TYPESAFE_API_KEY_FILE: /run/secrets/typesafe_api_key
+      # live: the three source tiers on the internet; mock: a fixed local corpus (tests, CI).
+      CHECKER_RESEARCH_SOURCES: ${CHECKER_RESEARCH_SOURCES:-mock}
+      GOOGLE_FACTCHECK_API_KEY_FILE: /run/secrets/google_factcheck_api_key
+      SEARCH_PROVIDER: ${SEARCH_PROVIDER:-searxng}
+      SEARXNG_URL: http://searxng:8080
+      EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-mock}
+      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-mock}
+      EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL:-}
+      SOURCE_TIERS_FILE: /app/config/source-tiers.yaml
+      CHECKER_USER_AGENT_URL: https://github.com/marcominervinidev/live-factcheck
+      CLOUD_DAILY_BUDGET_USD: ${CLOUD_DAILY_BUDGET_USD:-2}
     # Least privilege (brief 15.1): LLM, classifier and fact-check API keys; nothing else.
     secrets: [redis_password, anthropic_api_key, typesafe_api_key, google_factcheck_api_key]
     # egress: page fetches, fact-check/Wikipedia APIs, cloud LLMs, LM Studio/Ollama on the host.
@@ -179,6 +190,7 @@ services:
       EXPLAINER_LLM_MODEL: ${EXPLAINER_LLM_MODEL:-mock}
       EXPLAINER_LLM_BASE_URL: ${EXPLAINER_LLM_BASE_URL:-}
       EXPLAINER_LLM_API_KEY_FILE: /run/secrets/anthropic_api_key
+      CLOUD_DAILY_BUDGET_USD: ${CLOUD_DAILY_BUDGET_USD:-2}
     # Only the LLM key, never the classifier or search keys (brief 15.1, ADR 0009).
     secrets: [redis_password, anthropic_api_key]
     networks: [internal, egress]
