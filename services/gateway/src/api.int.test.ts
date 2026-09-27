@@ -125,6 +125,29 @@ describe('gateway API and WebSocket against a real Redis', () => {
       });
     });
 
+    it.each([
+      '/%61pi/status',
+      '/ap%69/status',
+      '/%61%70%69/status',
+      '/API/status',
+      '/api/unknown',
+      '/nothing',
+    ])('needs the token for %s too (deny by default on the matched route)', async (path) => {
+      const response = await fetch(`${base}${path}`);
+      expect(response.status).toBe(401);
+    });
+
+    it('answers the ops endpoints without a token (internal only)', async () => {
+      expect((await fetch(`${base}/healthz`)).status).toBe(200);
+    });
+
+    it('skips a corrupt worker status entry instead of failing', async () => {
+      await redis.set('status:v1:explainer', '{not json');
+      const response = await fetch(`${base}/api/status`, { headers: authHeaders });
+      expect(response.status).toBe(200);
+      await redis.del('status:v1:explainer');
+    });
+
     it('rejects invalid bodies and unknown sessions', async () => {
       const post = (body: string) =>
         fetch(`${base}/api/claims/check`, { method: 'POST', headers: authHeaders, body });
@@ -222,6 +245,18 @@ describe('gateway API and WebSocket against a real Redis', () => {
       await garbage.opened;
       garbage.socket.send('{not json');
       await expect.poll(() => garbage.closeCode()).toBe(4400);
+    });
+
+    it('treats a second auth message sent while the session is created as invalid', async () => {
+      const before = (await redis.keys('session:v1:*')).length;
+      const client = connect();
+      await client.opened;
+      const auth = JSON.stringify({ type: 'auth', schemaVersion: 1, token: TOKEN });
+      client.socket.send(auth);
+      client.socket.send(auth);
+      await expect.poll(() => client.closeCode()).toBe(4400);
+      // No session survives the closed socket (no leaked session or subscription).
+      await expect.poll(async () => (await redis.keys('session:v1:*')).length).toBe(before);
     });
 
     it('closes an authenticated session on any further client message (phase 1 has none)', async () => {

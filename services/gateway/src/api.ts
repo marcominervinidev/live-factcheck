@@ -37,9 +37,30 @@ const codeForStatus = (status: number): ApiErrorCode => {
   return 'internal';
 };
 
+/**
+ * Routes that answer without the gateway token: the ops endpoints (reachable only inside the
+ * stack, Caddy forwards just /api and /ws) and the WebSocket, which authenticates with its first
+ * message (ADR 0011).
+ */
+const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
+  '/healthz',
+  '/readyz',
+  '/metrics',
+  '/ws/session',
+]);
+
 /** Workers publish what they use at startup (fact-checker, explainer); never keys or URLs. */
 const WORKER_STATUS_KEYS = ['status:v1:fact-checker', 'status:v1:explainer'] as const;
 const ProviderList = ProviderStatusSchema.shape.providers;
+
+/** A corrupt status entry is skipped like a malformed one instead of failing the request. */
+function parseJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+}
 
 export interface ApiDeps {
   readonly config: Config;
@@ -71,8 +92,12 @@ export async function registerApi(app: HttpServer, deps: ApiDeps): Promise<void>
     keyGenerator: () => 'text-mode',
   });
 
+  // Deny by default, decided on the matched route and never on the raw URL: the router decodes
+  // percent-encoded paths (/%61pi/status matches /api/status), a raw prefix check does not
+  // (security review, phase 1). Unmatched paths need the token too, so they answer 401.
   app.addHook('onRequest', async (request, reply) => {
-    if (!request.url.startsWith('/api/')) return;
+    const route = request.routeOptions.url;
+    if (route !== undefined && PUBLIC_ROUTES.has(route)) return;
     if (!tokenMatches(config.GATEWAY_TOKEN, bearerToken(request.headers.authorization))) {
       await reply.code(401).send(apiError('unauthorized'));
     }
@@ -125,7 +150,7 @@ export async function registerApi(app: HttpServer, deps: ApiDeps): Promise<void>
     for (const key of WORKER_STATUS_KEYS) {
       const raw = await redis.get(key);
       if (raw === null) continue;
-      const entries = ProviderList.safeParse(JSON.parse(raw));
+      const entries = ProviderList.safeParse(parseJson(raw));
       if (entries.success) providers.push(...entries.data);
       else logger.warn({ key }, 'ignoring malformed provider status');
     }
