@@ -16,7 +16,7 @@ check() { # network url label
   [ "$code" = 200 ] || status=1
 }
 
-for svc in gateway transcription claim-extractor fact-checker; do
+for svc in gateway transcription claim-extractor fact-checker explainer; do
   check internal "http://${svc}:8080/readyz" "$svc"
 done
 check frontend "http://web:8080/healthz" web

@@ -15,8 +15,8 @@
 |---|---|---|
 | `edge` | caddy | carries the published host ports (a network with published ports cannot be internal) |
 | `frontend` (`internal: true`) | caddy, web, gateway | the only path from Caddy to the app; web and gateway get no internet or host access |
-| `internal` (`internal: true`) | gateway, transcription, claim-extractor, fact-checker, redis, searxng | service-to-service traffic; no route to the internet or the host |
-| `egress` | searxng (later: LLM, STT and fetch clients) | outbound internet |
+| `internal` (`internal: true`) | gateway, transcription, claim-extractor, fact-checker, explainer, redis, searxng | service-to-service traffic; no route to the internet or the host |
+| `egress` | searxng, fact-checker, explainer (later: claim-extractor, transcription) | outbound internet |
 
 The brief names `edge` and `internal`. `frontend` was split off after the phase 0 security review: in a normal bridge network, web and gateway could have reached the internet and `host.docker.internal`. `egress` exists because `internal: true` blocks all outbound traffic; it is the Compose equivalent of a Kubernetes egress NetworkPolicy.
 
@@ -59,3 +59,10 @@ The brief names `edge` and `internal`. `frontend` was split off after the phase 
 - Compose secrets are bind mounts. Docker Desktop lets non-root containers read `0600` files; on a Linux host the files need the container's uid or group permissions (relevant only if the stack runs on Linux without Kubernetes).
 - The dev overlay trades the read-only filesystem and a strict CSP for hot reload; the production overlay (`docker-compose.yml` alone) is what CI and evidence use.
 - The same segmentation becomes NetworkPolicies in phase 5.
+
+## Amendment 2026-09-26 (phase 1)
+
+- `fact-checker` and `explainer` join `egress`: the fact-checker fetches pages and calls the Google Fact Check, Wikipedia and Wikidata APIs, and both call cloud LLMs or LM Studio/Ollama on the host (`host.docker.internal` is only reachable from a non-internal network). Being on `egress` also means a fetched URL could target internal addresses; the SSRF guard in `packages/research` (brief 15.5, `.ai/research/research-pipeline.md`) is what prevents that, the network cannot.
+- The `claim-extractor` joins `egress` in phase 2, when it gets a real LLM.
+- Secrets per service (brief 15.1): fact-checker gets the Anthropic, TypeSafe and Google Fact Check keys; explainer only the Anthropic key; the gateway the gateway token.
+- The brief's section 15.4 still names only `edge` and `internal`; this ADR is the source of truth for the topology.

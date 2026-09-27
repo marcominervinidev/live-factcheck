@@ -17,6 +17,13 @@
         "-lc",
         "REDIS_PWD=\"$(cat \"${SECRETS_DIR:-$HOME/.config/live-factcheck/secrets}/redis_mcp_password\")\" exec docker run -i --rm --network live-factcheck_internal -e REDIS_HOST=redis -e REDIS_PORT=6379 -e REDIS_USERNAME=mcp -e REDIS_PWD mcp/redis@sha256:e886a7e9990a084a20d46adcea8e7c89d539271f1b453ffabdce4c3f96f27fa0"
       ]
+    },
+    "playwright": {
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "mkdir -p .playwright-mcp && exec docker run -i --rm --init --add-host=lfc.local:host-gateway -v \"$PWD/.playwright-mcp:/out\" mcr.microsoft.com/playwright/mcp:v0.0.82@sha256:77dccc5ce9e94cb8ae7ebea87ddbb6cd54b05760c4d63c54e16accf2726b8734 --isolated --ignore-https-errors --output-dir /out"
+      ]
     }
   }
 }

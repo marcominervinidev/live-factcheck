@@ -1,7 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 // Operational endpoints of every Node service, reached directly on the internal network.
-const SERVICES = ['gateway', 'transcription', 'claim-extractor', 'fact-checker'] as const;
+const SERVICES = [
+  'gateway',
+  'transcription',
+  'claim-extractor',
+  'fact-checker',
+  'explainer',
+] as const;
 
 for (const service of SERVICES) {
   test.describe(service, () => {

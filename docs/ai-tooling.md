@@ -9,7 +9,7 @@ This repo is built with a coding agent: Claude Code as the primary tool and Goog
 | Rules | `AGENTS.md` (root, per package) | `CLAUDE.md` imports `@AGENTS.md` | reads root `AGENTS.md`; nested ones via `.agents/rules/*.md` |
 | Roles (reviewer, security-reviewer, platform-engineer) | `.ai/prompts/` | `.claude/agents/` | `.agents/agents/` |
 | Skills (`new-service`, `new-event-contract`, `adr`, `evidence`) | `.agents/skills/` | `.claude/skills` (symlink) | `.agents/skills/` |
-| MCP servers | GitHub, Context7, Redis | `.mcp.json` | `.agents/mcp_config.json` |
+| MCP servers | GitHub, Context7, Redis, Playwright | `.mcp.json` | `.agents/mcp_config.json` |
 | Hooks | – | `.claude/settings.json` (comfort only) | – |
 | Real guards | `lefthook.yml`, `.github/workflows/`, branch ruleset, `CODEOWNERS` | same | same |
 | Plan and state | `.ai/plans/`, ADRs, git history | same | same |
@@ -30,7 +30,7 @@ Optional, recommended: create a fine-grained GitHub token limited to this reposi
 ### Claude Code
 
 1. Open the repo folder in VS Code and start Claude Code.
-2. Approve the project MCP servers (`/mcp` lists `github`, `context7`, `redis`) and the project hooks when asked.
+2. Approve the project MCP servers (`/mcp` lists `github`, `context7`, `redis`, `playwright`) and the project hooks when asked.
 3. Keep the permission mode so that terminal commands need your approval. Never approve a command that touches `~/.config/live-factcheck/secrets`.
 
 ### Antigravity
@@ -40,6 +40,8 @@ Optional, recommended: create a fine-grained GitHub token limited to this reposi
 3. Check that the MCP servers start (they launch through `/bin/zsh -lc`, so `docker` and `gh` must be on the PATH of your login shell).
 
 The Redis MCP server connects as the read-only ACL user `mcp` to the Compose network `live-factcheck_internal`; it works once the stack runs (`make up`).
+
+The Playwright MCP server (from phase 1, brief 1.1) runs the official image `mcr.microsoft.com/playwright/mcp`, pinned by digest, with headless Chromium and an in-memory profile. It reaches the stack as `https://lfc.local` (mapped to the Docker host, so Caddy serves the `LAN_HOST` certificate; the local CA is not trusted inside the container, hence `--ignore-https-errors`). On an isolated verification stack, add the port, e.g. `https://lfc.local:8444`. Screenshots land in `.playwright-mcp/` (git-ignored); copy the ones you need into `docs/evidence/`. Pull the image once before the first start (`docker pull mcr.microsoft.com/playwright/mcp:v0.0.82`), because a first pull can exceed the client's start timeout.
 
 ## Switching tools
 

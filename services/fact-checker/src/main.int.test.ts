@@ -32,6 +32,7 @@ describe('fact-checker with a secret file against a real Redis', () => {
       REDIS_PASSWORD_FILE: secretFile,
       CHECKER_LLM_PROVIDER: 'mock',
       CHECKER_LLM_MODEL: 'mock',
+      CHECKER_CLASSIFIER_PROVIDER: 'mock',
     });
     await run.waitFor('service started');
     return `http://127.0.0.1:${String(port)}/readyz`;

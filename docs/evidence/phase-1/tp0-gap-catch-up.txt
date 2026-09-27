@@ -1,0 +1,79 @@
+# Phase 1 · TP0 (catch-up from the gap analysis) – evidence, 2026-09-26
+
+## Stage 0 (make lint)
+typecheck, eslint --max-warnings 0: clean
+prettier --check: All matched files use Prettier code style!
+depcruise: no dependency violations found (90 modules, 127 dependencies cruised)
+check-mcp-parity: MCP configs in sync: context7, github, playwright, redis
+
+## Stage 1 (new and changed unit tests)
+@lfc/providers   classifier/config.test.ts 5 · llm/config.test.ts 8 · privacy.test.ts 19   -> 32 passed
+@lfc/research    source-tiers.test.ts 7 (incl. the committed config/source-tiers.yaml)   -> 7 passed
+fact-checker     main.test.ts 5 (new: PRIVACY_MODE=local refuses typesafe; Anthropic and
+                 TypeSafe keys appear in no log line)                                    -> 5 passed
+claim-extractor  main.test.ts 4                                                          -> 4 passed
+explainer        main.test.ts 4 (fail fast, anthropic needs key, key never logged)       -> 4 passed
+Pre-commit hook (lefthook) green on every commit.
+
+## Stage 2a / 2b (make test-integration)
+service-kit 3 · gateway 2 · claim-extractor 2 · explainer 2 · fact-checker 2 · transcription 2 passed
+(real Redis via Testcontainers, password from a secret file)
+Frontend 2b (Playwright, 3 projects): 9 passed
+
+## Compose
+docker compose config --quiet                                  -> exit 0
+docker compose -f docker-compose.yml -f compose.dev.yaml config -> exit 0
+fact-checker: networks [internal, egress]; secrets redis_password, anthropic_api_key,
+              typesafe_api_key, google_factcheck_api_key
+explainer:    networks [internal, egress]; secrets redis_password, anthropic_api_key
+
+## explainer image
+docker build --target runtime   -> user=65532:65532 cmd=[dist/main.js]
+make scan IMAGES=explainer      -> exit 0 (no CRITICAL vulnerabilities, no embedded secrets)
+
+## Playwright MCP
+initialize over stdio -> {"serverInfo":{"name":"Playwright","version":"1.64.0-alpha-…"}}
+
+## Isolated stack run (approved by the owner, 2026-09-26)
+Compose project lfc-verify on host ports 8082/8444, throwaway secrets directory (random internal
+secrets, empty API keys), torn down afterwards (down -v, directory removed). The owner's project
+live-factcheck was not touched.
+
+== make up (isolated project lfc-verify)
+ Container lfc-verify-transcription-1 Healthy 
+ Container lfc-verify-fact-checker-1 Healthy 
+ Container lfc-verify-caddy-1 Healthy 
+== make ready
+gateway            200 {"status":"ready","checks":{"redis":"ok"}}
+transcription      200 {"status":"ready","checks":{"redis":"ok"}}
+claim-extractor    200 {"status":"ready","checks":{"redis":"ok"}}
+fact-checker       200 {"status":"ready","checks":{"redis":"ok"}}
+explainer          200 {"status":"ready","checks":{"redis":"ok"}}
+web                200 ok
+
+searxng            200 OK
+caddy -> web       200 https://localhost/
+== make check-ports
+caddy: 0.0.0.0:8082->8080, :::8082->8080, 0.0.0.0:8444->8443, :::8444->8443
+ok: only caddy publishes host ports
+== containers
+caddy	Up 16 seconds (healthy)
+claim-extractor	Up 21 seconds (healthy)
+explainer	Up 21 seconds (healthy)
+fact-checker	Up 21 seconds (healthy)
+gateway	Up 21 seconds (healthy)
+redis	Up 27 seconds (healthy)
+searxng	Up 27 seconds (healthy)
+transcription	Up 21 seconds (healthy)
+web	Up 27 seconds (healthy)
+== networks of the phase 1 workers
+fact-checker: lfc-verify_egress lfc-verify_internal 
+explainer: lfc-verify_egress lfc-verify_internal 
+gateway: lfc-verify_frontend lfc-verify_internal 
+web: lfc-verify_frontend 
+== mounted secrets per worker (names only)
+fact-checker: anthropic_api_key google_factcheck_api_key redis_password typesafe_api_key 
+explainer: anthropic_api_key redis_password 
+== startup log lines
+{"service":"explainer","privacyMode":"cloud","llm":{"provider":"mock","model":"mock"},"classifier":null}
+{"service":"fact-checker","privacyMode":"cloud","llm":{"provider":"mock","model":"mock"},"classifier":{"provider":"mock","high":0.75,"low":0.45}}

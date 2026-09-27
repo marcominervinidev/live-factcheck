@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Adapters for external dependencies (LLM, speech-to-text, web search). Phase 0: LLM configuration only.",
+  "description": "Adapters for external dependencies (LLM, classifier, embeddings, speech-to-text, web search) and their configuration.",
   "exports": {
     ".": {
       "development": "./src/index.ts",

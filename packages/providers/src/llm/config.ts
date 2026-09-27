@@ -4,8 +4,8 @@ import { z } from 'zod';
 export const LLM_PROVIDERS = ['anthropic', 'openai-compatible', 'mock'] as const;
 export type LlmProviderName = (typeof LLM_PROVIDERS)[number];
 
-/** Each LLM task has its own configuration (brief 8): extraction and verdict can differ. */
-export type LlmTask = 'EXTRACTOR' | 'CHECKER';
+/** Each LLM task has its own configuration (brief 8): extraction, verdict and explanation can differ. */
+export type LlmTask = 'EXTRACTOR' | 'CHECKER' | 'EXPLAINER';
 
 const providerField = () => z.enum(LLM_PROVIDERS);
 const baseUrlField = () => z.url({ protocol: /^https?$/ }).optional();

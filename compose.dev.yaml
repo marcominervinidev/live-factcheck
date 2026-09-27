@@ -85,6 +85,17 @@ services:
         - { action: rebuild, path: ./services/fact-checker/package.json }
         - { action: rebuild, path: ./pnpm-lock.yaml }
 
+  explainer:
+    <<: *node-dev
+    build: { target: dev }
+    image: lfc/explainer:dev
+    develop:
+      watch:
+        - { action: sync, path: ./services/explainer/src, target: /repo/services/explainer/src }
+        - *package-sync
+        - { action: rebuild, path: ./services/explainer/package.json }
+        - { action: rebuild, path: ./pnpm-lock.yaml }
+
   web:
     read_only: false
     build: { target: dev }
