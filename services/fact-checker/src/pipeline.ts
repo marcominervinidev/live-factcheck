@@ -228,6 +228,7 @@ export function fallbackQueries(claim: string): readonly string[] {
     .replace(/[.!?,;:„“"()]/g, ' ')
     .split(/\s+/)
     .filter(Boolean);
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- single-character tests, linear
   const entities = words.filter((word, i) => (i > 0 && /^\p{Lu}/u.test(word)) || /\d/.test(word));
   const keywords = entities.join(' ');
   return keywords !== '' && keywords !== claim ? [claim, keywords] : [claim];

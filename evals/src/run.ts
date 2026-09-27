@@ -69,6 +69,7 @@ async function submit(
   sessionId: string,
   retried = false,
 ): Promise<string | undefined> {
+  // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- CLI output for the owner, only the error type
   try {
     const response = await fetch(`${BASE_URL}/api/claims/check`, {
       method: 'POST',
@@ -84,7 +85,7 @@ async function submit(
     console.error(`${item.id}: not accepted (HTTP ${String(response.status)})`);
   } catch (error) {
     console.error(
-      `${item.id}: request failed (${error instanceof Error ? error.message : 'unknown'})`,
+      `${item.id}: request failed (${error instanceof Error ? error.name : 'unknown'})`,
     );
   }
   return undefined;
