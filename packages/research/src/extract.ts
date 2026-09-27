@@ -25,7 +25,11 @@ function normalise(text: string): string {
 function isoOrUndefined(value: string | null | undefined): string | undefined {
   if (value === null || value === undefined || value.trim() === '') return undefined;
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+  if (Number.isNaN(date.getTime())) return undefined;
+  // A typo like 20245-01-01 gives an expanded year (+020244-…), which is not an ISO timestamp
+  // the contract accepts; such a date is dropped instead (review, phase 1).
+  const iso = date.toISOString();
+  return /^\d{4}-/.test(iso) ? iso : undefined;
 }
 
 /**

@@ -11,6 +11,7 @@ import type {
 import {
   BudgetExceededError,
   ClassifierError,
+  EmbeddingError,
   LlmError,
   checkClassifierConfig,
   classifierConfigShape,
@@ -368,5 +369,56 @@ describe('checkClaim (brief 9.6)', () => {
     await expect(checkClaim(text, deps({ classifier: brokenClassifier }))).rejects.toThrow(
       'bug in classifier',
     );
+  });
+
+  it('answers provider_error instead of throwing when the embedding provider fails', async () => {
+    const embeddings = deps().embeddings;
+    const result = await checkClaim(
+      claim('Der Zweite Weltkrieg endete 1945.'),
+      deps({
+        embeddings: {
+          ...embeddings,
+          embedQuery: () => Promise.reject(new EmbeddingError('LM Studio is not running')),
+        },
+      }),
+    );
+    expect(result).toMatchObject({ verdict: 'nicht_pruefbar', reason: 'provider_error' });
+  });
+
+  it('keeps the chosen fact check and bestEvidenceId when more than 10 items are relevant', async () => {
+    const research = mockResearch(now);
+    const many = async (input: { claim: string; queries: readonly string[] }) => {
+      const base = await research(input);
+      const template = base.documents[0];
+      if (template === undefined) throw new Error('mock corpus is empty');
+      return {
+        ...base,
+        documents: Array.from({ length: 12 }, (_, i) => ({
+          ...template,
+          url: `https://example.org/page-${String(i)}`,
+          text: `Der Zweite Weltkrieg endete 1945. Absatz ${String(i)} mit weiteren Angaben.`,
+        })),
+      };
+    };
+    // Every snippet relevant; the best answer is the fact check F1.
+    const classifier = classifierWith((state, questions) => {
+      const answers = mockClassifier(state, questions);
+      const best = questions['best'];
+      if (best?.type !== 'choice') return answers;
+      return {
+        ...answers,
+        best: Object.fromEntries(
+          Object.keys(best.options).map((key) => [key, key === 'F1' ? 0.9 : 0.01]),
+        ),
+      };
+    });
+    const result = await checkClaim(
+      claim('Der Zweite Weltkrieg ist erst 20 Jahre vorbei.'),
+      deps({ research: many, classifier, topK: 10 }),
+    );
+    expect(ClaimChecked.safeParse(result).success).toBe(true);
+    expect(result.evidence).toHaveLength(10);
+    expect(result.evidence[0]?.tier).toBe('faktencheck');
+    expect(result.evidence.map((e) => e.evidenceId)).toContain(result.bestEvidenceId);
   });
 });

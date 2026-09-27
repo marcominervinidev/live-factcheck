@@ -113,6 +113,45 @@ describe('Google Fact Check source (tier 1)', () => {
   });
 });
 
+describe('Google Fact Check source: third-party fields fit the contract', () => {
+  it('trims and cuts oversized fields and drops a blank title', async () => {
+    const { fetcher } = fakeFetcher({
+      'https://factchecktools.googleapis.com/': json({
+        claims: [
+          {
+            text: 'Z'.repeat(5_000),
+            claimReview: [
+              {
+                publisher: { name: `  ${'P'.repeat(500)}  ` },
+                url: 'https://correctiv.org/faktencheck/long',
+                textualRating: 'R'.repeat(500),
+                title: 'T'.repeat(1_000),
+              },
+              {
+                publisher: { name: 'CORRECTIV' },
+                url: 'https://correctiv.org/faktencheck/blank-title',
+                textualRating: 'Falsch',
+                title: '   ',
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    const [long, blank] = await createFactCheckSource({
+      fetcher,
+      apiKey: 'goog-secret',
+      languageCode: 'de',
+    }).search('Behauptung', { limit: 5 });
+
+    expect(long?.title).toHaveLength(300);
+    expect(long?.publisher).toBe('P'.repeat(200));
+    expect(long?.rating).toHaveLength(200);
+    expect(long?.claimText).toHaveLength(1_000);
+    expect(blank).not.toHaveProperty('title');
+  });
+});
+
 describe('Wikipedia and Wikidata sources (tier 2)', () => {
   it('searches German Wikipedia and extracts the page text', async () => {
     const { fetcher } = fakeFetcher({

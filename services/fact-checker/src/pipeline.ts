@@ -18,6 +18,7 @@ import type {
 import {
   BudgetExceededError,
   ClassifierError,
+  EmbeddingError,
   LlmError,
   NO_USAGE,
   addUsage,
@@ -87,15 +88,20 @@ function addCost(total: number | null, model: string, usage: TokenUsage): number
   return total === null || cost === null ? null : total + cost;
 }
 
+/** ISO timestamp for a third-party date, or undefined when it is invalid or out of range. */
+function isoDate(value: string | undefined): string | undefined {
+  if (value === undefined || Number.isNaN(Date.parse(value))) return undefined;
+  const iso = new Date(value).toISOString();
+  return /^\d{4}-/.test(iso) ? iso : undefined;
+}
+
 function factCheckEvidence(hit: FactCheckHit, retrievedAt: string, evidenceId: string): Evidence {
   return {
     evidenceId,
     title: hit.title ?? hit.claimText,
     url: hit.url,
     publisher: hit.publisher,
-    ...(hit.reviewDate === undefined || Number.isNaN(Date.parse(hit.reviewDate))
-      ? {}
-      : { publishedAt: new Date(hit.reviewDate).toISOString() }),
+    ...(isoDate(hit.reviewDate) === undefined ? {} : { publishedAt: isoDate(hit.reviewDate) }),
     retrievedAt,
     tier: 'faktencheck',
     snippet: toSnippet(`${hit.claimText} – Bewertung: ${hit.rating}`),
@@ -367,6 +373,15 @@ async function classify(
   }
 }
 
+/**
+ * The chosen best item first, then fact checks, then snippets, so the cut to the contract's
+ * maximum can never drop the item `bestEvidenceId` points to or the existing fact check.
+ */
+function orderEvidence(evidenceByKey: ReadonlyMap<string, Evidence>, bestKey: string): Evidence[] {
+  const rank = (key: string) => (key === bestKey ? 0 : key.startsWith('F') ? 1 : 2);
+  return [...evidenceByKey.entries()].sort(([a], [b]) => rank(a) - rank(b)).map(([, item]) => item);
+}
+
 /** Applies sufficiency and the confidence thresholds (brief 8.1) to the classifier's answers. */
 function toVerdictFields(
   answers: {
@@ -389,7 +404,7 @@ function toVerdictFields(
     probabilities: answer.probabilities as VerdictProbabilities,
     confidence: answer.confidence,
     confidenceLevel: level,
-    evidence: [...evidenceByKey.values()].slice(0, MAX_EVIDENCE),
+    evidence: orderEvidence(evidenceByKey, best.choice).slice(0, MAX_EVIDENCE),
     ...(topFactCheck === undefined
       ? {}
       : {
@@ -490,7 +505,15 @@ export async function checkClaim(
   // 3.–4. Search queries, research and ranking.
   const retrieveStart = deps.clock();
   const queries = await generateQueries(claim, deps, spending, signal);
-  const findings = await gatherFindings(claim, queries, deps, signal);
+  let findings: Findings;
+  try {
+    findings = await gatherFindings(claim, queries, deps, signal);
+  } catch (error) {
+    // Embedding provider down or the check's time budget used up: an answer, not a retry.
+    if (!(error instanceof EmbeddingError) && signal?.aborted !== true) throw error;
+    timings.retrieveMs = deps.clock() - retrieveStart;
+    return uncheckable('provider_error');
+  }
   timings.retrieveMs = deps.clock() - retrieveStart;
   if (findings.ranked.length === 0 && findings.factChecks.length === 0) {
     return uncheckable('no_evidence');
