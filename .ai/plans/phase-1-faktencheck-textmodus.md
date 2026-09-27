@@ -220,7 +220,8 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 - [x] Gate 1: `usage`/`reason` von Marco bestätigt (2026-09-26); PR #9 wartet auf Merge
 - Arbeitsmodus ab 2026-09-26 (Marco): an Gates nicht mehr anhalten, sondern PR öffnen, im Chat melden und weiterarbeiten; anhalten nur für wichtige Freigaben (z. B. bezahlte Läufe) und Sicherheitsfragen
 - [x] TP2 erledigt auf `phase-1/tp2-providers` (Nachweise: `docs/evidence/phase-1/tp2-providers.txt`); Budget liegt als `createDailyBudget` mit `BudgetStore`-Schnittstelle in `providers`, die Redis-Anbindung macht der fact-checker (TP4)
-- Aktuell: TP3 auf `phase-1/tp3-research`
+- [x] TP3 erledigt auf `phase-1/tp3-research` (Nachweise: `docs/evidence/phase-1/tp3-research.txt`); `security-reviewer` über TP2+TP3 läuft
+- Aktuell: TP4 auf `phase-1/tp4-pipeline`
 - Arbeitsweise wie in Phase 0: ein PR pro Gate, Branch `phase-1/tpN-<thema>`, gestapelt
 - [x] isolierter Stack-Lauf mit `explainer` (von Marco erlaubt): alle `/readyz` 200, nur Caddy mit Host-Ports, Netze und Secrets je Service wie geplant
 - [x] Brief auf die vereinbarten Entscheidungen zurückgesetzt (Rücknahme war unbeabsichtigt)
