@@ -86,6 +86,10 @@ await runService({
       stream: STREAMS.claimsDetected,
       group: 'fact-checker',
       consumer: `${hostname()}-${String(process.pid)}`,
+      // One entry at a time: a handler runs up to CHECK_TIMEOUT_MS, so entries waiting in a larger
+      // batch would exceed claimIdleMs and be taken over by another replica (review, phase 1).
+      batchSize: 1,
+      claimIdleMs: CHECK_TIMEOUT_MS + 30_000,
       logger,
       handle: async ({ event }) => {
         if (event.type !== 'claim.detected') return;

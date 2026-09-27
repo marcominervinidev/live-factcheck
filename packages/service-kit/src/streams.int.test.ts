@@ -144,6 +144,35 @@ describe('Redis Streams helpers against a real Redis', () => {
     await expect.poll(async () => ((await redis.xpending(stream, group)) as [number])[0]).toBe(0);
   });
 
+  it('drops a message as dead letter after maxDeliveries failed attempts (no endless retry)', async () => {
+    const redis = connect();
+    const { stream, group } = names();
+    let attempts = 0;
+    const started = startStreamConsumer({
+      redis,
+      stream,
+      group,
+      consumer: 'always-fails',
+      logger: silentLogger(),
+      handle: () => {
+        attempts++;
+        return Promise.reject(new Error('deterministic failure'));
+      },
+      blockMs: 100,
+      claimIdleMs: 0,
+      maxDeliveries: 3,
+    });
+    consumers.push(started);
+    await publishEvent(redis, stream, detected());
+
+    // Pending is also empty before the first delivery, so wait for the first attempt.
+    await expect.poll(() => attempts).toBeGreaterThan(0);
+    await expect
+      .poll(async () => ((await redis.xpending(stream, group)) as [number])[0], { timeout: 15_000 })
+      .toBe(0);
+    expect(attempts).toBe(3);
+  });
+
   it('acknowledges and skips an entry that is not a valid envelope', async () => {
     const redis = connect();
     const { stream, group } = names();
