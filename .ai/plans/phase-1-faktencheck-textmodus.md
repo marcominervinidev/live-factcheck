@@ -234,7 +234,11 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
   - [x] T7.5 Stryker: Ursache geklärt (Vitest-Runner 10.0.0 ist gegen Vitest 4.1 gebaut und führt unter Vitest 5 ab dem zweiten Lauf keine Tests aus, `testsCompleted: 0`). Lösung: Command-Runner mit frischem `vitest run` pro Mutant, `timeoutMS` 60 s. contracts jetzt 79,8 % (vorher scheinbar 34–45 %); `providers` im Nightly
   - [x] T7.6 `renovate.json` (validiert); Aktivierung der GitHub-App durch Marco
   - [x] Antigravity-Befunde: `checkClaim` in Schritte zerlegt, `Spending` statt verstreuter Zähler, benannte Grenzen; ClaimCard-Aufteilung optional (später)
-- Nächster Task: TP7-Nachweise, PR #15, danach TP8
+- [x] TP7 als PR #15 in den Stapel gemergt; wegen des Stapels landete #9–#15 nicht auf `main` → Sammel-PR #16 (`phase-1/tp7-eval` → `main`). Lehre: PRs immer direkt gegen `main`
+- [x] TP8 (2026-09-27): `reviewer` + `security-reviewer` über TP1–TP7, 2 Blocker (Token-Umgehung per `/%61pi/…`, endlose Neuzustellung) und ~25 weitere Funde behoben, Semgrep/CodeQL auf #16 bereinigt (Nachweise: `docs/evidence/phase-1/tp8-review.txt`); Doku: `SECURITY.md`, README (Textmodus, echte Provider), `.env.example`, Evidence-Index
+- Offen (Marco): R10 – der bezahlte Claude-Eval nutzt Mock-Embeddings (Anthropic hat keine Embeddings); Optionen: lokales Embedding-Modell über LM Studio (nur lokal, nicht in CI) oder ein weiterer Cloud-Anbieter mit eigenem Key
+- Offen (Marco): Label-Review (46 Behauptungen), Freigabe bezahlter Eval-Läufe, Environment `eval`, Renovate-App; Umstellen gestapelter PRs: Basis auf `main`, dann schließen/wiedereröffnen, damit `pr.yml` läuft
+- Nächster Task: Gate 8 (Marco merged #16, dann TP8-PR); danach Phase 1b (`.ai/plans/phase-1b-security-tooling.md`, freigegeben); Erinnerung an den SonarQube-Cloud-Account zu Beginn von TP2 dort
 - Arbeitsweise wie in Phase 0: ein PR pro Gate, Branch `phase-1/tpN-<thema>`, gestapelt
 - [x] isolierter Stack-Lauf mit `explainer` (von Marco erlaubt): alle `/readyz` 200, nur Caddy mit Host-Ports, Netze und Secrets je Service wie geplant
 - [x] Brief auf die vereinbarten Entscheidungen zurückgesetzt (Rücknahme war unbeabsichtigt)
