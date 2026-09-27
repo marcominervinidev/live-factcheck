@@ -3,6 +3,7 @@ packages:
   - services/*
   - packages/*
   - tests/*
+  - evals
 
 # Dependency install scripts are denied unless explicitly allowed here.
 allowBuilds:

@@ -1,0 +1,29 @@
+# Phase 1 · TP1 (contracts, approved by the owner on 2026-09-26) – evidence
+
+## Contract guard (scripts/check-contract-change.sh against the PR base)
+api.ts: new schema (schemaVersion 1)
+claim-checked.ts: schemaVersion 1 -> 2
+claim-detected.ts: schemaVersion 1 -> 2
+claim-explained.ts: new schema (schemaVersion 1)
+envelope.ts: schemaVersion 1 -> 2
+evidence.ts: new shared building block
+topic-detected.ts: new schema (schemaVersion 1)
+verdict.ts: new shared building block
+ws.ts: new schema (schemaVersion 1)
+contract check: ok (ADR 0010 among the changed ADRs)
+
+## Contract tests (@lfc/contracts, stage 1)
+transcript-segment 11 · claim-detected 18 · claim-checked 29 · claim-explained 14 ·
+verdict 5 · topic-detected 8 · envelope 9 · api 14 · ws 11                -> 119 passed
+Every rule has a failing case: evidence required, bestEvidenceId reference, reason exactly for
+nicht_pruefbar, verdict = most probable, niedrig => nicht_pruefbar, low_confidence => niedrig,
+totalMs bound, probability sum, removed v1 fields rejected, unknown fields rejected.
+
+## Whole repo (make test-unit)
+web 13 · contracts 119 · providers 32 · research 7 · service-kit 23 · claim-extractor 4 ·
+explainer 4 · fact-checker 5 · gateway 2 · transcription 2                -> 211 passed
+make lint: typecheck, eslint, prettier, depcruise (101 modules) clean
+
+## Commits (one per contract change)
+ClaimDetected v2 · ClaimChecked v2 (+ Evidence, VerdictProbabilities) · ClaimExplained v1 ·
+TopicDetected v1 · envelope v2 · HTTP API v1 · WebSocket v1; consumer update in research.

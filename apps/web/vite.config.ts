@@ -1,6 +1,6 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defaultClientConditions, defineConfig } from 'vite';
 import type { Plugin } from 'vite';
 
 /**
@@ -23,6 +23,8 @@ function devRuntimeConfig(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), devRuntimeConfig()],
+  // Workspace packages (@lfc/contracts) resolve to their TypeScript sources.
+  resolve: { conditions: ['development', ...defaultClientConditions] },
   server: {
     // Reached through Caddy as https://localhost or the LAN name (brief 12).
     allowedHosts: ['localhost', '.local'],

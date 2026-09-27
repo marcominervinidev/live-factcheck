@@ -66,8 +66,9 @@ test-e2e: ## Stage 4: E2E browser tests against the running stack (Chromium, Web
 
 test: lint test-unit test-integration test-api test-e2e ## Stages 0-4
 
-eval: ## Stage 5: LLM evaluation (arrives in phase 1)
-	@echo "The eval set and pnpm eval arrive in phase 1."
+eval: ## Stage 5: claim eval against the stack (EVAL_LABEL=name; see evals/README.md)
+	$(TEST) up -d --build --wait
+	$(TEST) --profile eval run --rm eval
 
 scan: ## Trivy scan of all local images: critical vulnerabilities and embedded secrets fail
 	@status=0; for image in $(IMAGES); do \

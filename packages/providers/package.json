@@ -13,16 +13,24 @@
   },
   "files": [
     "dist",
-    "!dist/**/*.test.*"
+    "prompts",
+    "!dist/**/*.test.*",
+    "!dist/testing"
   ],
   "scripts": {
     "build": "tsc -b",
-    "test:unit": "vitest run --project unit"
+    "test:unit": "vitest run --project unit",
+    "test:mutation": "stryker run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.128.0",
+    "@lfc/contracts": "workspace:*",
+    "@typesafe-ai/sdk": "0.6.0",
+    "openai": "7.23.0",
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
     "@types/node": "24.13.6",
     "@vitest/coverage-v8": "5.0.1",
     "typescript": "6.0.3",

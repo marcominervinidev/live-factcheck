@@ -29,6 +29,7 @@ describe('gateway with a secret file against a real Redis', () => {
       PORT: String(port),
       REDIS_URL: `redis://${redis.getHost()}:${String(redis.getMappedPort(6379))}`,
       REDIS_PASSWORD_FILE: secretFile,
+      GATEWAY_TOKEN: 'g'.repeat(40),
     });
     await run.waitFor('service started');
     return `http://127.0.0.1:${String(port)}/readyz`;

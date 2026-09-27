@@ -13,7 +13,6 @@ export default defineConfig({
   outputDir: 'test-results',
   use: {
     baseURL: process.env['BASE_URL'] ?? 'https://lfc.local:8443',
-    // Caddy's local CA is not trusted inside the test container.
-    ignoreHTTPSErrors: true,
+    // TLS is verified: compose.test.yaml mounts Caddy's root CA (NODE_EXTRA_CA_CERTS).
   },
 });

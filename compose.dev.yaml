@@ -74,6 +74,8 @@ services:
     <<: *node-dev
     build: { target: dev }
     image: lfc/fact-checker:dev
+    environment:
+      SOURCE_TIERS_FILE: /repo/config/source-tiers.yaml
     develop:
       watch:
         - {
@@ -81,6 +83,12 @@ services:
             path: ./services/fact-checker/src,
             target: /repo/services/fact-checker/src,
           }
+        - {
+            action: sync,
+            path: ./services/fact-checker/prompts,
+            target: /repo/services/fact-checker/prompts,
+          }
+        - { action: sync, path: ./config, target: /repo/config }
         - *package-sync
         - { action: rebuild, path: ./services/fact-checker/package.json }
         - { action: rebuild, path: ./pnpm-lock.yaml }

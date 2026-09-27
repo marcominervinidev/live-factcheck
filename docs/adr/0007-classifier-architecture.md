@@ -26,7 +26,7 @@ interface ClassifierProvider {
 ```
 
 - Several questions per call (Jev evaluates them in parallel against one state; the `llm` provider bundles them into one zod schema). Our question ids never reach the model.
-- **Confidence is computed the same way for every provider**: `clamp((n·p_max − 1)/(n − 1), 0, 1)` over the answer's distribution (Jev's documented definition; for `bool` n = 2). Jev's own `confidence` is used where present and must match within rounding (checked in tests), so eval results are comparable.
+- **Confidence is computed the same way for every provider**: `clamp((n·p_max − 1)/(n − 1), 0, 1)` over the answer's distribution (Jev's documented definition; for `bool` n = 2). Jev's own `confidence` uses the same definition; we still recompute it from Jev's probabilities, so all providers share one implementation and eval results are comparable (clarified 2026-09-26 during implementation).
 - **Implementations:** `llm` (default; uses the task's `LlmProvider`, asks for a probability per option, validates with zod, normalises to sum 1, rejects sums outside 0.9–1.1 with one repair attempt), `mock` (deterministic, fixtures), `typesafe` (official SDK `@typesafe-ai/sdk`, pinned; key passed explicitly from config; SDK logging off except warnings without bodies; timeout and retries from config). Phase 7 may add `local-model`.
 - **Configuration per task** (brief 8.1): `CHECKER_CLASSIFIER_PROVIDER` (`llm` | `typesafe` | `mock`), `CHECKER_CLASSIFIER_MODEL` (Jev: a pinned version such as `jev-1.13.0`, never the moving alias, because thresholds are tuned per version), `CHECKER_CONFIDENCE_HIGH` and `CHECKER_CONFIDENCE_LOW` (start 0.75 / 0.45, tuned by the eval). `DETECTOR_*` follows in phase 2. `typesafe` requires `TYPESAFE_API_KEY` (secret); the `llm` classifier reuses `<TASK>_LLM_*`.
 - **Thresholds:** confidence ≥ HIGH → `hoch`, act; ≥ LOW → `mittel`, shown as "unsicher"; below → `niedrig`, the verdict becomes `nicht_pruefbar` (the distribution is still published).
@@ -46,3 +46,7 @@ interface ClassifierProvider {
 - Numeric and temporal claims are a known Jev weakness; the claim eval set gets a dedicated slice for them.
 - Without Jev access, `typesafe` is tested only against a local fake server; the DoD run is skipped and named in the PR.
 - The confidence formula lives in one place and is covered by property-style unit tests.
+
+## Amendment (2026-09-27, phase 1 review)
+
+The plan (T2.3) said to truncate a `state` above Jev's 32k token budget with a warning. The adapter instead rejects it (`ClassifierError` `state_too_large`), and the pipeline answers `nicht_pruefbar` (`provider_error`). Reason: cutting the state silently drops evidence the verdict would then claim to rest on; an honest "not checkable" is better than a verdict on half the sources. In practice the pipeline stays far below the limit (at most 10 snippets of ≤ 500 tokens plus 3 fact checks).

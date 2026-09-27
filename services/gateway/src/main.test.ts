@@ -13,7 +13,11 @@ describe('gateway startup', () => {
     const fatal = jsonLines(run.output()).find((line) => line['level'] === 'fatal');
     expect(fatal).toMatchObject({ service: 'gateway', msg: 'invalid configuration, exiting' });
     const issues = (fatal?.['issues'] ?? []) as string[];
-    expect(issues.map((issue) => issue.split(':')[0])).toEqual(['REDIS_URL', 'REDIS_PASSWORD']);
+    expect(issues.map((issue) => issue.split(':')[0])).toEqual([
+      'REDIS_URL',
+      'REDIS_PASSWORD',
+      'GATEWAY_TOKEN',
+    ]);
   });
 
   it('rejects a REDIS_URL that is not a redis URL', async () => {
@@ -21,8 +25,21 @@ describe('gateway startup', () => {
       PORT: '8080',
       REDIS_URL: 'http://redis:6379',
       REDIS_PASSWORD: 'x'.repeat(16),
+      GATEWAY_TOKEN: 't'.repeat(32),
     });
     expect(await run.exitCode).toBe(1);
     expect(run.output()).toContain('REDIS_URL');
+  });
+
+  it('rejects a gateway token shorter than 32 characters without printing it', async () => {
+    const run = startServiceProcess(ENTRY, {
+      PORT: '8080',
+      REDIS_URL: 'redis://redis:6379',
+      REDIS_PASSWORD: 'x'.repeat(16),
+      GATEWAY_TOKEN: 'short-token-value',
+    });
+    expect(await run.exitCode).toBe(1);
+    expect(run.output()).toContain('GATEWAY_TOKEN');
+    expect(run.output()).not.toContain('short-token-value');
   });
 });

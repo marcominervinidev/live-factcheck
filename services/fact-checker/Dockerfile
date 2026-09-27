@@ -21,6 +21,7 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch
 COPY package.json tsconfig.base.json ./
 COPY packages/ packages/
+COPY config/ config/
 COPY services/${SERVICE}/ services/${SERVICE}/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --offline --frozen-lockfile --filter "@lfc/${SERVICE}..."
@@ -47,5 +48,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 # Code stays root-owned and read-only for the runtime user.
 COPY --from=build /out/ ./
+# Source tiers are data read at startup (brief 9.1); SOURCE_TIERS_FILE points here.
+COPY config/source-tiers.yaml ./config/source-tiers.yaml
 USER 65532:65532
 CMD ["dist/main.js"]

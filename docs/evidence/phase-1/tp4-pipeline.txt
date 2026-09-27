@@ -1,0 +1,37 @@
+# Phase 1 · TP4 (streams, fact-checker, explainer) – evidence, 2026-09-26
+
+## service-kit streams (stage 2a, real Redis via Testcontainers)
+streams.int.test.ts 6 passed: publish → consume → XACK (XPENDING 0) and session-channel mirror;
+invalid envelope refused at the producer; failing handler leaves the entry pending and another
+consumer takes it over via XAUTOCLAIM; invalid entries acknowledged and skipped; processedMarker;
+stop() waits for the message in progress. Group creation retried in the background, so a service
+starts even while Redis is not yet reachable (the service-kit client has no offline queue).
+
+## fact-checker (22 tests)
+pipeline.test.ts 14 (brief 9.6):
+- brief example "erst 20 Jahre vorbei" → falsch / hoch, evidence incl. faktencheck tier,
+  existingFactCheck set, bestEvidenceId inside evidence, snippets ≤ 300 chars, contract-valid
+- "endete 1945" → stimmt/hoch; "3,9 Millionen Einwohner" → groesstenteils_richtig/mittel ("unsicher");
+  opinion → nicht_pruefbar (classified_unverifiable)
+- exact verdict cache: repeat answered without research, cacheHit verdict_exact, no spend;
+  "1945" vs "1965" never share a key; uncheckable results are not cached
+- low confidence → nicht_pruefbar/low_confidence; nothing found or insufficient → no_evidence;
+  budget exhausted → budget_exceeded before any model call; classifier failures →
+  invalid_llm_output / provider_error with spent tokens; query LLM failure → claim as query;
+  every model call recorded against the budget
+main.test.ts 5: fail fast lists all 11 missing variables; PRIVACY_MODE=local refuses Jev and the
+Google Fact Check tier; Anthropic, TypeSafe and Google keys appear in no log line
+main.int.test.ts 3: readiness with secret file; end-to-end with real Redis: claims.detected →
+claims.checked on the stream and the session channel, verdict falsch/hoch, no pending entries,
+claim text in no log line
+
+## explainer (11 tests)
+explain.test.ts 4: ClaimExplained from the evidence; injected instructions stay inside the
+random data tag; nicht_pruefbar explained with its reason; three sentences rejected after the
+repair attempt; budget/provider failure → no event
+main.int.test.ts 3: end-to-end claims.checked → claims.explained on the session channel;
+the verdict's stream id precedes the explanation's (verdict before explanation, DoD phase 1)
+
+## Image
+fact-checker runtime image contains /app/config/source-tiers.yaml, /app/prompts/questions.yaml and
+node_modules/@lfc/providers/prompts/classifier.md; docker compose config (prod and dev) valid.

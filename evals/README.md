@@ -16,4 +16,36 @@ The eval result decides which classifier becomes the default and whether phase 7
 - The sets are versioned; a changed label is a new commit with a reason, never a silent edit.
 - Reports go to `docs/evidence/phase-N/eval-<setup>-<date>.md`.
 
-The runner (`pnpm eval`, `make eval`) arrives with plan task T7.2.
+## Running an eval
+
+The runner behaves like a client: it opens a session over the WebSocket, sends every claim through `POST /api/claims/check` and waits for `claims.checked`. It measures the stack as configured, so choose the providers first (see the root README, "Echte Modelle"), then:
+
+```sh
+make eval EVAL_LABEL=claude-opus-5          # only owner-reviewed labels count
+make eval EVAL_LABEL=dry EVAL_INCLUDE_UNREVIEWED=true EVAL_LIMIT=5   # dry run, marked invalid
+```
+
+Output in `docs/evidence/phase-1/evals/`: `eval-<label>-<time>.md` (report), `.svg` (reliability diagram) and `.json` (raw verdicts). Claims run one after another, so latencies stay comparable and the rate limit is respected.
+
+Metrics:
+
+| Metric | Meaning |
+|---|---|
+| Accuracy | exact verdict matches |
+| Direction accuracy | same direction: wahr (stimmt, größtenteils richtig), falsch (übertrieben, falsch), offen (nicht prüfbar) |
+| Coverage | share of checkable claims that got a real verdict instead of `nicht_pruefbar` |
+| Brier score | multi-class, 0 perfect, 2 worst |
+| ECE + reliability diagram | calibration of the probability of the chosen verdict (10 bins) |
+| Latency p50/p95 | pipeline `timings.totalMs` and client-side, per path (`cacheHit`, brief 9.6) |
+| Cost | mean and total `usage.estimatedCostUsd` per claim |
+
+Every paid run needs the owner's go-ahead with a cost estimate first.
+
+### In GitHub Actions
+
+`nightly.yml` → "Run workflow" with `eval: true` runs only the eval (never on the schedule):
+
+- `eval-setup: mock` checks the mechanics with the mock providers; free, report marked invalid.
+- `eval-setup: claude` uses Claude (checker `claude-opus-5`, explainer `claude-haiku-4-5`) with live research. It needs the GitHub environment `eval` with required reviewers, the secret `ANTHROPIC_EVAL_API_KEY` (a dedicated, budget-limited key) and optionally the variable `EVAL_BUDGET_USD` (default 5, the stack's daily budget cap).
+
+The report, diagram and raw verdicts are uploaded as the artifact `eval-<label>`.

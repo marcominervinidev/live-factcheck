@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" font-family="sans-serif" font-size="11" role="img" aria-label="Reliability diagram">
+<rect width="320" height="320" fill="#fff"/>
+<line x1="40.0" y1="280.0" x2="280.0" y2="40.0" stroke="#94a3b8" stroke-dasharray="4 3"/>
+<rect x="161.0" y="256.6" width="22.0" height="23.4" fill="#475569"><title>41 claims, confidence 0.50, accuracy 0.10</title></rect><rect x="185.0" y="280.0" width="22.0" height="0.0" fill="#475569"><title>3 claims, confidence 0.65, accuracy 0.00</title></rect><rect x="257.0" y="40.0" width="22.0" height="240.0" fill="#475569"><title>2 claims, confidence 0.92, accuracy 1.00</title></rect>
+<line x1="40.0" y1="280.0" x2="280.0" y2="280.0" stroke="#0f172a"/>
+<line x1="40.0" y1="280.0" x2="40.0" y2="40.0" stroke="#0f172a"/>
+<text x="40.0" y="296.0" text-anchor="middle">0</text><text x="32.0" y="284.0" text-anchor="end">0</text><text x="160.0" y="296.0" text-anchor="middle">0.5</text><text x="32.0" y="164.0" text-anchor="end">0.5</text><text x="280.0" y="296.0" text-anchor="middle">1</text><text x="32.0" y="44.0" text-anchor="end">1</text>
+<text x="160.0" y="314.0" text-anchor="middle">confidence (probability of the chosen verdict)</text>
+<text x="12" y="160.0" text-anchor="middle" transform="rotate(-90 12 160.0)">accuracy</text>
+</svg>

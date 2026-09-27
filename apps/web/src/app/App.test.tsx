@@ -21,7 +21,7 @@ describe('App shell', () => {
 
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Live-Faktencheck');
     expect((await screen.findByTestId('claims-empty')).textContent).toBe(
-      'Noch keine Behauptungen geprüft.',
+      'Noch keine Behauptungen geprüft. Tippe eine Behauptung ein, um zu starten.',
     );
   });
 

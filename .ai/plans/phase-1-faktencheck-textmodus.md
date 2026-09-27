@@ -57,7 +57,7 @@ Neu (eigene Festlegungen, jeweils im ADR begründet, Freigabe an Gate 0):
 - **Konfiguration:** `CHECKER_CLASSIFIER_PROVIDER` (`llm` | `typesafe` | `mock`), `CHECKER_CLASSIFIER_MODEL` (Jev-Version gepinnt, z. B. `jev-1.13.0`), Schwellen `CHECKER_CONFIDENCE_HIGH` / `CHECKER_CONFIDENCE_LOW` (Startwerte 0,75 / 0,45, per Eval nachjustiert). Der `llm`-Klassifikator nutzt `CHECKER_LLM_*`. Neu `EXPLAINER_LLM_*`. `DETECTOR_CLASSIFIER_*` erst in Phase 2.
 - **Lokaler Modus:** `PRIVACY_MODE=local|cloud` (Default `cloud`). Bei `local` bricht jeder Worker beim Start ab, wenn ein Cloud-Anbieter konfiguriert ist (Anthropic, TypeSafe, Google Fact Check, Cloud-Embeddings). Damit ist „im lokalen Modus ist Jev deaktiviert“ (15.6) erzwungen statt nur dokumentiert.
 - **Text-Modus-Behauptungen (ADR 0010):** Der Gateway schreibt `ClaimDetected` mit `originalText = standaloneText` = eingegebener Text, `checkworthiness: 1`, `provider: { classifier: "text-mode", model: "none" }`, leere `sourceSegmentIds`; `timings.detectMs = 0`.
-- **Zusatzfelder in `ClaimChecked` v2** (aus dem freigegebenen Entwurf, über Brief 7 hinaus, weil „mindestens diese Schemas“): `usage { inputTokens, outputTokens, estimatedCostUsd | null }` für Kosten pro Behauptung (13.5, 14.5) und `reason` bei `nicht_pruefbar` (`budget_exceeded`, `invalid_llm_output`, `no_evidence`, `low_confidence`, `uncited_or_foreign_source`, `provider_error`). **Wird an Gate 1 von dir bestätigt oder gestrichen.**
+- **Zusatzfelder in `ClaimChecked` v2** (aus dem freigegebenen Entwurf, über Brief 7 hinaus, weil „mindestens diese Schemas“): `usage { inputTokens, outputTokens, estimatedCostUsd | null }` für Kosten pro Behauptung (13.5, 14.5) und `reason` bei `nicht_pruefbar` (`budget_exceeded`, `invalid_llm_output`, `no_evidence`, `low_confidence`, `uncited_or_foreign_source`, `provider_error`). **Bestätigt an Gate 1 (2026-09-26).**
 - **Gateway-Token (ADR 0011):** REST per `Authorization: Bearer`; WebSocket: erste Nachricht `{type: "auth", token}` innerhalb von 5 s (Browser setzen beim Handshake keine Header, Token nie in die URL). Im Browser einmal auf der Einstellungsseite eingeben, gespeichert in `localStorage` (Risiko im ADR).
 - **Tagesbudget:** `CLOUD_DAILY_BUDGET_USD` für Anthropic und TypeSafe; Zähler in Redis aus `usage` × Preistabelle; überschritten → `nicht_pruefbar` mit `reason: budget_exceeded`.
 - **Offene ADRs (Status „proposed“):** 0012 Embedding-Modell (Kandidaten `bge-m3`, `multilingual-e5-large`, Qwen3-Embedding; Entscheidung nach Retrieval-Messung im Eval), 0013 Vektor-Speicher (pgvector vs. Qdrant vs. Redis; Entscheidung in Phase 4).
@@ -122,7 +122,7 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
 
 **T2.1 `LlmProvider`** (`generateStructured({ system, user, schema, effort? })` → `{ value, usage, model, provider }` oder typisierter Fehler): `anthropic` (`messages.parse` + `zodOutputFormat`, Refusal/`max_tokens`), `openai-compatible` (JSON-Modus, genau ein Reparaturversuch), `mock`. Prompts als Dateien mit Platzhaltern (`renderPrompt`).
 **T2.2 `ClassifierProvider` `llm` + `mock`:** Choice/Score/Bool, Wahrscheinlichkeiten normalisiert, Konfidenzformel, `confidenceLevel` aus Schwellen.
-**T2.3 `ClassifierProvider` `typesafe`:** `@typesafe-ai/sdk` (Version gepinnt), Key explizit aus Config, eigener Logger ohne Request-Bodies, Timeout/Retries aus Config, Sprechernamen → Platzhalter, `state` ≤ 32k Tokens (abschneiden mit Warnung). Tests gegen lokalen Fake-HTTP-Server (`baseURL`), kein Netz.
+**T2.3 `ClassifierProvider` `typesafe`:** `@typesafe-ai/sdk` (Version gepinnt), Key explizit aus Config, eigener Logger ohne Request-Bodies, Timeout/Retries aus Config, Sprechernamen → Platzhalter, `state` ≤ 32k Tokens (umgesetzt als Ablehnung → `nicht_pruefbar` statt Abschneiden, siehe Nachtrag ADR 0007). Tests gegen lokalen Fake-HTTP-Server (`baseURL`), kein Netz.
 **T2.4 `EmbeddingProvider`:** `openai-compatible` (`/embeddings`), `mock` (Hash-Vektoren).
 **T2.5 `SearchProvider` `searxng`**, Preistabelle (Anthropic, Jev; unbekannt → `null`), Budget-Zähler (Redis).
 - Verifikation: `tb pnpm --filter @lfc/providers test:unit`, Coverage ≥ 80 %.
@@ -216,12 +216,52 @@ Kürzel: `tb` = `scripts/tb`. Verifikationsläufe am Stack nur im isolierten Com
   - [x] T0.5 `services/explainer`, `packages/research` + `config/source-tiers.yaml`, `evals/README.md` + `SOURCES.md`
   - [x] T0.6 Klassifikator-Config, `EXPLAINER`, `PRIVACY_MODE`, Secrets je Service, `egress`, `.env.example`
 - [x] Gate 0 freigegeben (2026-09-26): ADR 0007–0009 accepted
-- Aktuell: TP1 (Verträge)
+- [x] TP1 erledigt auf `phase-1/tp1-contracts` (Nachweise: `docs/evidence/phase-1/tp1-contracts.txt`): ADR 0010, sieben Vertrags-Commits, `research` nutzt `SourceTier` aus den Verträgen
+- [x] Gate 1: `usage`/`reason` von Marco bestätigt (2026-09-26); PR #9 wartet auf Merge
+- Arbeitsmodus ab 2026-09-26 (Marco): an Gates nicht mehr anhalten, sondern PR öffnen, im Chat melden und weiterarbeiten; anhalten nur für wichtige Freigaben (z. B. bezahlte Läufe) und Sicherheitsfragen
+- [x] TP2 erledigt auf `phase-1/tp2-providers` (Nachweise: `docs/evidence/phase-1/tp2-providers.txt`); Budget liegt als `createDailyBudget` mit `BudgetStore`-Schnittstelle in `providers`, die Redis-Anbindung macht der fact-checker (TP4)
+- [x] TP3 erledigt auf `phase-1/tp3-research` (Nachweise: `docs/evidence/phase-1/tp3-research.txt`); `security-reviewer` über TP2+TP3: 1 hoch, 2 mittel, 4 niedrig, alle behoben (PR #10/#11)
+- [x] TP4 erledigt auf `phase-1/tp4-pipeline` (Nachweise: `docs/evidence/phase-1/tp4-pipeline.txt`); neu: `CHECKER_RESEARCH_SOURCES=live|mock` (Mock-Korpus, weil CI kein externes Netz nutzen darf, Brief 13.1)
+- [x] TP5 erledigt auf `phase-1/tp5-gateway` (Nachweise: `docs/evidence/phase-1/tp5-gateway.txt`): ADR 0011, Stufe 3 im isolierten Stack 28/28; bekannte Grenze: Reconnect startet neue Session (ADR 0011)
+- [x] TP6 erledigt auf `phase-1/tp6-frontend` (Nachweise: `docs/evidence/phase-1/tp6-frontend.txt`, Screenshots unter `docs/evidence/phase-1/screens/`)
+- Offen (Marco): die gestapelten PRs #8–#14 zielen nicht auf `main`, deshalb läuft `pr.yml` (Image-Build, Trivy, Stack-Tests) dort nicht; lokal im isolierten Stack geprüft
+- TP7 auf `phase-1/tp7-eval` (Stand 2026-09-27):
+  - [x] T7.1 46 Behauptungen als Startset (`reviewed:false`, Quelle `agent-seed`); **offen: Review durch Marco**, Ausbau auf ≥ 200
+  - [x] T7.2 `pnpm eval` mit Metriken und Reviewed-Gate; Mock-Probelauf unter `docs/evidence/phase-1/evals/`
+  - [x] T7.3 `make eval`; `nightly.yml` mit `workflow_dispatch` (`eval: true`, Setup `mock|claude`, Environment `eval` mit Pflicht-Freigabe, Secret `ANTHROPIC_EVAL_API_KEY`)
+  - [ ] T7.4 bezahlte DoD-Läufe: warten auf Marcos OK (Kostenschätzung im Chat) und auf reviewte Labels
+  - [x] T7.5 Coverage-Schwelle 80/80 in allen Workspaces, einmal pro Workspace in der CI (`test:coverage` im Integrations-Job); `evals` läuft jetzt in der CI
+  - [x] T7.5 Stryker: Ursache geklärt (Vitest-Runner 10.0.0 ist gegen Vitest 4.1 gebaut und führt unter Vitest 5 ab dem zweiten Lauf keine Tests aus, `testsCompleted: 0`). Lösung: Command-Runner mit frischem `vitest run` pro Mutant, `timeoutMS` 60 s. contracts jetzt 79,8 % (vorher scheinbar 34–45 %); `providers` im Nightly
+  - [x] T7.6 `renovate.json` (validiert); Aktivierung der GitHub-App durch Marco
+  - [x] Antigravity-Befunde: `checkClaim` in Schritte zerlegt, `Spending` statt verstreuter Zähler, benannte Grenzen; ClaimCard-Aufteilung optional (später)
+- Nächster Task: TP7-Nachweise, PR #15, danach TP8
+- Arbeitsweise wie in Phase 0: ein PR pro Gate, Branch `phase-1/tpN-<thema>`, gestapelt
 - [x] isolierter Stack-Lauf mit `explainer` (von Marco erlaubt): alle `/readyz` 200, nur Caddy mit Host-Ports, Netze und Secrets je Service wie geplant
 - [x] Brief auf die vereinbarten Entscheidungen zurückgesetzt (Rücknahme war unbeabsichtigt)
-- Offen: Zusatzfelder `usage`/`reason` in `ClaimChecked` v2 (Gate 1); ADR-Nummern 0010/0011 reserviert für TP1/TP5
+- Offen: ADR-Nummer 0011 reserviert für TP5; `scripts/check-contract-change.sh` braucht bash 5 (lokal: `scripts/tb bash scripts/check-contract-change.sh <base>`)
 - Erkenntnis: nie zwei Edits parallel auf dieselbe Datei (Format-Hook hat `docker-compose.yml` dabei abgeschnitten; sofort aus dem Commit wiederhergestellt)
 - Voraussetzung für den Merge: PR #5, #6, #7 zuerst
-- Nächster Task nach Freigabe: T1.1 (Verträge)
 
 ## Session-Log
+
+### 2026-09-27T09:31Z – compaction (auto)
+
+- branch: `phase-1/tp7-eval`, HEAD `702a767`
+- uncommitted:
+
+```
+ M .ai/plans/phase-1-faktencheck-textmodus.md
+ M evals/vitest.config.js
+ M packages/contracts/vitest.config.js
+ M packages/providers/vitest.config.js
+ M packages/research/vitest.config.js
+ M packages/service-kit/vitest.config.js
+ M pnpm-lock.yaml
+ M services/claim-extractor/vitest.config.js
+ M services/explainer/vitest.config.js
+ M services/fact-checker/vitest.config.js
+ M services/gateway/package.json
+ M services/gateway/src/api.int.test.ts
+ M services/gateway/vitest.config.js
+ M services/transcription/vitest.config.js
+```

@@ -14,8 +14,17 @@ x-playwright: &playwright
     BASE_URL: https://${LAN_HOST:-lfc.local}:8443
     # Extra CLI arguments, e.g. '--shard=1/2 --project=webkit-iphone' in CI.
     PLAYWRIGHT_ARGS: ${PLAYWRIGHT_ARGS:-}
+    # The tests authenticate like a user of the app (ADR 0011); the token stays a file.
+    GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
+  secrets: [gateway_token]
 
 services:
+  gateway:
+    environment:
+      # Parallel test workers share one limit; the limit itself is covered by the gateway's
+      # integration test.
+      RATE_LIMIT_CHECKS_PER_MINUTE: '600'
+
   caddy:
     networks:
       edge:
@@ -26,6 +35,23 @@ services:
     working_dir: /workspace/tests/api
     # Stage 3 talks to every service directly (internal) and to the edge through Caddy.
     networks: [edge, internal]
+    # TLS is verified against Caddy's local root CA (tls internal).
+    volumes:
+      - .:/workspace
+      # Only the public root certificate: the CA's private keys never leave the caddy container
+      # (the owner's devices trust this CA; security review, phase 1).
+      - type: volume
+        source: caddy-data
+        target: /caddy-ca/root.crt
+        read_only: true
+        volume:
+          subpath: caddy/pki/authorities/local/root.crt
+    environment:
+      CI: ${CI:-false}
+      BASE_URL: https://${LAN_HOST:-lfc.local}:8443
+      PLAYWRIGHT_ARGS: ${PLAYWRIGHT_ARGS:-}
+      GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
+      NODE_EXTRA_CA_CERTS: /caddy-ca/root.crt
     command: ['sh', '-c', 'node_modules/.bin/playwright test $${PLAYWRIGHT_ARGS}']
 
   e2e-tests:
@@ -34,3 +60,31 @@ services:
     # Stage 4 sees only what a browser sees: the edge.
     networks: [edge]
     command: ['sh', '-c', 'node_modules/.bin/playwright test $${PLAYWRIGHT_ARGS}']
+
+  # Stage 5 (brief 13.5): `make eval` runs the claim set against this stack like a client.
+  # The providers under test are whatever the stack is configured with; reports go to
+  # docs/evidence/phase-1/evals/.
+  eval:
+    <<: *playwright
+    profiles: [eval]
+    working_dir: /workspace/evals
+    networks: [edge]
+    # TLS is verified against Caddy's local root CA (tls internal).
+    volumes:
+      - .:/workspace
+      # Only the public root certificate: the CA's private keys never leave the caddy container
+      # (the owner's devices trust this CA; security review, phase 1).
+      - type: volume
+        source: caddy-data
+        target: /caddy-ca/root.crt
+        read_only: true
+        volume:
+          subpath: caddy/pki/authorities/local/root.crt
+    environment:
+      NODE_EXTRA_CA_CERTS: /caddy-ca/root.crt
+      EVAL_BASE_URL: https://${LAN_HOST:-lfc.local}:8443
+      EVAL_LABEL: ${EVAL_LABEL:-unnamed}
+      EVAL_INCLUDE_UNREVIEWED: ${EVAL_INCLUDE_UNREVIEWED:-false}
+      EVAL_LIMIT: ${EVAL_LIMIT:-0}
+      GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
+    command: ['node_modules/.bin/tsx', '--conditions=development', 'src/run.ts']

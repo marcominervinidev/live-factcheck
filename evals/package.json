@@ -1,0 +1,25 @@
+{
+  "name": "@lfc/evals",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Quality measurement of the provider setups against labelled German data (brief 13.5): accuracy, calibration, latency, cost.",
+  "scripts": {
+    "eval": "tsx --conditions=development src/run.ts",
+    "test:unit": "vitest run --project unit",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@lfc/contracts": "workspace:*",
+    "ws": "8.21.3",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "@types/ws": "8.18.1",
+    "@vitest/coverage-v8": "5.0.1",
+    "tsx": "4.23.14",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1"
+  }
+}

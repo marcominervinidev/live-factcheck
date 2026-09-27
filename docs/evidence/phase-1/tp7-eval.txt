@@ -1,0 +1,68 @@
+Phase 1 · TP7 – eval, quality gates, Renovate (2026-09-27, branch phase-1/tp7-eval)
+=================================================================================
+
+T7.1/T7.2 eval set and runner
+  evals/claims.de.jsonl: 46 claims, all verdicts, 15+ numeric/date items, reviewed:false
+  (source agent-seed; owner review pending, brief 13.5). Runner as a client over the gateway.
+  Mock dry run (isolated stack lfc-verify): docs/evidence/phase-1/evals/eval-mock-dry-run-*.{md,svg,json}
+  Unit tests evals: 14 passed (dataset, loader errors, metrics, report incl. empty run).
+
+T7.3 make eval / nightly workflow_dispatch
+  nightly.yml: eval: true runs only the eval; setup mock | claude; environment `eval`
+  (required reviewers, secret ANTHROPIC_EVAL_API_KEY, var EVAL_BUDGET_USD). Never scheduled.
+  actionlint 1.7.12 on nightly.yml and ci.yml: no findings.
+
+T7.5 coverage gate (thresholds lines 80 / branches 80 in every vitest config)
+  Run exactly as CI does (test:coverage = unit + integration where both exist):
+    workspace                  lines    branches
+    packages/contracts         100      100
+    packages/service-kit       98.26    82.02
+    packages/providers         94.56    84.04
+    packages/research          96.36    82.27
+    services/gateway           92.85    84.90   (API/WS test now in-process)
+    services/fact-checker      97.14    80.76
+    services/explainer         100      87.50
+    services/transcription     100      –       (skeleton)
+    services/claim-extractor   100      –       (skeleton)
+    evals                      100      92.00
+    apps/web                   96.72    89.26
+  Negative check: --coverage.thresholds.branches=95 on evals
+    ERROR: Coverage for branches (92%) does not meet global threshold (95%)  exit=1
+  CI: evals was never selected (not under packages/ or services/); now part of backend_unit.
+
+  Bugs found while raising coverage (fixed, with tests):
+    - fact-checker: a corrupt verdict-cache entry made JSON.parse throw on every retry
+    - fact-checker: settings page showed classifier=llm as local although its LLM is Claude
+
+T7.5 mutation testing (Stryker)
+  Root cause of the unreliable score: @stryker-mutator/vitest-runner 10.0.0 targets Vitest 4.1
+  and reuses one Vitest instance; under Vitest 5 every run after the first executes zero tests.
+    mutation.json before: Killed static=true 86 | Survived static=true 50 |
+                          Survived static=false 116 (all with testsCompleted: 0)
+  Tried without effect: coverageAnalysis off, flat config without projects,
+  maxTestRunnerReuse 1, vitest.related false.
+  Fix: command runner (fresh `vitest run --project unit` per mutant), timeoutMS 60 s.
+    contracts: 79.76 % (167 killed, 34 timeout, 51 survived) – was an apparent 34–45 %
+    envelope.ts rerun with 60 s timeout: 11/11 killed (the timeouts were slow starts, not hangs)
+  providers: configured and in the nightly matrix; local run aborted (load on the dev machine),
+  first score comes from the nightly CI run.
+
+T7.6 Renovate
+  renovate.json: config:recommended, docker:pinDigests, helpers:pinGitHubActionDigests,
+  minimumReleaseAge 3 days, grouped dev tooling / vitest / playwright, zod with approval,
+  custom regex manager for images in Makefile and workflow run steps.
+  renovate-config-validator (latest, --no-global): Config validated successfully.
+  Activation: owner installs the Renovate GitHub app.
+
+Refactoring (Antigravity code-smell review)
+  services/fact-checker/src/pipeline.ts: checkClaim split into readCachedVerdict,
+  generateQueries, gatherFindings, classify, toVerdictFields, writeCachedVerdict; Spending
+  object instead of mutable usage/cost; named limits (MAX_EVIDENCE = contract maximum).
+  fact-checker unit tests: 31 passed; all unit tests: 514 passed in 11 workspaces.
+
+Open (owner)
+  - review the 46 labels (reviewed:true) before any eval result counts
+  - OK for paid runs; estimate Claude (Opus 5 checker + Haiku 4.5 explainer):
+    ~0.06–0.08 USD per claim (±50 %), 46 claims ~3–4 USD, 200 claims ~12–16 USD;
+    LM Studio / Ollama 0 USD; Jev fractions of a cent
+  - GitHub environment `eval` + secret ANTHROPIC_EVAL_API_KEY; Renovate app
