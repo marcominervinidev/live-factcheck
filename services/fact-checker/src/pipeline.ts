@@ -3,6 +3,7 @@ import type {
   ClaimDetected,
   Evidence,
   UncheckableReason,
+  Verdict,
   VerdictProbabilities,
 } from '@lfc/contracts';
 import { ClaimChecked as ClaimCheckedSchema, VERDICTS } from '@lfc/contracts';
@@ -120,175 +121,177 @@ const UNIFORM: VerdictProbabilities = Object.fromEntries(
   VERDICTS.map((v) => [v, 1 / VERDICTS.length]),
 ) as VerdictProbabilities;
 
-/**
- * Checks one claim (brief 9.6): verdict cache → live research → relevance → sufficiency →
- * verdict. Every failure ends as `nicht_pruefbar` with a reason, never as a crash (brief 8).
- * Snippets reach the classifier only as data; the classifier can only pick among our own
- * evidence ids, so no foreign source can be cited (brief 15.5).
- */
-export async function checkClaim(
+/** Fact-check hits shown to the classifier; the first one becomes `existingFactCheck`. */
+const MAX_FACT_CHECKS = 3;
+/** Keeps one long page from filling every top-k slot. */
+const MAX_CHUNKS_PER_DOCUMENT = 6;
+/** The contract's maximum for `ClaimChecked.evidence`. */
+const MAX_EVIDENCE = 10;
+const QUERIES_MAX_TOKENS = 256;
+const RELEVANT = 0.5;
+const SUFFICIENT = 0.5;
+
+const withSignal = (signal: AbortSignal | undefined) => (signal === undefined ? {} : { signal });
+
+/** Tokens and cost of one check; every model call is also recorded against the daily budget. */
+class Spending {
+  usage: TokenUsage = NO_USAGE;
+  /** `null` once any call had an unknown price, so it is never shown as zero. */
+  costUsd: number | null = 0;
+
+  constructor(private readonly budget: DailyBudget | undefined) {}
+
+  async add(model: string, spent: TokenUsage): Promise<void> {
+    this.usage = addUsage(this.usage, spent);
+    this.costUsd = addCost(this.costUsd, model, spent);
+    await this.budget?.record(model, spent);
+  }
+}
+
+type VerdictFields = Pick<
+  ClaimChecked,
+  'verdict' | 'probabilities' | 'confidence' | 'confidenceLevel' | 'evidence'
+> &
+  Partial<Pick<ClaimChecked, 'bestEvidenceId' | 'existingFactCheck' | 'reason' | 'cacheHit'>>;
+
+type Classification =
+  | { readonly kind: 'uncheckable'; readonly reason: UncheckableReason }
+  | { readonly kind: 'judged'; readonly fields: VerdictFields };
+
+interface Findings {
+  readonly ranked: readonly RankedChunk[];
+  readonly factChecks: readonly FactCheckHit[];
+  readonly retrievedAt: string;
+}
+
+/** Step 1 (ADR 0008): a valid cached verdict for exactly this normalized text, if any. */
+async function readCachedVerdict(
   detected: ClaimDetected,
   deps: PipelineDeps,
-  signal?: AbortSignal,
-): Promise<ClaimChecked> {
-  const started = deps.clock();
-  let usage: TokenUsage = NO_USAGE;
-  let cost: number | null = 0;
-  let retrieveMs = 0;
-  let classifyMs = 0;
-  const provider = {
-    classifier: deps.classifier.name,
-    model: deps.classifier.model.slice(0, 128),
-    search: deps.searchName,
-    embeddings: deps.embeddings.name,
-  };
+): Promise<ClaimChecked | undefined> {
+  const cached = CachedVerdict.safeParse(
+    parseJson(await deps.verdictCache.get(verdictCacheKey(detected.normalizedText))),
+  );
+  if (!cached.success) return undefined;
+  const candidate = ClaimCheckedSchema.safeParse({
+    ...cached.data,
+    schemaVersion: 2,
+    sessionId: detected.sessionId,
+    claimId: detected.claimId,
+    speaker: detected.speaker,
+    claim: detected.standaloneText,
+    cacheHit: 'verdict_exact',
+    timings: { detectMs: 0, retrieveMs: 0, classifyMs: 0, totalMs: 0 },
+    checkedAt: deps.now().toISOString(),
+    usage: { inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 },
+  });
+  return candidate.success ? candidate.data : undefined;
+}
 
-  const finish = (
-    fields: Pick<
-      ClaimChecked,
-      'verdict' | 'probabilities' | 'confidence' | 'confidenceLevel' | 'evidence'
-    > &
-      Partial<Pick<ClaimChecked, 'bestEvidenceId' | 'existingFactCheck' | 'reason' | 'cacheHit'>>,
-  ): ClaimChecked => {
-    const totalMs = Math.max(0, Math.round(deps.clock() - started));
-    return ClaimCheckedSchema.parse({
-      schemaVersion: 2,
-      sessionId: detected.sessionId,
-      claimId: detected.claimId,
-      speaker: detected.speaker,
-      claim: detected.standaloneText,
-      cacheHit: 'none',
-      ...fields,
-      timings: {
-        detectMs: 0,
-        retrieveMs: Math.min(Math.round(retrieveMs), totalMs),
-        classifyMs: Math.min(Math.round(classifyMs), totalMs),
-        totalMs,
-      },
-      checkedAt: deps.now().toISOString(),
-      provider,
-      usage: { ...usage, estimatedCostUsd: cost },
-    });
-  };
-  const uncheckable = (reason: UncheckableReason, evidence: Evidence[] = []) =>
-    finish({
-      verdict: 'nicht_pruefbar',
-      probabilities: UNIFORM,
-      confidence: 0,
-      confidenceLevel: 'niedrig',
-      evidence,
-      reason,
-    });
+/** Only real verdicts are cached, without anything that belongs to one claim instance. */
+async function writeCachedVerdict(
+  detected: ClaimDetected,
+  result: ClaimChecked,
+  deps: PipelineDeps,
+): Promise<void> {
+  await deps.verdictCache.set(
+    verdictCacheKey(detected.normalizedText),
+    JSON.stringify({
+      verdict: result.verdict,
+      probabilities: result.probabilities,
+      confidence: result.confidence,
+      confidenceLevel: result.confidenceLevel,
+      evidence: result.evidence,
+      ...(result.bestEvidenceId === undefined ? {} : { bestEvidenceId: result.bestEvidenceId }),
+      ...(result.existingFactCheck === undefined
+        ? {}
+        : { existingFactCheck: result.existingFactCheck }),
+      provider: result.provider,
+    }),
+    deps.verdictCacheTtlS,
+  );
+}
 
-  // 1. Exact verdict cache (ADR 0008).
-  const cacheKey = verdictCacheKey(detected.normalizedText);
-  const cached = CachedVerdict.safeParse(parseJson(await deps.verdictCache.get(cacheKey)));
-  if (cached.success) {
-    const candidate = ClaimCheckedSchema.safeParse({
-      ...cached.data,
-      schemaVersion: 2,
-      sessionId: detected.sessionId,
-      claimId: detected.claimId,
-      speaker: detected.speaker,
-      claim: detected.standaloneText,
-      cacheHit: 'verdict_exact',
-      timings: { detectMs: 0, retrieveMs: 0, classifyMs: 0, totalMs: 0 },
-      checkedAt: deps.now().toISOString(),
-      usage: { inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 },
-    });
-    if (candidate.success) {
-      return finish({ ...candidate.data, cacheHit: 'verdict_exact' });
-    }
-  }
-
-  // 2. Budget for cloud calls (brief 15.5).
-  try {
-    await deps.budget?.ensureAvailable();
-  } catch (error) {
-    if (error instanceof BudgetExceededError) return uncheckable('budget_exceeded');
-    throw error;
-  }
-
-  const spend = async (model: string, spent: TokenUsage) => {
-    usage = addUsage(usage, spent);
-    cost = addCost(cost, model, spent);
-    await deps.budget?.record(model, spent);
-  };
-
-  // 3. Search queries (LLM, heuristic fallback: the claim itself).
-  const retrieveStart = deps.clock();
-  let queries: string[] = [detected.standaloneText];
+/** Step 3: search queries from the LLM; if it fails, the claim itself is the query. */
+async function generateQueries(
+  claim: string,
+  deps: PipelineDeps,
+  spending: Spending,
+  signal: AbortSignal | undefined,
+): Promise<readonly string[]> {
   try {
     const result = await deps.llm.generateStructured(
       {
         task: 'queries',
         system: deps.queriesPrompt.system,
-        user: renderPrompt(deps.queriesPrompt.user, { claim: detected.standaloneText }),
+        user: renderPrompt(deps.queriesPrompt.user, { claim }),
         schema: Queries,
-        maxTokens: 256,
+        maxTokens: QUERIES_MAX_TOKENS,
       },
-      signal === undefined ? {} : { signal },
+      withSignal(signal),
     );
-    queries = result.value.queries;
-    await spend(result.model, result.usage);
+    await spending.add(result.model, result.usage);
+    return result.value.queries;
   } catch (error) {
     if (!(error instanceof LlmError)) throw error;
-    await spend(deps.llm.model, error.usage);
+    await spending.add(deps.llm.model, error.usage);
+    return [claim];
   }
+}
 
-  // 4. Live research over the three tiers, then in-memory ranking (brief 9.1–9.3).
-  const research = await deps.research({ claim: detected.standaloneText, queries }, signal);
-  const ranked = await rankChunks(detected.standaloneText, research.documents, deps.embeddings, {
+/** Step 4 (brief 9.1–9.3): live research over the three tiers, then in-memory ranking. */
+async function gatherFindings(
+  claim: string,
+  queries: readonly string[],
+  deps: PipelineDeps,
+  signal: AbortSignal | undefined,
+): Promise<Findings> {
+  const research = await deps.research({ claim, queries }, signal);
+  const ranked = await rankChunks(claim, research.documents, deps.embeddings, {
     topK: deps.topK,
-    maxChunksPerDocument: 6,
-    ...(signal === undefined ? {} : { signal }),
+    maxChunksPerDocument: MAX_CHUNKS_PER_DOCUMENT,
+    ...withSignal(signal),
   });
-  retrieveMs = deps.clock() - retrieveStart;
+  return {
+    ranked,
+    factChecks: research.factChecks.slice(0, MAX_FACT_CHECKS),
+    retrievedAt: deps.now().toISOString(),
+  };
+}
 
-  const retrievedAt = deps.now().toISOString();
-  const factChecks = research.factChecks.slice(0, 3);
-  const factCheckIds = factChecks.map((_, i) => `F${String(i + 1)}`);
-  const existingFactCheck =
-    factChecks[0] === undefined
-      ? undefined
-      : {
-          publisher: factChecks[0].publisher,
-          url: factChecks[0].url,
-          rating: factChecks[0].rating,
-        };
-
-  if (ranked.length === 0 && factChecks.length === 0) {
-    return uncheckable('no_evidence');
-  }
-
-  // 5. Classifier: relevance of each snippet, then sufficiency, verdict and best snippet.
-  const classifyStart = deps.clock();
+/**
+ * Step 5: relevance of each snippet, then sufficiency, verdict and best snippet, then the
+ * thresholds. The classifier sees snippets only as data under our own keys (`S1…`, `F1…`).
+ */
+async function classify(
+  claim: string,
+  findings: Findings,
+  deps: PipelineDeps,
+  spending: Spending,
+  signal: AbortSignal | undefined,
+): Promise<Classification> {
+  const { ranked, factChecks, retrievedAt } = findings;
   const snippetKeys = ranked.map((_, i) => `S${String(i + 1)}`);
-  const snippets: Record<string, { publisher: string; tier: string; text: string }> = {};
-  ranked.forEach((chunk, i) => {
-    snippets[snippetKeys[i] ?? ''] = {
-      publisher: chunk.document.publisher,
-      tier: chunk.document.tier,
-      text: chunk.text,
-    };
-  });
-  const existingFactChecks: Record<string, { publisher: string; claim: string; rating: string }> =
-    {};
-  factChecks.forEach((hit, i) => {
-    existingFactChecks[factCheckIds[i] ?? ''] = {
-      publisher: hit.publisher,
-      claim: hit.claimText,
-      rating: hit.rating,
-    };
-  });
-  const state = { claim: detected.standaloneText, snippets, existingFactChecks };
+  const factCheckKeys = factChecks.map((_, i) => `F${String(i + 1)}`);
+  const snippets = Object.fromEntries(
+    ranked.map((chunk, i) => [
+      snippetKeys[i] ?? '',
+      { publisher: chunk.document.publisher, tier: chunk.document.tier, text: chunk.text },
+    ]),
+  );
+  const existingFactChecks = Object.fromEntries(
+    factChecks.map((hit, i) => [
+      factCheckKeys[i] ?? '',
+      { publisher: hit.publisher, claim: hit.claimText, rating: hit.rating },
+    ]),
+  );
 
   try {
     const relevance =
       ranked.length === 0
         ? undefined
         : await deps.classifier.ask(
-            state,
+            { claim, snippets, existingFactChecks },
             Object.fromEntries(
               snippetKeys.map((key) => [
                 key,
@@ -299,38 +302,37 @@ export async function checkClaim(
                 },
               ]),
             ),
-            signal === undefined ? {} : { signal },
+            withSignal(signal),
           );
-    if (relevance !== undefined) await spend(relevance.model, relevance.usage);
-    const relevant = ranked.filter(
-      (_, i) => (relevance?.answers[snippetKeys[i] ?? '']?.probability ?? 0) >= 0.5,
+    if (relevance !== undefined) await spending.add(relevance.model, relevance.usage);
+    const relevantKeys = snippetKeys.filter(
+      (key) => (relevance?.answers[key]?.probability ?? 0) >= RELEVANT,
     );
 
     const evidenceByKey = new Map<string, Evidence>();
-    relevant.forEach((chunk) =>
-      evidenceByKey.set(snippetKeys[ranked.indexOf(chunk)] ?? '', chunkEvidence(chunk)),
-    );
+    for (const key of relevantKeys) {
+      const chunk = ranked[snippetKeys.indexOf(key)];
+      if (chunk !== undefined) evidenceByKey.set(key, chunkEvidence(chunk));
+    }
     factChecks.forEach((hit, i) =>
       evidenceByKey.set(
-        factCheckIds[i] ?? '',
+        factCheckKeys[i] ?? '',
         factCheckEvidence(hit, retrievedAt, crypto.randomUUID()),
       ),
     );
-    const evidence = [...evidenceByKey.values()].slice(0, 10);
-    if (evidenceByKey.size === 0) {
-      classifyMs = deps.clock() - classifyStart;
-      return uncheckable('no_evidence');
-    }
+    if (evidenceByKey.size === 0) return { kind: 'uncheckable', reason: 'no_evidence' };
 
-    const relevantSnippets: typeof snippets = {};
-    for (const chunk of relevant) {
-      const key = snippetKeys[ranked.indexOf(chunk)] ?? '';
-      const snippet = snippets[key];
-      if (snippet !== undefined) relevantSnippets[key] = snippet;
-    }
-    const verdictState = { claim: state.claim, snippets: relevantSnippets, existingFactChecks };
     const decision = await deps.classifier.ask(
-      verdictState,
+      {
+        claim,
+        snippets: Object.fromEntries(
+          relevantKeys.flatMap((key) => {
+            const snippet = snippets[key];
+            return snippet === undefined ? [] : [[key, snippet] as const];
+          }),
+        ),
+        existingFactChecks,
+      },
       {
         sufficient: {
           type: 'bool',
@@ -348,67 +350,159 @@ export async function checkClaim(
           options: Object.fromEntries([...evidenceByKey.keys()].map((key) => [key, null])),
         },
       },
-      signal === undefined ? {} : { signal },
+      withSignal(signal),
     );
-    await spend(decision.model, decision.usage);
-    classifyMs = deps.clock() - classifyStart;
-
-    const { verdict: verdictAnswer, sufficient, best } = decision.answers;
-    const probabilities = verdictAnswer.probabilities as VerdictProbabilities;
-    const confidence = verdictAnswer.confidence;
-    const level = confidenceLevel(confidence, deps.thresholds);
-    const bestEvidenceId = evidenceByKey.get(best.choice)?.evidenceId;
-    const base = {
-      probabilities,
-      confidence,
-      confidenceLevel: level,
-      evidence,
-      ...(existingFactCheck === undefined ? {} : { existingFactCheck }),
+    await spending.add(decision.model, decision.usage);
+    return {
+      kind: 'judged',
+      fields: toVerdictFields(decision.answers, evidenceByKey, factChecks[0], deps.thresholds),
     };
-
-    let reason: UncheckableReason | undefined;
-    if (sufficient.probability < 0.5) reason = 'no_evidence';
-    else if (verdictAnswer.choice === 'nicht_pruefbar') reason = 'classified_unverifiable';
-    else if (level === 'niedrig') reason = 'low_confidence';
-
-    if (reason !== undefined) {
-      // low_confidence keeps its real level; the other reasons are reported without a level claim.
-      return finish({
-        ...base,
-        verdict: 'nicht_pruefbar',
-        confidenceLevel: reason === 'low_confidence' ? 'niedrig' : level,
-        reason,
-      });
-    }
-
-    const result = finish({
-      ...base,
-      verdict: verdictAnswer.choice,
-      ...(bestEvidenceId === undefined ? {} : { bestEvidenceId }),
-    });
-    await deps.verdictCache.set(
-      cacheKey,
-      JSON.stringify({
-        verdict: result.verdict,
-        probabilities: result.probabilities,
-        confidence: result.confidence,
-        confidenceLevel: result.confidenceLevel,
-        evidence: result.evidence,
-        ...(result.bestEvidenceId === undefined ? {} : { bestEvidenceId: result.bestEvidenceId }),
-        ...(result.existingFactCheck === undefined
-          ? {}
-          : { existingFactCheck: result.existingFactCheck }),
-        provider: result.provider,
-      }),
-      deps.verdictCacheTtlS,
-    );
-    return result;
   } catch (error) {
-    classifyMs = deps.clock() - classifyStart;
-    if (error instanceof ClassifierError) {
-      await spend(deps.classifier.model, error.usage);
-      return uncheckable(error.kind === 'invalid_output' ? 'invalid_llm_output' : 'provider_error');
-    }
+    if (!(error instanceof ClassifierError)) throw error;
+    await spending.add(deps.classifier.model, error.usage);
+    return {
+      kind: 'uncheckable',
+      reason: error.kind === 'invalid_output' ? 'invalid_llm_output' : 'provider_error',
+    };
+  }
+}
+
+/** Applies sufficiency and the confidence thresholds (brief 8.1) to the classifier's answers. */
+function toVerdictFields(
+  answers: {
+    readonly sufficient: { readonly probability: number };
+    readonly verdict: {
+      readonly choice: Verdict;
+      readonly probabilities: Readonly<Record<string, number>>;
+      readonly confidence: number;
+    };
+    readonly best: { readonly choice: string };
+  },
+  evidenceByKey: ReadonlyMap<string, Evidence>,
+  topFactCheck: FactCheckHit | undefined,
+  thresholds: PipelineDeps['thresholds'],
+): VerdictFields {
+  const { verdict: answer, sufficient, best } = answers;
+  const level = confidenceLevel(answer.confidence, thresholds);
+  const bestEvidenceId = evidenceByKey.get(best.choice)?.evidenceId;
+  const base = {
+    probabilities: answer.probabilities as VerdictProbabilities,
+    confidence: answer.confidence,
+    confidenceLevel: level,
+    evidence: [...evidenceByKey.values()].slice(0, MAX_EVIDENCE),
+    ...(topFactCheck === undefined
+      ? {}
+      : {
+          existingFactCheck: {
+            publisher: topFactCheck.publisher,
+            url: topFactCheck.url,
+            rating: topFactCheck.rating,
+          },
+        }),
+  };
+
+  let reason: UncheckableReason | undefined;
+  if (sufficient.probability < SUFFICIENT) reason = 'no_evidence';
+  else if (answer.choice === 'nicht_pruefbar') reason = 'classified_unverifiable';
+  else if (level === 'niedrig') reason = 'low_confidence';
+
+  if (reason !== undefined) {
+    // low_confidence keeps its real level; the other reasons are reported without a level claim.
+    return {
+      ...base,
+      verdict: 'nicht_pruefbar',
+      confidenceLevel: reason === 'low_confidence' ? 'niedrig' : level,
+      reason,
+    };
+  }
+  return {
+    ...base,
+    verdict: answer.choice,
+    ...(bestEvidenceId === undefined ? {} : { bestEvidenceId }),
+  };
+}
+
+/**
+ * Checks one claim (brief 9.6): verdict cache → budget → search queries → live research →
+ * relevance → sufficiency → verdict. Every failure ends as `nicht_pruefbar` with a reason, never
+ * as a crash (brief 8); only infrastructure errors throw, so the stream message is retried.
+ * The classifier can only pick among our own evidence keys, so no foreign source can be cited
+ * (brief 15.5).
+ */
+export async function checkClaim(
+  detected: ClaimDetected,
+  deps: PipelineDeps,
+  signal?: AbortSignal,
+): Promise<ClaimChecked> {
+  const started = deps.clock();
+  const claim = detected.standaloneText;
+  const spending = new Spending(deps.budget);
+  const timings = { retrieveMs: 0, classifyMs: 0 };
+
+  const finish = (fields: VerdictFields): ClaimChecked => {
+    const totalMs = Math.max(0, Math.round(deps.clock() - started));
+    return ClaimCheckedSchema.parse({
+      schemaVersion: 2,
+      sessionId: detected.sessionId,
+      claimId: detected.claimId,
+      speaker: detected.speaker,
+      claim,
+      cacheHit: 'none',
+      ...fields,
+      timings: {
+        detectMs: 0,
+        retrieveMs: Math.min(Math.round(timings.retrieveMs), totalMs),
+        classifyMs: Math.min(Math.round(timings.classifyMs), totalMs),
+        totalMs,
+      },
+      checkedAt: deps.now().toISOString(),
+      provider: {
+        classifier: deps.classifier.name,
+        model: deps.classifier.model.slice(0, 128),
+        search: deps.searchName,
+        embeddings: deps.embeddings.name,
+      },
+      usage: { ...spending.usage, estimatedCostUsd: spending.costUsd },
+    });
+  };
+  const uncheckable = (reason: UncheckableReason) =>
+    finish({
+      verdict: 'nicht_pruefbar',
+      probabilities: UNIFORM,
+      confidence: 0,
+      confidenceLevel: 'niedrig',
+      evidence: [],
+      reason,
+    });
+
+  // 1. Exact verdict cache (ADR 0008).
+  const cached = await readCachedVerdict(detected, deps);
+  if (cached !== undefined) return finish({ ...cached, cacheHit: 'verdict_exact' });
+
+  // 2. Budget for cloud calls (brief 15.5).
+  try {
+    await deps.budget?.ensureAvailable();
+  } catch (error) {
+    if (error instanceof BudgetExceededError) return uncheckable('budget_exceeded');
     throw error;
   }
+
+  // 3.–4. Search queries, research and ranking.
+  const retrieveStart = deps.clock();
+  const queries = await generateQueries(claim, deps, spending, signal);
+  const findings = await gatherFindings(claim, queries, deps, signal);
+  timings.retrieveMs = deps.clock() - retrieveStart;
+  if (findings.ranked.length === 0 && findings.factChecks.length === 0) {
+    return uncheckable('no_evidence');
+  }
+
+  // 5. Classifier and thresholds.
+  const classifyStart = deps.clock();
+  const outcome = await classify(claim, findings, deps, spending, signal);
+  timings.classifyMs = deps.clock() - classifyStart;
+  if (outcome.kind === 'uncheckable') return uncheckable(outcome.reason);
+
+  const result = finish(outcome.fields);
+  if (result.verdict !== 'nicht_pruefbar') await writeCachedVerdict(detected, result, deps);
+  return result;
 }
