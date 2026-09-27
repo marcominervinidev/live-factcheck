@@ -168,4 +168,25 @@ describe('summarize', () => {
     expect(md).toContain('not a valid result');
     expect(md).toContain('| verdict_exact | 1 |');
   });
+
+  it('renders an empty run with dashes instead of NaN, marked as reviewed-only', () => {
+    const s = summarize([{ item: item('x', 'stimmt') }]);
+    const md = markdownReport(
+      {
+        label: 'empty',
+        startedAt: '2026-09-27T10:00:00.000Z',
+        dataset: 'evals/claims.de.jsonl',
+        includesUnreviewed: false,
+        providers: 'mock',
+        svgFile: 'x.svg',
+      },
+      s,
+    );
+    expect(md).not.toContain('NaN');
+    expect(md).toContain('| Accuracy (exact verdict) | – |');
+    expect(md).toContain('| nicht_pruefbar reasons | – |');
+    expect(md).toContain('(owner-reviewed labels only)');
+    expect(md).not.toContain('unknown price');
+    expect(reliabilitySvg(s.reliability)).not.toContain('<title>');
+  });
 });

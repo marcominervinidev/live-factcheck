@@ -1,23 +1,33 @@
 // Stage 2a: REST and WebSocket of the gateway against a real Redis (ADR 0010, 0011, brief 15.5).
+// In-process (the real routes on a real port), so coverage counts; the process-level start is
+// covered by main.test.ts and main.int.test.ts.
 import { randomBytes, randomUUID } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 
 import { EventEnvelope, STREAMS, sessionEventsChannel } from '@lfc/contracts';
-import { freePort, startServiceProcess } from '@lfc/service-kit/testing';
-import type { ServiceProcess } from '@lfc/service-kit/testing';
+import { createHttpServer, createLogger, createRedis } from '@lfc/service-kit';
+import type { HttpServer, RedisConnection } from '@lfc/service-kit';
 import { RedisContainer } from '@testcontainers/redis';
 import type { StartedRedisContainer } from '@testcontainers/redis';
 import { Redis } from 'ioredis';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { Registry } from 'prom-client';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import WebSocket from 'ws';
 
-const ENTRY = fileURLToPath(new URL('./main.ts', import.meta.url));
+import { registerApi } from './api.js';
+import { configSchema } from './config.js';
+import type { SessionHub } from './sessions.js';
+import { sessionHub, sessionStore } from './sessions.js';
+import { registerWebSocket } from './ws.js';
+
 const PASSWORD = randomBytes(16).toString('hex');
 const TOKEN = randomBytes(24).toString('hex');
 
 describe('gateway API and WebSocket against a real Redis', () => {
   let container: StartedRedisContainer;
-  let run: ServiceProcess;
+  let app: HttpServer;
+  let connection: RedisConnection;
+  let hub: SessionHub;
+  const logLines: string[] = [];
   let base = '';
   let redis: Redis;
 
@@ -55,24 +65,49 @@ describe('gateway API and WebSocket against a real Redis', () => {
 
   beforeAll(async () => {
     container = await new RedisContainer('redis:8.10.2-alpine').withPassword(PASSWORD).start();
-    const port = await freePort();
-    base = `http://127.0.0.1:${String(port)}`;
-    run = startServiceProcess(ENTRY, {
-      PORT: String(port),
-      REDIS_URL: `redis://${container.getHost()}:${String(container.getMappedPort(6379))}`,
+    const url = `redis://${container.getHost()}:${String(container.getMappedPort(6379))}`;
+    const config = configSchema.parse({
+      PORT: '8080', // unused: the test server listens on a free port
+      REDIS_URL: url,
       REDIS_PASSWORD: PASSWORD,
       GATEWAY_TOKEN: TOKEN,
       WS_AUTH_TIMEOUT_MS: '500',
       RATE_LIMIT_CHECKS_PER_MINUTE: '5',
     });
-    await run.waitFor('service started');
+    const logger = createLogger({
+      service: 'gateway',
+      level: 'info',
+      secretKeys: ['GATEWAY_TOKEN'],
+      secretValues: [TOKEN],
+      destination: { write: (line: string) => logLines.push(line) },
+    });
+    connection = createRedis({ url, password: PASSWORD, logger });
+    const sessions = sessionStore(connection.client, config.MAX_SESSION_MS);
+    hub = sessionHub(connection.client, logger);
+    app = createHttpServer({
+      logger,
+      metrics: new Registry(),
+      readiness: () => [connection.readiness],
+      isShuttingDown: () => false,
+    });
+    await registerApi(app, {
+      config,
+      redis: connection.client,
+      sessions,
+      logger,
+      now: () => new Date(),
+    });
+    await registerWebSocket(app, { config, sessions, hub, logger });
+    base = await app.listen({ host: '127.0.0.1', port: 0 });
     redis = new Redis(container.getMappedPort(6379), container.getHost(), { password: PASSWORD });
+    await vi.waitFor(() => connection.readiness.check(), { timeout: 10_000 });
   });
 
   afterAll(async () => {
     redis.disconnect();
-    run.kill('SIGTERM');
-    await run.exitCode;
+    await app.close();
+    hub.close();
+    await connection.close();
     await container.stop();
   });
 
@@ -175,6 +210,25 @@ describe('gateway API and WebSocket against a real Redis', () => {
       await other.opened;
       other.socket.send('{"type":"start","schemaVersion":1}');
       await expect.poll(() => other.closeCode()).toBe(4400);
+
+      const binary = connect();
+      await binary.opened;
+      binary.socket.send(
+        Buffer.from(JSON.stringify({ type: 'auth', schemaVersion: 1, token: TOKEN })),
+      );
+      await expect.poll(() => binary.closeCode()).toBe(4400);
+
+      const garbage = connect();
+      await garbage.opened;
+      garbage.socket.send('{not json');
+      await expect.poll(() => garbage.closeCode()).toBe(4400);
+    });
+
+    it('closes an authenticated session on any further client message (phase 1 has none)', async () => {
+      const client = await session();
+      client.socket.send(JSON.stringify({ type: 'auth', schemaVersion: 1, token: TOKEN }));
+      await expect.poll(() => client.closeCode()).toBe(4400);
+      await expect.poll(async () => redis.exists(`session:v1:${client.sessionId}`)).toBe(0);
     });
 
     it('text mode end to end: claim accepted, claim.detected and the verdict pushed to the session', async () => {
@@ -230,12 +284,14 @@ describe('gateway API and WebSocket against a real Redis', () => {
 
       // Invalid channel payloads are not forwarded.
       await redis.publish(sessionEventsChannel(client.sessionId), '{"type":"claim.deleted"}');
+      await redis.publish(sessionEventsChannel(client.sessionId), '{not json');
 
       client.socket.close();
       await expect.poll(async () => redis.exists(`session:v1:${client.sessionId}`)).toBe(0);
       expect(client.messages).toHaveLength(3);
       // Claim text never reaches the log (brief 15.6).
-      expect(run.output()).not.toContain('Weltkrieg');
+      expect(logLines.join('')).not.toContain('Weltkrieg');
+      expect(logLines.join('')).not.toContain(TOKEN);
     });
 
     it('rate-limits text-mode checks (brief 15.5)', async () => {
