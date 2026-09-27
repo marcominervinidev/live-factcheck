@@ -1,26 +1,54 @@
 # Nightly and on demand (brief 13.3, 13.5): stage 5 and everything too slow or too noisy for
 # every PR — mutation testing, Lighthouse, the full browser matrix (incl. Firefox) and a full
 # image scan that also reports vulnerabilities without an available fix.
-# LLM evals (pnpm eval) are added here as workflow_dispatch in phase 1.
+# LLM evals run only when dispatched with `eval: true` (never on the schedule): a run with real
+# models costs money and needs the owner's approval through the `eval` environment.
 name: nightly
 
 on:
   schedule:
     - cron: '23 2 * * *'
   workflow_dispatch:
+    inputs:
+      eval:
+        description: Run only the claim eval (stage 5, brief 13.5) instead of the nightly jobs.
+        type: boolean
+        default: false
+      eval-setup:
+        description: 'mock: checks the mechanics (report marked invalid). claude: real models, paid.'
+        type: choice
+        options: [mock, claude]
+        default: mock
+      eval-label:
+        description: Report name, e.g. claude-opus-5.
+        type: string
+        default: ci
+      eval-limit:
+        description: Only the first N claims (0 = all).
+        type: string
+        default: '0'
+      eval-include-unreviewed:
+        description: Also count labels the owner has not reviewed yet (report marked invalid).
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: nightly
+  group: nightly-${{ inputs.eval && 'eval' || 'jobs' }}
   cancel-in-progress: true
 
 jobs:
   mutation:
-    name: mutation testing (contracts)
+    name: mutation testing (${{ matrix.package }})
+    if: ${{ !inputs.eval }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [contracts, providers]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -28,17 +56,22 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --filter @lfc/contracts
-      - run: pnpm --filter @lfc/contracts run test:mutation
+      - run: pnpm install --frozen-lockfile --filter "@lfc/${PACKAGE}..."
+        env:
+          PACKAGE: ${{ matrix.package }}
+      - run: pnpm --filter "@lfc/${PACKAGE}" run test:mutation
+        env:
+          PACKAGE: ${{ matrix.package }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
-          name: mutation-report-contracts
-          path: packages/contracts/reports/mutation
+          name: mutation-report-${{ matrix.package }}
+          path: packages/${{ matrix.package }}/reports/mutation
           retention-days: 14
 
   stack:
     name: full browser matrix + Lighthouse
+    if: ${{ !inputs.eval }}
     uses: ./.github/workflows/stack-tests.yml
     permissions:
       contents: read
@@ -50,6 +83,7 @@ jobs:
 
   images-matrix:
     name: images to scan
+    if: ${{ !inputs.eval }}
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
@@ -87,3 +121,72 @@ jobs:
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
           image --scanners vuln,secret --severity HIGH,CRITICAL --exit-code 0
           --no-progress --table-mode detailed "$IMAGE" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  eval:
+    name: claim eval (${{ inputs.eval-setup }})
+    if: ${{ inputs.eval }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    # Required reviewers on this environment gate every run; the Anthropic key lives only here.
+    environment: eval
+    env:
+      COMPOSE_FILE: docker-compose.yml:compose.test.yaml
+      EVAL_LABEL: ${{ inputs.eval-label }}
+      EVAL_LIMIT: ${{ inputs.eval-limit }}
+      EVAL_INCLUDE_UNREVIEWED: ${{ inputs.eval-include-unreviewed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "@lfc/evals..."
+      - name: throwaway secrets
+        run: |
+          echo "SECRETS_DIR=$RUNNER_TEMP/secrets" >> "$GITHUB_ENV"
+          scripts/secrets-init.sh "$RUNNER_TEMP/secrets" > /dev/null
+          chmod 644 "$RUNNER_TEMP"/secrets/*
+      - name: real models (claude)
+        if: ${{ inputs.eval-setup == 'claude' }}
+        env:
+          ANTHROPIC_EVAL_API_KEY: ${{ secrets.ANTHROPIC_EVAL_API_KEY }}
+          EVAL_BUDGET_USD: ${{ vars.EVAL_BUDGET_USD || '5' }}
+        run: |
+          if [ -z "$ANTHROPIC_EVAL_API_KEY" ]; then
+            echo "::error::secret ANTHROPIC_EVAL_API_KEY is missing in the eval environment"
+            exit 1
+          fi
+          printf '%s' "$ANTHROPIC_EVAL_API_KEY" > "$SECRETS_DIR/anthropic_api_key"
+          {
+            echo "CHECKER_LLM_PROVIDER=anthropic"
+            echo "CHECKER_LLM_MODEL=claude-opus-5"
+            echo "CHECKER_CLASSIFIER_PROVIDER=llm"
+            echo "CHECKER_RESEARCH_SOURCES=live"
+            echo "EXPLAINER_LLM_PROVIDER=anthropic"
+            echo "EXPLAINER_LLM_MODEL=claude-haiku-4-5"
+            echo "CLOUD_DAILY_BUDGET_USD=$EVAL_BUDGET_USD"
+          } >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: start the stack
+        run: docker compose up -d --build --wait
+      - name: stage 5 – claim eval
+        run: docker compose --profile eval run --rm eval
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: eval-${{ inputs.eval-label }}
+          path: docs/evidence/phase-1/evals
+          retention-days: 30
+      - name: stack logs on failure
+        if: ${{ failure() }}
+        run: docker compose logs --no-color > stack.log
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ failure() }}
+        with:
+          name: eval-stack-logs
+          path: stack.log
+          retention-days: 7
+      - name: stop the stack
+        if: ${{ always() }}
+        run: docker compose down -v

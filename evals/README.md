@@ -40,3 +40,12 @@ Metrics:
 | Cost | mean and total `usage.estimatedCostUsd` per claim |
 
 Every paid run needs the owner's go-ahead with a cost estimate first.
+
+### In GitHub Actions
+
+`nightly.yml` → "Run workflow" with `eval: true` runs only the eval (never on the schedule):
+
+- `eval-setup: mock` checks the mechanics with the mock providers; free, report marked invalid.
+- `eval-setup: claude` uses Claude (checker `claude-opus-5`, explainer `claude-haiku-4-5`) with live research. It needs the GitHub environment `eval` with required reviewers, the secret `ANTHROPIC_EVAL_API_KEY` (a dedicated, budget-limited key) and optionally the variable `EVAL_BUDGET_USD` (default 5, the stack's daily budget cap).
+
+The report, diagram and raw verdicts are uploaded as the artifact `eval-<label>`.
