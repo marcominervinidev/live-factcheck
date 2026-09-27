@@ -13,7 +13,8 @@
     "format:check": "prettier --check .",
     "depcruise": "depcruise --config .dependency-cruiser.cjs .",
     "test:unit": "pnpm -r --if-present test:unit",
-    "test:int": "pnpm -r --if-present test:int"
+    "test:int": "pnpm -r --if-present test:int",
+    "eval": "pnpm --filter @lfc/evals run eval"
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
