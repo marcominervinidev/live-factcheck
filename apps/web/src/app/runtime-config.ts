@@ -6,10 +6,12 @@ import { create } from 'zustand';
  * exception): generated from environment variables at container start, never baked into the
  * bundle and never containing secrets.
  */
+// Same rule as docker/40-runtime-config.sh: an absolute path, or an http(s) origin plus path.
+// The first path segment must not be empty, so `//other.host/api` (protocol-relative) is rejected.
+const GATEWAY_URL = /^(https?:\/\/[A-Za-z0-9.:-]+)?\/([A-Za-z0-9._~-][A-Za-z0-9._~/-]*)?$/;
+
 export const RuntimeConfig = z.strictObject({
-  gatewayUrl: z
-    .string()
-    .regex(/^(https?:\/\/[^/\s]+)?\/[^\s]*$/, 'Expected an absolute path or URL'),
+  gatewayUrl: z.string().regex(GATEWAY_URL, 'Expected an absolute path or an http(s) URL'),
 });
 export type RuntimeConfig = z.infer<typeof RuntimeConfig>;
 

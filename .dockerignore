@@ -1,4 +1,4 @@
-# Build context allowlist style: exclude everything that must never reach an image.
+# Denylist: nothing below may reach a build context (secrets, local state, build and test output).
 .git
 .github
 .ai
@@ -6,14 +6,19 @@
 .agents
 .devcontainer
 docs
+.pnpm-store
 **/node_modules
 **/dist
 **/*.tsbuildinfo
 **/coverage
+**/reports
 **/playwright-report
 **/blob-report
 **/test-results
-.env
-.env.*
+**/.stryker-tmp
+**/.lighthouseci
+# Environment files anywhere (Vite would inline VITE_* values into the bundle).
+**/.env
+**/.env.*
 secrets/
 .DS_Store

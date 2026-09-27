@@ -38,6 +38,9 @@ case "$tool" in
       && block "command references an .env file"
     printf '%s' "$cmd" | grep -Eq 'live-factcheck/secrets|\$\{?SECRETS_DIR' \
       && block "command references the secrets directory"
+    # Secrets mounted inside containers (docker compose exec … cat /run/secrets/…).
+    printf '%s' "$cmd" | grep -Eq '/run/secrets' \
+      && block "command references secrets mounted in a container"
     # Running the init target or script touches the secrets directory; mentioning the file does not.
     printf '%s' "$cmd" \
       | grep -Eq '(^|[;&|(]) *(make [^;&|]*secrets-init|((ba)?sh +)?(\./)?scripts/secrets-init\.sh)' \

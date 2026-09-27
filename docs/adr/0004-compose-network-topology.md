@@ -13,11 +13,12 @@
 
 | Network | Members | Purpose |
 |---|---|---|
-| `edge` | caddy, web, gateway | the only path from the host into the stack |
+| `edge` | caddy | carries the published host ports (a network with published ports cannot be internal) |
+| `frontend` (`internal: true`) | caddy, web, gateway | the only path from Caddy to the app; web and gateway get no internet or host access |
 | `internal` (`internal: true`) | gateway, transcription, claim-extractor, fact-checker, redis, searxng | service-to-service traffic; no route to the internet or the host |
 | `egress` | searxng (later: LLM, STT and fetch clients) | outbound internet |
 
-The brief names only `edge` and `internal`; `egress` exists because `internal: true` blocks all outbound traffic. It is the Compose equivalent of a Kubernetes egress NetworkPolicy.
+The brief names `edge` and `internal`. `frontend` was split off after the phase 0 security review: in a normal bridge network, web and gateway could have reached the internet and `host.docker.internal`. `egress` exists because `internal: true` blocks all outbound traffic; it is the Compose equivalent of a Kubernetes egress NetworkPolicy.
 
 **Edge (Caddy)**
 - Own image based on `caddy:2.11.4-alpine`, running as uid 1000. It listens on 8080/8443 inside the container, published as `${LFC_HTTP_PORT:-80}` and `${LFC_HTTPS_PORT:-443}`, so it needs no `NET_BIND_SERVICE`. The upstream binary's file capability is removed, because the kernel refuses to exec it under `cap_drop: ALL` + `no-new-privileges`.

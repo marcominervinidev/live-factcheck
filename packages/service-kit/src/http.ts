@@ -13,7 +13,11 @@ export interface CreateHttpServerOptions {
   readonly logger: Logger;
   readonly metrics: Registry;
   readonly readiness: () => readonly ReadinessCheck[];
-  /** While true, `/readyz` answers 503 so load balancers drain the instance. */
+  /**
+   * While true, `/readyz` answers 503. In the current shutdown order the server stops accepting
+   * connections right after, so this only affects requests already on open connections. Real
+   * readiness-based draining (a delay between 503 and close) comes with Kubernetes in phase 5.
+   */
   readonly isShuttingDown: () => boolean;
   readonly readinessTimeoutMs?: number;
 }

@@ -84,6 +84,6 @@ jobs:
         env:
           IMAGE: lfc/${{ matrix.image.name }}:nightly
         run: >-
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.74.0
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
           image --scanners vuln,secret --severity HIGH,CRITICAL --exit-code 0
           --no-progress --table-mode detailed "$IMAGE" | tee -a "$GITHUB_STEP_SUMMARY"

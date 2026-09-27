@@ -31,6 +31,8 @@ describe('runtime config store', () => {
     ['an unknown field', { gatewayUrl: '/api', apiKey: 'x' }],
     ['a relative path', { gatewayUrl: 'api' }],
     ['a javascript: URL', { gatewayUrl: 'javascript:alert(1)' }],
+    ['a protocol-relative URL to another host', { gatewayUrl: '//evil.example/api' }],
+    ['markup in the path', { gatewayUrl: '/api"><script>' }],
   ])('rejects %s', async (_label, body) => {
     await useRuntimeConfig.getState().load(respond(200, body));
     expect(useRuntimeConfig.getState().state).toEqual({

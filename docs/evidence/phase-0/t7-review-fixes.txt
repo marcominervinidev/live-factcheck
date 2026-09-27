@@ -1,0 +1,44 @@
+# Verification of the phase 0 review fixes (isolated stack lfc-verify, throwaway secrets)
+
+## Secret normalisation (review #10)
+redis_password written with leading spaces and CRLF: Redis healthy, all services /readyz 200,
+make test-api: 17 passed (includes the new CSP connect-src assertion, review #8).
+
+## mcp ACL user (review #2)
+CLIENT PAUSE 1 WRITE     -> NOPERM User mcp has no permissions to run the 'client|pause' command
+CLIENT KILL USER app     -> NOPERM User mcp has no permissions to run the 'client|kill' command
+CLIENT NO-EVICT on       -> NOPERM User mcp has no permissions to run the 'client|no-evict' command
+CLIENT SETNAME probe     -> OK
+XLEN x                   -> 0
+SET x 1                  -> NOPERM User mcp has no permissions to run the 'set' command
+
+## Network segmentation (security review #3)   (000 = no connection)
+frontend -> internet (web/gateway view): 000
+frontend -> host.docker.internal:443   : 000
+frontend -> web:8080/healthz          : 200
+edge     -> web:8080 (not a member)    : 000
+web      networks: frontend
+gateway  networks: frontend internal
+caddy    networks: edge frontend
+
+## E2E after all fixes
+make test-e2e: 4 passed (chromium-desktop, chromium-mobile, webkit-iphone, firefox-desktop)
+
+## Dev mode styles under the CSP (/code-review #1), ad-hoc browser probe against make dev
+body background: rgb(248, 250, 252)
+style-src: style-src 'self' 'unsafe-inline'     (dev overlay only; production keeps 'self')
+console errors: []
+
+## Toolbox without Docker socket (security review #1)
+toolbox mounts: /pnpm-store /workspace | groups: []
+make test-integration (via toolbox-docker): 11 backend + 9 frontend integration tests passed
+
+## Wrong-password tests (review #5)
+All five now wait for Redis' WRONGPASS before asserting 503 / a failing readiness check.
+
+## runService typing (review #4)
+With the constraint removed, tsc fails: "Unused '@ts-expect-error' directive" in lifecycle.test.ts.
+
+## Affected detection (review #3)
+Only packages/providers changed -> providers, claim-extractor, fact-checker.
+Only tsconfig.base.json changed -> every workspace.

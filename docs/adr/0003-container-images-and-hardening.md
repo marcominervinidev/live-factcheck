@@ -37,5 +37,5 @@ Every service runs in its own container, in development and in production (brief
 ## Consequences
 
 - The runtime image is ~180 MB, of which ~160 MB is the distroless Node base. Third-party packages ship their own test files; pruning them is not worth the complexity now.
-- There is no shell for debugging in production containers; use `docker compose logs` and the dev target instead.
+- There is no shell for debugging in the Node production containers; use `docker compose logs` and the dev target instead. The edge images (nginx-unprivileged, Caddy) are Alpine-based and keep BusyBox; this is an accepted risk in `docs/SECURITY.md`.
 - Building an image in an integration test via Testcontainers fails with BuildKit (`invalid tar header`), so image-level checks run against the Compose stack (stage 3) instead.

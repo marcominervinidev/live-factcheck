@@ -6,8 +6,15 @@
 set -eu
 DIR=${1:?usage: secrets-init.sh <secrets-dir>}
 
+# Make the path absolute first, so a relative path like "secrets" cannot slip past the check.
 case "$DIR" in
-  "$(cd "$(dirname "$0")/.." && pwd)"/*)
+  /*) ;;
+  *) DIR="$(pwd)/$DIR" ;;
+esac
+REPO=$(cd "$(dirname "$0")/.." && pwd)
+REPO_PHYSICAL=$(cd "$REPO" && pwd -P)
+case "$DIR/" in
+  "$REPO"/* | "$REPO_PHYSICAL"/*)
     echo "refusing: SECRETS_DIR must be outside the repository ($DIR)" >&2
     exit 1 ;;
 esac

@@ -16,6 +16,7 @@ Bash: make secrets-init                              exit 2  ok
 Bash: scripts/secrets-init.sh x                      exit 2  ok
 Bash: cd . && sh scripts/secrets-init.sh             exit 2  ok
 Bash: git add scripts/secrets-init.sh                exit 0  ok
+Bash: exec cat in-container secret                   exit 2  ok
 Bash: grep SECRETS_DIR Makefile                      exit 0  ok
 Bash: node process.env                               exit 0  ok
 == warn-contracts.sh (asks the owner, never blocks)

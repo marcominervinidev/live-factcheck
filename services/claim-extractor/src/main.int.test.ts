@@ -62,6 +62,8 @@ describe('claim-extractor with a secret file against a real Redis', () => {
 
   it('stays not ready when the file holds a wrong password', async () => {
     const url = await start('wrong-password\n');
+    // Wait for Redis' actual auth rejection; right after start PING also fails while connecting.
+    await run?.waitFor('WRONGPASS');
     const response = await fetch(url);
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ status: 'not_ready', checks: { redis: 'failed' } });

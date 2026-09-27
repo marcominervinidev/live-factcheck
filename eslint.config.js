@@ -15,6 +15,8 @@ export default tseslint.config(
       '**/playwright-report/**',
       '**/blob-report/**',
       '**/test-results/**',
+      '**/.stryker-tmp/**',
+      '**/.lighthouseci/**',
     ],
   },
   eslint.configs.recommended,

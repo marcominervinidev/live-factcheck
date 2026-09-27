@@ -4,6 +4,7 @@ import { RedisContainer } from '@testcontainers/redis';
 import type { StartedRedisContainer } from '@testcontainers/redis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createLogger } from './logger.js';
 import { createRedis } from './redis.js';
 import type { RedisConnection } from './redis.js';
 import { silentLogger } from './testing/silent-logger.js';
@@ -38,8 +39,23 @@ describe('createRedis against a real Redis', () => {
     expect(await redis.client.get(`${PREFIX}greeting`)).toBe('hallo');
   });
 
-  it('is not ready with a wrong password', async () => {
-    const redis = connect('wrong-password');
+  it('is not ready with a wrong password, because Redis rejects the credentials', async () => {
+    const lines: string[] = [];
+    const url = `redis://${container.getHost()}:${String(container.getMappedPort(6379))}`;
+    const redis = createRedis({
+      url,
+      password: 'wrong-password',
+      logger: createLogger({
+        service: 'test',
+        level: 'warn',
+        destination: { write: (line: string) => lines.push(line) },
+      }),
+    });
+    connections.push(redis);
+
+    // The auth rejection arrives as a connection error (logged by createRedis); until the
+    // connection is ready, PING itself only reports that the stream is not writable.
+    await expect.poll(() => lines.join('')).toContain('WRONGPASS');
     await expect(redis.readiness.check()).rejects.toThrow();
   });
 

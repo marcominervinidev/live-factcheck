@@ -22,9 +22,12 @@ export interface StartedService {
   stop(): Promise<void>;
 }
 
-export interface ServiceDefinition<Schema extends z.ZodObject> {
+/** A service config schema: any zod object whose output includes the base fields (PORT, …). */
+export type ServiceConfigSchema = z.ZodObject & z.ZodType<BaseConfig>;
+
+export interface ServiceDefinition<Schema extends ServiceConfigSchema> {
   readonly name: string;
-  /** Must extend `baseConfigSchema`. */
+  /** Built from `baseConfigSchema.extend(…)`; the type rejects schemas without the base fields. */
   readonly configSchema: Schema;
   readonly secretKeys: readonly Extract<keyof z.infer<Schema>, string>[];
   start(context: ServiceContext<z.infer<Schema>>): Promise<StartedService>;
@@ -36,7 +39,7 @@ const SIGNALS = ['SIGTERM', 'SIGINT'] as const;
  * Runs a service: validate config (exit 1 on error), start, serve ops endpoints on PORT,
  * and shut down cleanly on SIGTERM/SIGINT within SHUTDOWN_TIMEOUT_MS.
  */
-export async function runService<Schema extends z.ZodObject>(
+export async function runService<Schema extends ServiceConfigSchema>(
   definition: ServiceDefinition<Schema>,
 ): Promise<void> {
   let loaded: ReturnType<typeof loadConfig<Schema>>;
@@ -53,7 +56,7 @@ export async function runService<Schema extends z.ZodObject>(
     process.exit(1);
   }
 
-  const config = loaded.config as z.infer<Schema> & BaseConfig;
+  const config: z.infer<Schema> = loaded.config;
   const logger = createLogger({
     service: definition.name,
     level: config.LOG_LEVEL,

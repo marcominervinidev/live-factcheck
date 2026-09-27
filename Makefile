@@ -6,7 +6,7 @@ COMPOSE := docker compose
 DEV := $(COMPOSE) -f docker-compose.yml -f compose.dev.yaml
 TEST := $(COMPOSE) -f docker-compose.yml -f compose.test.yaml
 SECRETS_DIR ?= $(HOME)/.config/live-factcheck/secrets
-TRIVY := aquasec/trivy:0.74.0
+TRIVY := aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
 PLAYWRIGHT := docker run --rm --ipc=host -e CI -v $(CURDIR):/workspace mcr.microsoft.com/playwright:v1.63.0-noble
 IMAGES := caddy web gateway transcription claim-extractor fact-checker
 
@@ -51,8 +51,9 @@ lint: ## Stage 0: typecheck, lint, format check, boundaries, MCP config parity
 test-unit: ## Stage 1: unit tests of all workspaces
 	$(TB) pnpm test:unit
 
-test-integration: ## Stages 2a (backend, Testcontainers) and 2b (frontend, Playwright, mocked backend)
-	$(TB) pnpm --filter '!@lfc/web' -r --if-present test:int
+test-integration: ## Stages 2a (backend, Testcontainers; Docker socket) and 2b (frontend, Playwright)
+	$(COMPOSE) -f compose.toolbox.yaml --profile docker run --rm toolbox-docker \
+	  pnpm --filter '!@lfc/web' -r --if-present test:int
 	$(PLAYWRIGHT) sh -c 'cd /workspace/apps/web && node_modules/.bin/playwright test -c tests/playwright.config.ts'
 
 test-api: ## Stage 3: API tests against the running stack (starts it with the test overlay)

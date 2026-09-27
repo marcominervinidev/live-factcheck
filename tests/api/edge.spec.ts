@@ -9,6 +9,9 @@ test('serves the app over HTTPS with the security headers', async ({ request }) 
   expect(headers['strict-transport-security']).toBe('max-age=31536000');
   expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
   expect(headers['content-security-policy']).toContain("script-src 'self';");
+  // WebSockets only to this origin, never to any host (a bare `wss:`).
+  const origin = new URL(response.url()).host;
+  expect(headers['content-security-policy']).toContain(`connect-src 'self' wss://${origin};`);
   expect(headers['permissions-policy']).toContain('microphone=(self)');
   expect(headers['x-content-type-options']).toBe('nosniff');
   expect(headers['x-frame-options']).toBe('DENY');
@@ -16,10 +19,11 @@ test('serves the app over HTTPS with the security headers', async ({ request }) 
   expect(headers['server']).toBeUndefined();
 });
 
-test('redirects plain HTTP to HTTPS on the default port', async ({ request }) => {
-  const response = await request.get('http://lfc.local:8080/some/path?x=1', { maxRedirects: 0 });
+test('redirects plain HTTP to HTTPS on the default port', async ({ request, baseURL }) => {
+  const host = new URL(baseURL ?? '').hostname;
+  const response = await request.get(`http://${host}:8080/some/path?x=1`, { maxRedirects: 0 });
   expect(response.status()).toBe(301);
-  expect(response.headers()['location']).toBe('https://lfc.local/some/path?x=1');
+  expect(response.headers()['location']).toBe(`https://${host}/some/path?x=1`);
 });
 
 test('serves the runtime config without caching and without secrets', async ({ request }) => {
