@@ -68,7 +68,6 @@ await runService({
       registers: [metrics],
     });
 
-    // The gateway reads this for GET /api/status (plan T5.4); no keys, no URLs.
     // The gateway reads this for GET /api/status; no keys, no URLs. Written on every (re)connect,
     // because the service-kit client has no offline queue.
     const publishStatus = () => {
@@ -86,6 +85,10 @@ await runService({
       stream: STREAMS.claimsDetected,
       group: 'fact-checker',
       consumer: `${hostname()}-${String(process.pid)}`,
+      // One entry at a time: a handler runs up to CHECK_TIMEOUT_MS, so entries waiting in a larger
+      // batch would exceed claimIdleMs and be taken over by another replica (review, phase 1).
+      batchSize: 1,
+      claimIdleMs: CHECK_TIMEOUT_MS + 30_000,
       logger,
       handle: async ({ event }) => {
         if (event.type !== 'claim.detected') return;

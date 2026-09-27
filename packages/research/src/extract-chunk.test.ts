@@ -49,6 +49,16 @@ describe('extractDocument', () => {
     expect(doc?.publishedAt).toBeUndefined();
   });
 
+  it('drops a publish date whose year does not fit an ISO timestamp (e.g. a typo 20245)', () => {
+    const doc = extractDocument(
+      `<html><head><meta property="article:published_time" content="20245-01-01"></head><body><article><p>${'Satz mit Inhalt. '.repeat(40)}</p></article></body></html>`,
+      'https://www.beispielzeitung.de/tippfehler',
+      10_000,
+    );
+    expect(doc).toBeDefined();
+    expect(doc?.publishedAt).toBeUndefined();
+  });
+
   it('returns undefined for a page without text', () => {
     expect(
       extractDocument('<html><body></body></html>', 'https://example.org/', 1_000),

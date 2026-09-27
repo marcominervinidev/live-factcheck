@@ -11,6 +11,7 @@ import type {
 import {
   BudgetExceededError,
   ClassifierError,
+  EmbeddingError,
   LlmError,
   checkClassifierConfig,
   classifierConfigShape,
@@ -24,12 +25,15 @@ import { z } from 'zod';
 
 import { mockClassifier, mockLlm, mockResearch } from './mocks.js';
 import type { PipelineDeps } from './pipeline.js';
-import { checkClaim, verdictCacheKey } from './pipeline.js';
+import { checkClaim, fallbackQueries, verdictCacheKey } from './pipeline.js';
 import { loadQuestionTexts } from './questions.js';
 
 const now = () => new Date('2026-09-26T10:00:00.000Z');
-let tick = 0;
-const clock = () => (tick += 10);
+/** A fresh fake clock per deps(), so timings never depend on test order. */
+const fakeClock = () => {
+  let tick = 0;
+  return () => (tick += 10);
+};
 
 function memoryCache(): TextCache & { values: Map<string, string> } {
   const values = new Map<string, string>();
@@ -86,7 +90,7 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps & { researchC
     queriesPrompt: loadPromptTemplate(new URL('../prompts/queries.md', import.meta.url)),
     questions: loadQuestionTexts(new URL('../prompts/questions.yaml', import.meta.url)),
     now,
-    clock,
+    clock: fakeClock(),
     ...overrides,
   });
 }
@@ -156,6 +160,17 @@ describe('checkClaim (brief 9.6)', () => {
     expect(second.usage).toEqual({ inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 });
   });
 
+  it('keeps the provider that produced a cached verdict', async () => {
+    const d = deps();
+    const first = await checkClaim(claim('Der Zweite Weltkrieg endete 1945.'), d);
+    const other = await checkClaim(
+      claim('Der Zweite Weltkrieg endete 1945.'),
+      deps({ verdictCache: d.verdictCache, searchName: 'searxng' }),
+    );
+    expect(other.cacheHit).toBe('verdict_exact');
+    expect(other.provider).toEqual(first.provider);
+  });
+
   it('does not share the cache between claims that differ only in a number', async () => {
     const d = deps();
     await checkClaim(claim('Der Zweite Weltkrieg endete 1945.'), d);
@@ -216,8 +231,20 @@ describe('checkClaim (brief 9.6)', () => {
       claim('Der Zweite Weltkrieg endete 1945.'),
       deps({ classifier: classifierWith(insufficient) }),
     );
-    expect(result).toMatchObject({ verdict: 'nicht_pruefbar', reason: 'no_evidence' });
+    expect(result).toMatchObject({
+      verdict: 'nicht_pruefbar',
+      reason: 'no_evidence',
+      confidenceLevel: 'niedrig',
+    });
     expect(result.evidence.length).toBeGreaterThan(0);
+  });
+
+  it('falls back to the claim plus its names and numbers as search queries', () => {
+    expect(fallbackQueries('Der Zweite Weltkrieg endete 1945 in Europa.')).toEqual([
+      'Der Zweite Weltkrieg endete 1945 in Europa.',
+      'Zweite Weltkrieg 1945 Europa',
+    ]);
+    expect(fallbackQueries('Das stimmt so nicht.')).toEqual(['Das stimmt so nicht.']);
   });
 
   it('stops before any model call when the daily budget is exhausted', async () => {
@@ -267,7 +294,7 @@ describe('checkClaim (brief 9.6)', () => {
         },
       }),
     );
-    expect(queries).toEqual([['Der Zweite Weltkrieg endete 1945.']]);
+    expect(queries).toEqual([['Der Zweite Weltkrieg endete 1945.', 'Zweite Weltkrieg 1945']]);
   });
 
   it('records spend against the budget for every model call', async () => {
@@ -368,5 +395,56 @@ describe('checkClaim (brief 9.6)', () => {
     await expect(checkClaim(text, deps({ classifier: brokenClassifier }))).rejects.toThrow(
       'bug in classifier',
     );
+  });
+
+  it('answers provider_error instead of throwing when the embedding provider fails', async () => {
+    const embeddings = deps().embeddings;
+    const result = await checkClaim(
+      claim('Der Zweite Weltkrieg endete 1945.'),
+      deps({
+        embeddings: {
+          ...embeddings,
+          embedQuery: () => Promise.reject(new EmbeddingError('LM Studio is not running')),
+        },
+      }),
+    );
+    expect(result).toMatchObject({ verdict: 'nicht_pruefbar', reason: 'provider_error' });
+  });
+
+  it('keeps the chosen fact check and bestEvidenceId when more than 10 items are relevant', async () => {
+    const research = mockResearch(now);
+    const many = async (input: { claim: string; queries: readonly string[] }) => {
+      const base = await research(input);
+      const template = base.documents[0];
+      if (template === undefined) throw new Error('mock corpus is empty');
+      return {
+        ...base,
+        documents: Array.from({ length: 12 }, (_, i) => ({
+          ...template,
+          url: `https://example.org/page-${String(i)}`,
+          text: `Der Zweite Weltkrieg endete 1945. Absatz ${String(i)} mit weiteren Angaben.`,
+        })),
+      };
+    };
+    // Every snippet relevant; the best answer is the fact check F1.
+    const classifier = classifierWith((state, questions) => {
+      const answers = mockClassifier(state, questions);
+      const best = questions['best'];
+      if (best?.type !== 'choice') return answers;
+      return {
+        ...answers,
+        best: Object.fromEntries(
+          Object.keys(best.options).map((key) => [key, key === 'F1' ? 0.9 : 0.01]),
+        ),
+      };
+    });
+    const result = await checkClaim(
+      claim('Der Zweite Weltkrieg ist erst 20 Jahre vorbei.'),
+      deps({ research: many, classifier, topK: 10 }),
+    );
+    expect(ClaimChecked.safeParse(result).success).toBe(true);
+    expect(result.evidence).toHaveLength(10);
+    expect(result.evidence[0]?.tier).toBe('faktencheck');
+    expect(result.evidence.map((e) => e.evidenceId)).toContain(result.bestEvidenceId);
   });
 });

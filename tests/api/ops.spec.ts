@@ -31,9 +31,14 @@ for (const service of SERVICES) {
       );
     });
 
-    test('answers unknown routes with 404 and no stack trace', async ({ request }) => {
+    // The gateway denies by default (every non-ops route needs the token, ADR 0011), so an
+    // unknown path without a token is 401 there and 404 everywhere else.
+    const unknownStatus = service === 'gateway' ? 401 : 404;
+    test(`answers unknown routes with ${String(unknownStatus)} and no stack trace`, async ({
+      request,
+    }) => {
       const response = await request.get(`${base}/does-not-exist`);
-      expect(response.status()).toBe(404);
+      expect(response.status()).toBe(unknownStatus);
       expect(await response.text()).not.toMatch(/at \w+ \(|node_modules/);
     });
   });

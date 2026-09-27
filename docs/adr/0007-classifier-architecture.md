@@ -46,3 +46,7 @@ interface ClassifierProvider {
 - Numeric and temporal claims are a known Jev weakness; the claim eval set gets a dedicated slice for them.
 - Without Jev access, `typesafe` is tested only against a local fake server; the DoD run is skipped and named in the PR.
 - The confidence formula lives in one place and is covered by property-style unit tests.
+
+## Amendment (2026-09-27, phase 1 review)
+
+The plan (T2.3) said to truncate a `state` above Jev's 32k token budget with a warning. The adapter instead rejects it (`ClassifierError` `state_too_large`), and the pipeline answers `nicht_pruefbar` (`provider_error`). Reason: cutting the state silently drops evidence the verdict would then claim to rest on; an honest "not checkable" is better than a verdict on half the sources. In practice the pipeline stays far below the limit (at most 10 snippets of ≤ 500 tokens plus 3 fact checks).

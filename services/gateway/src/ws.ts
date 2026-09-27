@@ -64,13 +64,17 @@ export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<
     }, config.WS_AUTH_TIMEOUT_MS);
     let sessionTimer: NodeJS.Timeout | undefined;
 
+    let authenticating = false;
     socket.on('message', (data: Buffer, isBinary: boolean) => {
-      if (sessionId !== undefined) {
+      // Anything after the first message (also while the session is still being created) is
+      // invalid, so one socket can never open several sessions (security review, phase 1).
+      if (authenticating || sessionId !== undefined) {
         // Phase 1 has no client messages after auth; audio and control follow in phase 2.
         fail('invalid_message');
         return;
       }
       clearTimeout(authTimer);
+      authenticating = true;
       let parsed: ReturnType<typeof WsClientMessage.safeParse> | undefined;
       try {
         parsed = isBinary
@@ -104,6 +108,12 @@ export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<
             }
             if (envelope?.success) send({ type: 'event', schemaVersion: 1, event: envelope.data });
           });
+          // Closed while subscribing: the close handler's leave may have run before the join.
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- set by the close handler during the await
+          if (closed) {
+            await hub.leave(id);
+            return;
+          }
           sessionTimer = setTimeout(() => {
             fail('session_expired');
           }, config.MAX_SESSION_MS);

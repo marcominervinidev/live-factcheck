@@ -45,8 +45,18 @@ export interface StreamConsumerOptions {
   readonly handle: (message: StreamMessage) => Promise<void>;
   readonly batchSize?: number;
   readonly blockMs?: number;
-  /** Pending messages idle longer than this are taken over from crashed consumers (XAUTOCLAIM). */
+  /**
+   * Pending messages idle longer than this are taken over from crashed consumers (XAUTOCLAIM).
+   * Must exceed `batchSize` × the longest handler run, or a busy consumer's waiting entries are
+   * taken over and processed twice.
+   */
   readonly claimIdleMs?: number;
+  /**
+   * A message delivered more often than this (the handler kept failing) is logged as a dead
+   * letter and acknowledged, so one bad message cannot loop forever (and, for workers with a
+   * cloud model, spend the daily budget). Default 3.
+   */
+  readonly maxDeliveries?: number;
 }
 
 export interface StreamConsumer {
@@ -82,6 +92,7 @@ export function startStreamConsumer(options: StreamConsumerOptions): StreamConsu
   const batchSize = options.batchSize ?? 10;
   const blockMs = options.blockMs ?? 5_000;
   const claimIdleMs = options.claimIdleMs ?? 60_000;
+  const maxDeliveries = options.maxDeliveries ?? 3;
 
   // Blocking reads get their own connection so stop() can interrupt them.
   const reader = redis.duplicate();
@@ -132,10 +143,30 @@ export function startStreamConsumer(options: StreamConsumerOptions): StreamConsu
       batchSize,
     )) as [string, RawEntry[], string[]?];
     const claimed = result[1].filter((entry): entry is RawEntry => Array.isArray(entry[1]));
-    if (claimed.length > 0) {
-      logger.info({ stream, group, count: claimed.length }, 'claimed stale pending messages');
-      await process(claimed);
+    if (claimed.length === 0) return;
+    logger.info({ stream, group, count: claimed.length }, 'claimed stale pending messages');
+    const retry: RawEntry[] = [];
+    for (const entry of claimed) {
+      const [id] = entry;
+      // [[id, consumer, idleMs, deliveries]]; XAUTOCLAIM has already counted this delivery.
+      const pending = (await redis.xpending(stream, group, id, id, 1)) as [
+        string,
+        string,
+        number,
+        number,
+      ][];
+      const deliveries = pending[0]?.[3] ?? 0;
+      if (deliveries > maxDeliveries) {
+        logger.error(
+          { stream, group, entryId: id, deliveries },
+          'handler failed too often, message dropped (dead letter)',
+        );
+        await redis.xack(stream, group, id);
+      } else {
+        retry.push(entry);
+      }
     }
+    await process(retry);
   };
 
   let groupReady = false;

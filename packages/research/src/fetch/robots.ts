@@ -20,6 +20,9 @@ const MAX_PARSED_ORIGINS = 200;
  * robots.txt per origin, fetched through the same SSRF-safe fetch and cached (RFC 9309):
  * 4xx means no rules (allow), 5xx or an unreachable server means "assume complete disallow".
  */
+/** How long an unreachable robots.txt (5xx, network error) counts as "disallow all". */
+const TRANSIENT_FAILURE_TTL_S = 300;
+
 export function createRobotsPolicy(options: {
   readonly fetcher: SafeFetcher;
   readonly cache: TextCache;
@@ -32,6 +35,7 @@ export function createRobotsPolicy(options: {
     const cached = await options.cache.get(key);
     if (cached !== null) return cached;
     let rules: string;
+    let ttlSeconds = options.ttlSeconds;
     try {
       const page = await options.fetcher.fetchText(`${origin}/robots.txt`, {
         accept: ['text/plain', 'text/html', 'application/octet-stream'],
@@ -39,15 +43,22 @@ export function createRobotsPolicy(options: {
       });
       rules = page.text.slice(0, MAX_ROBOTS_CHARS);
     } catch (error) {
+      // Our own abort (tier or check timeout) says nothing about the site: disallow for this
+      // call only, never cached (review, phase 1: one slow robots.txt blocked a domain for 24 h).
+      if (signal?.aborted === true) return DISALLOW_ALL;
       if (error instanceof FetchFailedError && error.status !== undefined && error.status < 500) {
         rules = ALLOW_ALL;
       } else if (error instanceof FetchBlockedError || error instanceof FetchFailedError) {
         rules = DISALLOW_ALL;
+        // Unreachable or 5xx is usually temporary: retry after a few minutes, not a day.
+        if (!(error instanceof FetchBlockedError)) {
+          ttlSeconds = Math.min(ttlSeconds, TRANSIENT_FAILURE_TTL_S);
+        }
       } else {
         throw error;
       }
     }
-    await options.cache.set(key, rules, options.ttlSeconds);
+    await options.cache.set(key, rules, ttlSeconds);
     return rules;
   };
 

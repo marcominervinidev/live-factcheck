@@ -41,8 +41,10 @@ for (const [network, prefix] of [
 /** Expands an IPv6 address into 8 hextets (numbers). */
 function hextets(address: string): number[] {
   let [head = '', tail = ''] = address.split('::');
-  // An embedded dotted IPv4 tail (e.g. ::ffff:1.2.3.4) becomes two hextets.
-  const dotted = /(\d+\.\d+\.\d+\.\d+)$/.exec(address)?.[1];
+  // An embedded dotted IPv4 tail (e.g. ::ffff:1.2.3.4) becomes two hextets. Only the last
+  // segment is tested, with an anchored pattern, so the check stays linear (CodeQL ReDoS).
+  const last = address.slice(address.lastIndexOf(':') + 1);
+  const dotted = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(last) ? last : undefined;
   const convert = (part: string) => {
     if (dotted === undefined || !part.endsWith(dotted)) return part;
     const [a = 0, b = 0, c = 0, d = 0] = dotted.split('.').map(Number);

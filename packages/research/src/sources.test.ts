@@ -113,6 +113,45 @@ describe('Google Fact Check source (tier 1)', () => {
   });
 });
 
+describe('Google Fact Check source: third-party fields fit the contract', () => {
+  it('trims and cuts oversized fields and drops a blank title', async () => {
+    const { fetcher } = fakeFetcher({
+      'https://factchecktools.googleapis.com/': json({
+        claims: [
+          {
+            text: 'Z'.repeat(5_000),
+            claimReview: [
+              {
+                publisher: { name: `  ${'P'.repeat(500)}  ` },
+                url: 'https://correctiv.org/faktencheck/long',
+                textualRating: 'R'.repeat(500),
+                title: 'T'.repeat(1_000),
+              },
+              {
+                publisher: { name: 'CORRECTIV' },
+                url: 'https://correctiv.org/faktencheck/blank-title',
+                textualRating: 'Falsch',
+                title: '   ',
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    const [long, blank] = await createFactCheckSource({
+      fetcher,
+      apiKey: 'goog-secret',
+      languageCode: 'de',
+    }).search('Behauptung', { limit: 5 });
+
+    expect(long?.title).toHaveLength(300);
+    expect(long?.publisher).toBe('P'.repeat(200));
+    expect(long?.rating).toHaveLength(200);
+    expect(long?.claimText).toHaveLength(1_000);
+    expect(blank).not.toHaveProperty('title');
+  });
+});
+
 describe('Wikipedia and Wikidata sources (tier 2)', () => {
   it('searches German Wikipedia and extracts the page text', async () => {
     const { fetcher } = fakeFetcher({
@@ -158,8 +197,17 @@ describe('Wikipedia and Wikidata sources (tier 2)', () => {
             claims: {
               P580: [time('+1939-09-01T00:00:00Z')],
               P582: [time('+1945-09-02T00:00:00Z')],
+              // An old value first, a deprecated one and the current (preferred) one.
               P1082: [
-                { mainsnak: { datavalue: { type: 'quantity', value: { amount: '+3850809' } } } },
+                { mainsnak: { datavalue: { type: 'quantity', value: { amount: '+3400000' } } } },
+                {
+                  rank: 'deprecated',
+                  mainsnak: { datavalue: { type: 'quantity', value: { amount: '+1' } } },
+                },
+                {
+                  rank: 'preferred',
+                  mainsnak: { datavalue: { type: 'quantity', value: { amount: '+3850809' } } },
+                },
               ],
               P999: [time('+2000-01-01T00:00:00Z')],
             },
@@ -328,6 +376,42 @@ describe('caches (ADR 0008 level 3)', () => {
       { url: 'https://x.org/1', title: 't', snippet: '' },
     ]);
     expect(searches).toBe(1);
+  });
+
+  it('treats a corrupt cache entry as a miss and does not cache empty search results', async () => {
+    const values = new Map<string, string>();
+    const cache: TextCache = {
+      get: (key) => Promise.resolve(values.get(key) ?? null),
+      set: (key, value) => {
+        values.set(key, value);
+        return Promise.resolve();
+      },
+    };
+    let searches = 0;
+    const search = cachedSearch(
+      {
+        name: 'mock',
+        search: () => {
+          searches++;
+          return Promise.resolve([]);
+        },
+      },
+      cache,
+      3600,
+    );
+    await search.search('q', { language: 'de', limit: 5 });
+    await search.search('q', { language: 'de', limit: 5 });
+    expect(searches).toBe(2);
+    expect(values.size).toBe(0);
+
+    const { fetcher, calls } = fakeFetcher({
+      'https://example.org/': { contentType: 'text/html', text: '<p>ok</p>' },
+    });
+    const cached = cachedFetcher(fetcher, cache, 3600);
+    await cached.fetchText('https://example.org/a', { accept: ['text/html'] });
+    for (const key of values.keys()) values.set(key, '{not json');
+    await cached.fetchText('https://example.org/a', { accept: ['text/html'] });
+    expect(calls).toHaveLength(2);
   });
 
   it('never caches failures', async () => {

@@ -18,6 +18,7 @@ import type {
 import {
   BudgetExceededError,
   ClassifierError,
+  EmbeddingError,
   LlmError,
   NO_USAGE,
   addUsage,
@@ -87,15 +88,20 @@ function addCost(total: number | null, model: string, usage: TokenUsage): number
   return total === null || cost === null ? null : total + cost;
 }
 
+/** ISO timestamp for a third-party date, or undefined when it is invalid or out of range. */
+function isoDate(value: string | undefined): string | undefined {
+  if (value === undefined || Number.isNaN(Date.parse(value))) return undefined;
+  const iso = new Date(value).toISOString();
+  return /^\d{4}-/.test(iso) ? iso : undefined;
+}
+
 function factCheckEvidence(hit: FactCheckHit, retrievedAt: string, evidenceId: string): Evidence {
   return {
     evidenceId,
     title: hit.title ?? hit.claimText,
     url: hit.url,
     publisher: hit.publisher,
-    ...(hit.reviewDate === undefined || Number.isNaN(Date.parse(hit.reviewDate))
-      ? {}
-      : { publishedAt: new Date(hit.reviewDate).toISOString() }),
+    ...(isoDate(hit.reviewDate) === undefined ? {} : { publishedAt: isoDate(hit.reviewDate) }),
     retrievedAt,
     tier: 'faktencheck',
     snippet: toSnippet(`${hit.claimText} – Bewertung: ${hit.rating}`),
@@ -212,6 +218,22 @@ async function writeCachedVerdict(
   );
 }
 
+/**
+ * Heuristic queries when the LLM fails (brief 8.1): the claim itself plus its names and numbers
+ * (capitalised words not at the start of the sentence, and digits), which search engines match
+ * better than a full German sentence.
+ */
+export function fallbackQueries(claim: string): readonly string[] {
+  const words = claim
+    .replace(/[.!?,;:„“"()]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- single-character tests, linear
+  const entities = words.filter((word, i) => (i > 0 && /^\p{Lu}/u.test(word)) || /\d/.test(word));
+  const keywords = entities.join(' ');
+  return keywords !== '' && keywords !== claim ? [claim, keywords] : [claim];
+}
+
 /** Step 3: search queries from the LLM; if it fails, the claim itself is the query. */
 async function generateQueries(
   claim: string,
@@ -235,7 +257,7 @@ async function generateQueries(
   } catch (error) {
     if (!(error instanceof LlmError)) throw error;
     await spending.add(deps.llm.model, error.usage);
-    return [claim];
+    return fallbackQueries(claim);
   }
 }
 
@@ -367,6 +389,15 @@ async function classify(
   }
 }
 
+/**
+ * The chosen best item first, then fact checks, then snippets, so the cut to the contract's
+ * maximum can never drop the item `bestEvidenceId` points to or the existing fact check.
+ */
+function orderEvidence(evidenceByKey: ReadonlyMap<string, Evidence>, bestKey: string): Evidence[] {
+  const rank = (key: string) => (key === bestKey ? 0 : key.startsWith('F') ? 1 : 2);
+  return [...evidenceByKey.entries()].sort(([a], [b]) => rank(a) - rank(b)).map(([, item]) => item);
+}
+
 /** Applies sufficiency and the confidence thresholds (brief 8.1) to the classifier's answers. */
 function toVerdictFields(
   answers: {
@@ -389,7 +420,7 @@ function toVerdictFields(
     probabilities: answer.probabilities as VerdictProbabilities,
     confidence: answer.confidence,
     confidenceLevel: level,
-    evidence: [...evidenceByKey.values()].slice(0, MAX_EVIDENCE),
+    evidence: orderEvidence(evidenceByKey, best.choice).slice(0, MAX_EVIDENCE),
     ...(topFactCheck === undefined
       ? {}
       : {
@@ -407,11 +438,12 @@ function toVerdictFields(
   else if (level === 'niedrig') reason = 'low_confidence';
 
   if (reason !== undefined) {
-    // low_confidence keeps its real level; the other reasons are reported without a level claim.
+    // classified_unverifiable keeps its level (how sure the classifier is that the claim cannot
+    // be checked); without sufficient evidence or with low confidence the level is niedrig.
     return {
       ...base,
       verdict: 'nicht_pruefbar',
-      confidenceLevel: reason === 'low_confidence' ? 'niedrig' : level,
+      confidenceLevel: reason === 'classified_unverifiable' ? level : 'niedrig',
       reason,
     };
   }
@@ -439,7 +471,17 @@ export async function checkClaim(
   const spending = new Spending(deps.budget);
   const timings = { retrieveMs: 0, classifyMs: 0 };
 
-  const finish = (fields: VerdictFields): ClaimChecked => {
+  const currentProvider = {
+    classifier: deps.classifier.name,
+    model: deps.classifier.model.slice(0, 128),
+    search: deps.searchName,
+    embeddings: deps.embeddings.name,
+  };
+  const finish = (
+    fields: VerdictFields,
+    // A cached verdict keeps the provider that produced it (eval provider comparison).
+    provider: ClaimChecked['provider'] = currentProvider,
+  ): ClaimChecked => {
     const totalMs = Math.max(0, Math.round(deps.clock() - started));
     return ClaimCheckedSchema.parse({
       schemaVersion: 2,
@@ -456,12 +498,7 @@ export async function checkClaim(
         totalMs,
       },
       checkedAt: deps.now().toISOString(),
-      provider: {
-        classifier: deps.classifier.name,
-        model: deps.classifier.model.slice(0, 128),
-        search: deps.searchName,
-        embeddings: deps.embeddings.name,
-      },
+      provider,
       usage: { ...spending.usage, estimatedCostUsd: spending.costUsd },
     });
   };
@@ -477,7 +514,8 @@ export async function checkClaim(
 
   // 1. Exact verdict cache (ADR 0008).
   const cached = await readCachedVerdict(detected, deps);
-  if (cached !== undefined) return finish({ ...cached, cacheHit: 'verdict_exact' });
+  if (cached !== undefined)
+    return finish({ ...cached, cacheHit: 'verdict_exact' }, cached.provider);
 
   // 2. Budget for cloud calls (brief 15.5).
   try {
@@ -490,7 +528,15 @@ export async function checkClaim(
   // 3.–4. Search queries, research and ranking.
   const retrieveStart = deps.clock();
   const queries = await generateQueries(claim, deps, spending, signal);
-  const findings = await gatherFindings(claim, queries, deps, signal);
+  let findings: Findings;
+  try {
+    findings = await gatherFindings(claim, queries, deps, signal);
+  } catch (error) {
+    // Embedding provider down or the check's time budget used up: an answer, not a retry.
+    if (!(error instanceof EmbeddingError) && signal?.aborted !== true) throw error;
+    timings.retrieveMs = deps.clock() - retrieveStart;
+    return uncheckable('provider_error');
+  }
   timings.retrieveMs = deps.clock() - retrieveStart;
   if (findings.ranked.length === 0 && findings.factChecks.length === 0) {
     return uncheckable('no_evidence');

@@ -3,6 +3,11 @@ import { z } from 'zod';
 import type { SafeFetcher } from '../fetch/safe-fetch.js';
 import type { CallOptions, FactCheckHit } from './types.js';
 
+/** Contract limits of `Evidence` / `ExistingFactCheck` (ADR 0010). */
+const MAX_TITLE_CHARS = 300;
+const MAX_LABEL_CHARS = 200;
+const MAX_CLAIM_CHARS = 1_000;
+
 const ENDPOINT = 'https://factchecktools.googleapis.com/v1alpha1/claims:search';
 
 const Response = z.object({
@@ -69,15 +74,19 @@ export function createFactCheckSource(options: {
         for (const review of claimEntry.claimReview ?? []) {
           const rating = review.textualRating?.trim() ?? '';
           if (!isHttpUrl(review.url) || rating === '') continue;
+          // Third-party data: trimmed and cut to the contract limits here, so one oversized
+          // or blank field can never fail a verdict downstream (review, phase 1).
+          const title = nonBlank(review.title);
           hits.push({
-            claimText: nonBlank(claimEntry.text) ?? claim,
-            publisher:
+            claimText: (nonBlank(claimEntry.text) ?? claim).slice(0, MAX_CLAIM_CHARS),
+            publisher: (
               nonBlank(review.publisher?.name) ??
               nonBlank(review.publisher?.site) ??
-              new URL(review.url).hostname,
+              new URL(review.url).hostname
+            ).slice(0, MAX_LABEL_CHARS),
             url: review.url,
-            rating,
-            ...(review.title === undefined ? {} : { title: review.title }),
+            rating: rating.slice(0, MAX_LABEL_CHARS),
+            ...(title === undefined ? {} : { title: title.slice(0, MAX_TITLE_CHARS) }),
             ...(review.reviewDate === undefined ? {} : { reviewDate: review.reviewDate }),
           });
         }

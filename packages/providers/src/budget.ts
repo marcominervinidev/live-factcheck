@@ -64,7 +64,8 @@ export function createDailyBudget(
   return {
     async ensureAvailable() {
       const spent = Number((await store.get(key())) ?? '0');
-      if (spent >= limitUsd) {
+      // A corrupt counter (NaN) counts as used up: the budget fails closed (review, phase 1).
+      if (Number.isNaN(spent) || spent >= limitUsd) {
         throw new BudgetExceededError(spent, limitUsd);
       }
     },

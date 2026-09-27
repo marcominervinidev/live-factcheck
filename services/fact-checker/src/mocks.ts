@@ -70,6 +70,7 @@ const claimOf = (state: unknown): string =>
     : String(state);
 
 export const mockClassifier: MockClassifierHandler = (state, questions) => {
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- fixed mock-corpus patterns, tests and CI only
   const claim = claimOf(state);
   const verdict = RULES.find((rule) => rule.match.test(claim))?.verdict ?? DEFAULT_VERDICT;
   const answers: Record<string, RawAnswer> = {};
