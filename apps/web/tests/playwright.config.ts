@@ -20,7 +20,11 @@ export default defineConfig({
   outputDir: '../test-results',
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    trace: 'on-first-retry',
+    // CI records every test (trace, video, screenshot) so the owner can review the run from the
+    // HTML report attached to each PR; locally only what is needed to debug a retry.
+    trace: CI ? 'on' : 'on-first-retry',
+    video: CI ? 'on' : 'off',
+    screenshot: CI ? 'on' : 'only-on-failure',
   },
   projects: [
     { name: 'chromium-desktop', use: { ...devices['Desktop Chrome'] } },

@@ -70,6 +70,7 @@ Threat model, secret handling and key rotation: `docs/SECURITY.md`.
 - Never read, print or write `.env` files or anything in the secrets directory (`SECRETS_DIR`, default `~/.config/live-factcheck/secrets`). Do not run commands that touch it.
 - Secrets never go into code, commits, images, build args, the frontend, `/config.json`, logs, errors, metrics or traces.
 - `.env.example` holds only non-secret settings.
+- Never dismiss a security finding yourself (SonarQube, Semgrep, CodeQL, ZAP, LLM scan or review) as *won't fix*, *false positive* or *safe*, and never disable a rule. Fix the finding, or if it is a genuine false positive, suppress it narrowly (e.g. `nosemgrep`) with a written reason in the code, and name it in the PR — the owner decides, not the agent (brief 15.7, ADR 0014).
 
 ## Architecture overview
 

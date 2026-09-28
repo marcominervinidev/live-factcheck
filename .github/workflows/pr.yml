@@ -1,6 +1,7 @@
 # PR pipeline (brief 13.3, 14.2): only stages that ci.yml does not run.
 #   contract check, Dockerfile lint, Semgrep, image build (amd64) + Trivy per image,
-#   stage 3 (API) and stage 4 (E2E, sharded) via stack-tests.yml with mock providers.
+#   stage 3 (API) and stage 4 (E2E, sharded) via stack-tests.yml with mock providers,
+#   and a PR comment linking the Playwright reports (videos, traces) for review.
 # CodeQL runs in codeql.yml. See ADR 0005.
 name: pr
 
@@ -130,3 +131,27 @@ jobs:
             const bad = Object.entries(needs).filter(([, v]) => !['success', 'skipped'].includes(v.result));
             if (bad.length) { console.error('failed:', bad.map(([k, v]) => k + '=' + v.result).join(', ')); process.exit(1); }
             console.log('all stages green');"
+
+  # Links the Playwright reports (videos, traces) of this commit in one PR comment for review.
+  # Not a required check; fork PRs get a read-only token and simply skip it.
+  test-reports:
+    name: test report links
+    needs: [stack-tests]
+    if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: scripts/ci
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/ci/test-report-comment.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
