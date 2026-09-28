@@ -42,6 +42,13 @@ describe('isScannable', () => {
     ['pnpm-lock.yaml', false],
     ['docs/adr/0014-security-scanning-stack.md', false],
     ['scripts/llm-scan/reports/llm-scan.sarif', false],
+    ['deploy/compose/searxng/settings.yml', true],
+    ['deploy/nginx/default.conf', true],
+    ['services/gateway/package.json', true],
+    ['Makefile', true],
+    ['services/stt-local/app/main.py', true],
+    ['package-lock.json', false],
+    ['tests/redteam/src/gateway-provider.ts', false],
   ])('%s → %s', (path, expected) => {
     expect(isScannable(path)).toBe(expected);
   });
@@ -83,5 +90,31 @@ describe('chunksFromDiff', () => {
     for (const chunk of chunks) expect(chunk.text.length).toBeLessThanOrEqual(200);
     expect(chunks[0]?.startLine).toBe(1);
     expect(chunks.at(-1)?.endLine).toBe(30);
+  });
+});
+
+describe('parseDiff edge cases', () => {
+  it('keeps an added line that looks like a file header inside a hunk', () => {
+    const diff = `diff --git a/a.ts b/a.ts\n--- a/a.ts\n+++ b/a.ts\n@@ -0,0 +1,2 @@\n+const x = 1;\n+++ b/fake.ts\n`;
+    const files = parseDiff(diff);
+    expect([...files.keys()]).toEqual(['a.ts']);
+    expect(files.get('a.ts')?.map((l) => l.code)).toEqual(['const x = 1;', '++ b/fake.ts']);
+  });
+
+  it('keeps a removed-looking added line and unquotes unusual paths', () => {
+    const diff = `diff --git "a/d/\\303\\244.ts" "b/d/\\303\\244.ts"\n--- "a/d/\\303\\244.ts"\n+++ "b/d/\\303\\244.ts"\n@@ -0,0 +1 @@\n+--- not a header\n`;
+    const files = parseDiff(diff);
+    expect([...files.keys()]).toEqual(['d/\\303\\244.ts']);
+    expect(files.get('d/\\303\\244.ts')?.[0]?.code).toBe('--- not a header');
+  });
+});
+
+describe('chunksFromDiff with long lines', () => {
+  it('cuts a single overlong line so no chunk exceeds the limit', () => {
+    const diff = `diff --git a/a.js b/a.js\n--- a/a.js\n+++ b/a.js\n@@ -0,0 +1 @@\n+${'x'.repeat(5_000)}\n`;
+    const chunks = chunksFromDiff(diff, 500);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]?.text.length).toBeLessThanOrEqual(500);
+    expect(chunks[0]?.text.endsWith(' …')).toBe(true);
   });
 });

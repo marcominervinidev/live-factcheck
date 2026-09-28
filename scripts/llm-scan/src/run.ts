@@ -4,31 +4,13 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import {
-  checkLlmConfig,
-  createLlmProvider,
-  describeLlmConfig,
-  llmConfigShape,
-} from '@lfc/providers';
-import { z } from 'zod';
+import { createLlmProvider, describeLlmConfig } from '@lfc/providers';
 
+import { Config } from './config.js';
 import { chunksFromDiff } from './diff.js';
 import type { LocatedFinding } from './scan.js';
 import { scanChunk } from './scan.js';
 import { summary, toSarif } from './sarif.js';
-
-const Config = z
-  .object({
-    ...llmConfigShape('SCAN'),
-    // No leading '-': the value goes to git and must never be read as an option.
-    LLM_SCAN_BASE_REF: z
-      .string()
-      .regex(/^[\w.][\w./-]*$/)
-      .default('origin/main'),
-    // Small chunks: a 7B model on a laptop has a small context window.
-    LLM_SCAN_MAX_CHARS: z.coerce.number().int().min(500).max(40_000).default(6_000),
-  })
-  .superRefine(checkLlmConfig('SCAN'));
 
 const parsed = Config.safeParse(process.env);
 if (!parsed.success) {

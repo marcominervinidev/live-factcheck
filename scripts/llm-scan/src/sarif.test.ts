@@ -31,6 +31,7 @@ const findings: LocatedFinding[] = [
 describe('toSarif', () => {
   it('writes SARIF 2.1.0 with one rule per CWE and advisory results', () => {
     const sarif = toSarif(findings, meta);
+    expect(sarif.runs[0]?.automationDetails.id).toBe('llm-scan/');
     const [run] = sarif.runs;
     expect(sarif.version).toBe('2.1.0');
     expect(run?.tool.driver.rules.map((rule) => rule.id)).toEqual(['CWE-209', 'CWE-918']);

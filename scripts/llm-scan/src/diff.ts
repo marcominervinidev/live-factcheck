@@ -10,9 +10,11 @@ export interface Chunk {
   readonly text: string;
 }
 
-const SCANNABLE = /\.(ts|tsx|mts|js|mjs|cjs|sh|ya?ml)$|(^|\/)(Dockerfile|Caddyfile)$/;
+const SCANNABLE =
+  /\.(ts|tsx|mts|js|mjs|cjs|sh|ya?ml|json|conf|py)$|(^|\/)(Dockerfile|Caddyfile|Makefile)$/;
 const SKIPPED = [
-  /(^|\/)pnpm-lock\.yaml$/,
+  /(^|\/)(pnpm-lock\.yaml|package-lock\.json)$/,
+  /^tests\//,
   /(^|\/)(node_modules|dist|reports|coverage)\//,
   /^docs\//,
   /\.(test|int\.test|spec)\.tsx?$/,
@@ -35,21 +37,32 @@ export function parseDiff(diff: string): Map<string, Line[]> {
   const files = new Map<string, Line[]>();
   let current: Line[] | undefined;
   let next = 0;
+  // Between `diff --git` and the first `@@` only header lines follow; inside a hunk an added
+  // line that starts with `++ ` must not be mistaken for a new file.
+  let inHeader = false;
   for (const raw of diff.split('\n')) {
     if (raw.startsWith('diff --git ')) {
       current = undefined;
-    } else if (raw.startsWith('+++ ')) {
-      const path = raw.slice(4).replace(/^b\//, '');
+      inHeader = true;
+    } else if (inHeader && raw.startsWith('+++ ')) {
+      // Git quotes unusual paths: +++ "b/dir/ä.ts"
+      const path = raw
+        .slice(4)
+        .replace(/^"(.*)"$/, '$1')
+        .replace(/^b\//, '');
       if (path === '/dev/null') {
         current = undefined;
       } else {
         current = [];
         files.set(path, current);
       }
+    } else if (inHeader && !raw.startsWith('@@')) {
+      // index, mode, rename and '--- a/…' lines carry no code
     } else if (raw.startsWith('@@')) {
+      inHeader = false;
       const match = /\+(\d+)/.exec(raw);
       next = match === null ? 0 : Number(match[1]);
-    } else if (current !== undefined && !raw.startsWith('---')) {
+    } else if (current !== undefined) {
       if (raw.startsWith('+')) {
         current.push({ number: next++, added: true, code: raw.slice(1) });
       } else if (raw.startsWith(' ')) {
@@ -61,7 +74,12 @@ export function parseDiff(diff: string): Map<string, Line[]> {
   return files;
 }
 
-const render = (line: Line) => `${String(line.number)}${line.added ? '+' : ' '}| ${line.code}`;
+/** Longer lines (minified code, data) are cut, so one line can never exceed a chunk. */
+const MAX_LINE_CHARS = 400;
+const render = (line: Line) =>
+  `${String(line.number)}${line.added ? '+' : ' '}| ${
+    line.code.length > MAX_LINE_CHARS ? `${line.code.slice(0, MAX_LINE_CHARS)} …` : line.code
+  }`;
 
 /** Splits every scannable file into chunks of at most `maxChars` that contain new code. */
 export function chunksFromDiff(diff: string, maxChars: number): Chunk[] {

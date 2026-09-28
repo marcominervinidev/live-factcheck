@@ -20,9 +20,10 @@ module.exports = {
     },
     {
       name: 'no-tests-to-service-internals',
-      comment: 'System and E2E tests exercise the running stack, not service source code.',
+      comment:
+        'System and E2E tests exercise the running stack, not service source code; tool workspaces under scripts/ use packages only.',
       severity: 'error',
-      from: { path: '^tests/' },
+      from: { path: '^(tests|scripts)/' },
       to: { path: '^(services|apps)/' },
     },
     {
@@ -37,7 +38,7 @@ module.exports = {
       comment:
         'Other workspaces may import a package only through its declared exports (resolved to src/index.ts, src/testing/index.ts or src/bin/healthcheck.ts in development).',
       severity: 'error',
-      from: { path: '^(apps|services|tests|packages)/([^/]+)/' },
+      from: { path: '^(apps|services|tests|packages|scripts)/([^/]+)/' },
       to: {
         path: '^packages/([^/]+)/',
         pathNot: [
@@ -67,7 +68,7 @@ module.exports = {
     },
   ],
   options: {
-    includeOnly: '^(apps|services|packages|tests)/',
+    includeOnly: '^(apps|services|packages|tests|scripts/llm-scan)/',
     exclude: { path: '(^|/)(node_modules|dist|coverage)/' },
     doNotFollow: { path: 'node_modules' },
     tsPreCompilationDeps: true,

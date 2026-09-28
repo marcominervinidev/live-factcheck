@@ -20,6 +20,8 @@ export function toSarif(findings: readonly LocatedFinding[], meta: SarifMeta) {
     version: '2.1.0',
     runs: [
       {
+        // Upload category, so the findings stay apart from CodeQL's.
+        automationDetails: { id: 'llm-scan/' },
         tool: {
           driver: {
             name: 'llm-scan',
