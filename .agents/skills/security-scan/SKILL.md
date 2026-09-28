@@ -20,9 +20,11 @@ The scanners complement the reviews (`reviewer`, `security-reviewer`); none repl
 Semgrep in CI blocks on every severity, and it is not part of the pre-commit hook. After adding code that parses input, builds URLs, runs commands or handles tokens, run it locally with the CI rule sets before pushing:
 
 ```sh
-docker run --rm -v "$PWD":/src -w /src semgrep/semgrep:1.140.0 semgrep scan --error --metrics=off \
+docker run --rm -v "$PWD":/src:ro -w /src semgrep/semgrep:1.178.0 semgrep scan --error --metrics=off \
   --config p/typescript --config p/nodejsscan --config p/dockerfile --config p/github-actions --config p/secrets
 ```
+
+Keep the image version equal to the one in `.github/workflows/pr.yml`, or local and CI results differ.
 
 ## Handling findings
 
