@@ -94,13 +94,29 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 
 ## Status
 
-- TP4 Befund (2026-09-28): Red-Team-Gerüst fertig (13 Fälle, deterministische Prüfungen, präparierte Seite, `make redteam`), aber mit Qwen 7B bisher ohne Aussage: jede Prüfung endet `nicht_pruefbar` (`invalid_llm_output`). Ursache: LM Studio **0.2.24** ignoriert `response_format: json_schema` (auch mit `strict`); das Modell antwortet frei (z. B. `{"true":0.8,"false":0.2}` statt einer Zahl, JSON in Markdown-Blöcken). Dazu starker Swap auf dem 16-GB-Mac (ein Aufruf bis 431 s). Nächster Schritt: Marco aktualisiert LM Studio (≥ 0.3, Structured Output), dann Einzelaufruf-Test, dann Red-Team-Lauf; bleibt es zu langsam → Option C (Claude Haiku als Ziel, Kostenschätzung vorher)
-- Phase-1-Befund dabei behoben: Zeitbudgets `CHECKER_TIMEOUT_MS` / `EXPLAINER_TIMEOUT_MS` konfigurierbar (vorher fest 60/45 s, lokale Modelle scheiterten daran)
-
 - [x] Plan freigegeben (Marco, 2026-09-27); Entscheidungen 1–4 wie vorgeschlagen, sofern Marco nichts anderes sagt
-- [x] TP1 ADR 0014 und Dokumentation (PR #20)
-- [ ] TP2 SonarQube Cloud: wartet auf Marco (Account, Projekt, Secret `SONAR_TOKEN`); daher TP3 vorgezogen
-- [x] TP3 OWASP ZAP (PR `phase-1b/tp3-zap`): FAIL 0 / WARN 0 / PASS 64 nach Fix der Cross-Origin-Header; Nachweis `docs/evidence/phase-1b/tp3-zap.txt`
-- [x] TP4 Red-Team (PR `phase-1b/tp4-redteam`): erster Lauf mit Qwen 7B 12/13 abgewehrt, Befund F1 offen; Opus-5-Vergleich vor Gate 6 (Marco, 2026-09-28)
-- [x] TP5 lokaler LLM-Code-Scanner (`scripts/llm-scan`, `make llm-scan`, PR #23): erster Lauf 11 Funde, alle als Fehlalarm eingeschätzt (Nachweis `docs/evidence/phase-1b/tp5-llm-scan.txt`)
-- Nächster Task: TP6 – Skill `security-scan`, Reviews, dann **Opus-5-Red-Team-Lauf (Marco erinnern, Key)**, Gate 6
+- [x] TP1 ADR 0014 und Dokumentation (PR #20, gemergt)
+- [x] TP2 SonarQube Cloud (PR #22, offen): erster Scan `ANALYSIS SUCCESSFUL`, Quality Gate OK
+- [x] TP3 OWASP ZAP (PR #21, gemergt): FAIL 0 / WARN 0 / PASS 64
+- [x] TP4 Red-Team (PR #23, offen): Qwen 7B 12/13 abgewehrt, Befund F1 offen (in `docs/SECURITY.md` als bekanntes Risiko)
+- [x] TP5 lokaler LLM-Code-Scanner (PR #23): 11 Funde, alle als Fehlalarm eingeschätzt; Vergleich Semgrep/CodeQL im Nachweis
+- [x] TP6 Skill `security-scan` (PR #24, offen; nach #23 mergen)
+- [x] Review-Befunde PR #23 erledigt: frische Läufe, isolierter Container, robuster Client, llm-scan nur lokal, Diff-Parser, Doku (README, `tests/AGENTS.md`, ADR-0014-Nachtrag, SECURITY.md), depcruise für `scripts/llm-scan`, Semgrep-Fund `node_secret` eng unterdrückt (Marco entscheidet)
+- Offen, für Marco:
+  - CodeQL `js/file-access-to-http` #7–#11 (Token aus der Secret-Datei als Auth-Header) wegklicken oder anders entscheiden
+  - `SONAR_TOKEN` aus `~/.zprofile` entfernen (Security-Review-Befund 1), danach Doku/Skill anpassen
+  - **Abhängigkeiten in den Images:** seit promptfoo im Lockfile ist, bekommen fact-checker, claim-extractor und explainer über die optionalen Peers von `openai@7` rund 75 ungenutzte AWS-SDK-/smithy-Pakete. `dedupePeerDependents: false`, `autoInstallPeers: false` und Overrides mit `-` helfen unter pnpm 12 nicht. Vorschlag: `tests/redteam` aus dem pnpm-Workspace nehmen (eigenes Lockfile, eigenes Install im Red-Team-Container), braucht Marcos OK
+- Offen in PR #22: Sonar-PR-Erkennung über `.head.ref`, `sonar.tests` inkl. `scripts`, Widerspruch in `docs/ai-tooling.md`, `.vscode/settings.json`, TP2-Nachweis; PR #24: Semgrep-Version 1.178.0 im Skill
+- Nächster Task: Reste PR #22/#24, dann **Opus-5-Red-Team-Lauf (Marco erinnern, Key, ca. 0,60–1,20 $)**, dann Gate 6
+
+### 2026-09-28T11:53Z – compaction (auto)
+
+- branch: `phase-1b/tp4-redteam`, HEAD `38259a2`
+- uncommitted:
+
+```
+ M .ai/plans/phase-1b-security-tooling.md
+ M scripts/llm-scan/src/diff.ts
+ M scripts/llm-scan/src/run.ts
+ M scripts/llm-scan/src/sarif.ts
+```
