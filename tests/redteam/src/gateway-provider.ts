@@ -43,6 +43,7 @@ const VERDICT_TIMEOUT_MS = ms('REDTEAM_VERDICT_TIMEOUT_MS', 600_000);
 const EXPLANATION_TIMEOUT_MS = ms('REDTEAM_EXPLANATION_TIMEOUT_MS', 300_000);
 
 function token(): string {
+  // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a file path, the token is read from the Compose secret
   return readFileSync(
     process.env['GATEWAY_TOKEN_FILE'] ?? '/run/secrets/gateway_token',
     'utf8',

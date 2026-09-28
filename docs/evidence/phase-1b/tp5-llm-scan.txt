@@ -32,3 +32,27 @@ Triage (for the owner; agents never dismiss findings, this is an assessment)
   - docker-compose.yml:158/159 are the new timeout variables.
   Conclusion: as expected in ADR 0014, a 7B model produces much noise; useful as a prompt for a
   second look, never as a gate. SARIF upload to GitHub stays optional (README).
+
+Comparison with the deterministic scanners (same branch, 2026-09-28)
+  Semgrep 1.178.0, CI rule sets (p/typescript p/nodejsscan p/dockerfile p/github-actions
+  p/secrets), on the 44 changed code/config files:
+    scanned 44 · results 1 · errors 0
+    node_secret tests/redteam/src/gateway-provider.ts:46 – a file path default, the token is read
+    from the Compose secret; suppressed narrowly with a reason (same as tests/api/session.ts),
+    named in the PR for the owner.
+  CodeQL on PR #23 (refs/pull/23/merge):
+    #10 js/file-access-to-http tests/redteam/src/gateway-provider.ts:37
+    #11 js/file-access-to-http tests/redteam/src/gateway-provider.ts:88
+    Same class as the open alerts #7–#9 on main: the gateway token from the secret file is sent
+    as the auth header on purpose. Owner's decision; agents never dismiss.
+  Overlap with the LLM scan: none. The LLM scan did not see the token flow (tests/ is skipped
+  from now on anyway) and Semgrep/CodeQL raised nothing on compose.test.yaml, docker-compose.yml
+  or mocks.ts, where the LLM scan reported its 11 false positives. The LLM scan stays a second
+  opinion, as ADR 0014 says.
+
+Review fixes (commit 39b882e)
+  - refuses cloud providers and non-local endpoints (config.test.ts)
+  - header lines only before the first hunk; quoted paths; overlong lines cut
+  - scans .json/.conf/.py/Makefile, skips tests/ and lockfiles; SARIF category llm-scan/
+  - dependency-cruiser covers scripts/llm-scan: no violations (252 modules)
+  Unit tests: 36 passed, coverage lines 100 % / branches 96 %.
