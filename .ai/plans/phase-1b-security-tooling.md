@@ -77,6 +77,8 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 
 ## TP6 – Skill, Reviews, PR
 
+- **Vor dem Gate (Claude erinnert Marco):** Red-Team-Vergleichslauf mit **Claude Opus 5 als Prüf-Modell** und Haiku 4.5 als Erklärer (Produktiv-Konfiguration), Kostenschätzung ca. 0,60–1,20 $ für 13 Fälle. Marco trägt vorher den Anthropic-Key in `anthropic_api_key` ein. Ziel: klären, ob Befund F1 (gefälschtes JSON im Behauptungstext kippt das Urteil, siehe `docs/evidence/phase-1b/tp4-redteam.txt`) am 7B-Modell liegt; danach über eine Gegenmaßnahme entscheiden.
+
 - Skill `.agents/skills/security-scan/` für beide Tools: wann welcher Scan, wie Befunde triagiert werden, was nie erlaubt ist
 - Reviews (`reviewer`, `security-reviewer`), Evidence `docs/evidence/phase-1b/`, PR
 
@@ -99,4 +101,5 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 - [x] TP1 ADR 0014 und Dokumentation (PR #20)
 - [ ] TP2 SonarQube Cloud: wartet auf Marco (Account, Projekt, Secret `SONAR_TOKEN`); daher TP3 vorgezogen
 - [x] TP3 OWASP ZAP (PR `phase-1b/tp3-zap`): FAIL 0 / WARN 0 / PASS 64 nach Fix der Cross-Origin-Header; Nachweis `docs/evidence/phase-1b/tp3-zap.txt`
-- Nächster Task: TP4 promptfoo-Red-Team (braucht LM Studio mit Qwen3-Coder, Claude erinnert Marco); bis dahin der deterministische Teil (feste Injection-Fälle als Stufe-3-Tests)
+- [x] TP4 Red-Team (PR `phase-1b/tp4-redteam`): erster Lauf mit Qwen 7B 12/13 abgewehrt, Befund F1 offen; Opus-5-Vergleich vor Gate 6 (Marco, 2026-09-28)
+- Nächster Task: TP5 lokaler LLM-Code-Scanner
