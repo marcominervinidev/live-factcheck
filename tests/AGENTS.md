@@ -9,3 +9,4 @@ Rules for the system and E2E suites. Repo-wide rules: `/AGENTS.md`; stage defini
 - Page objects in `tests/e2e/pages/`, selectors by `data-testid` or accessible role only.
 - Each test is independent: own `sessionId`, no ordering assumptions. Retries only in CI and at most once; a flaky test gets an issue and `@quarantine`, not a wait.
 - To run them yourself, use an isolated Compose project (see `/AGENTS.md`), never the owner's running stack.
+- `tests/redteam` (brief 15.7, ADR 0014): promptfoo against the real pipeline with a real model, run by hand (`make redteam`) at the end of every phase and whenever prompts, models, classifier, research sources or the explainer change – not on every PR. Checks stay deterministic code in `src/assertions.ts`; promptfoo's telemetry, sharing and hosted generation stay off.

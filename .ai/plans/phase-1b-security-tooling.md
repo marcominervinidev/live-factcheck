@@ -67,6 +67,7 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 - Erwartung: Urteil bleibt beim Belegstand, keine fremde Quelle, keine fremden Links (Brief 15.5), `nicht_pruefbar` statt Raten
 - Angreifer-Modell: Qwen/DeepSeek über `http://host.docker.internal:1234/v1`; `make redteam`; Report als Evidence
 - Deterministischer Teil (feste Injection-Fälle, Mock-Provider) zusätzlich als Stufe-3-Tests in CI
+- **Rhythmus (Marco, 2026-09-28):** der volle Lauf mit echtem Modell zum Ende jeder Phase (vor dem letzten Gate) und außer der Reihe bei Änderungen an Prompts, Modellwahl, Klassifikator, Recherche/Quellen oder Erklärung (z. B. Phase 2: gesprochene Sprache als neuer Eingabeweg); nicht bei jeder kleinen Etappe. Jeder PR prüft nur den deterministischen Teil.
 
 ## TP5 – LLM-Code-Scanner
 
