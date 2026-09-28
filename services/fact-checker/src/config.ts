@@ -53,6 +53,11 @@ export const configSchema = baseConfigSchema
     CHECKER_FETCH_MAX_BYTES: z.coerce.number().int().positive().max(5_000_000).default(2_000_000),
     CHECKER_MAX_SOURCE_CHARS: z.coerce.number().int().positive().default(20_000),
     CHECKER_TIER_TIMEOUT_MS: ms(9_000),
+    /**
+     * Time budget of one whole check (queries, research, classifier). Local models on normal
+     * hardware need more than the default; capped so a stuck check cannot block the stream.
+     */
+    CHECKER_TIMEOUT_MS: z.coerce.number().int().min(10_000).max(600_000).default(60_000),
     CHECKER_WEB_PAGES: count(4, 10),
     CHECKER_TOP_K: count(6, 10),
     CHECKER_VERDICT_CACHE_TTL_S: seconds(7 * 24 * 3600),

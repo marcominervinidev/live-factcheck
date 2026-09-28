@@ -20,8 +20,6 @@ import { Counter } from 'prom-client';
 import { configSchema, secretKeys } from './config.js';
 import { explain, mockExplanation } from './explain.js';
 
-const EXPLAIN_TIMEOUT_MS = 45_000;
-
 await runService({
   name: 'explainer',
   configSchema,
@@ -85,16 +83,20 @@ await runService({
       stream: STREAMS.claimsChecked,
       group: 'explainer',
       consumer: `${hostname()}-${String(process.pid)}`,
-      // One entry at a time: a handler runs up to EXPLAIN_TIMEOUT_MS, so entries waiting in a larger
+      // One entry at a time: a handler runs up to EXPLAINER_TIMEOUT_MS, so entries waiting in a larger
       // batch would exceed claimIdleMs and be taken over by another replica (review, phase 1).
       batchSize: 1,
-      claimIdleMs: EXPLAIN_TIMEOUT_MS + 30_000,
+      claimIdleMs: config.EXPLAINER_TIMEOUT_MS + 30_000,
       logger,
       handle: async ({ event }) => {
         if (event.type !== 'claim.checked') return;
         const { sessionId, claimId } = event.payload;
         if (await marker.isProcessed(claimId)) return;
-        const outcome = await explain(event.payload, deps, AbortSignal.timeout(EXPLAIN_TIMEOUT_MS));
+        const outcome = await explain(
+          event.payload,
+          deps,
+          AbortSignal.timeout(config.EXPLAINER_TIMEOUT_MS),
+        );
         if (outcome.ok) {
           await publishEvent(
             redis.client,

@@ -18,8 +18,6 @@ import { Counter, Histogram } from 'prom-client';
 import { configSchema, secretKeys } from './config.js';
 import { checkClaim } from './pipeline.js';
 
-const CHECK_TIMEOUT_MS = 60_000;
-
 await runService({
   name: 'fact-checker',
   configSchema,
@@ -85,16 +83,20 @@ await runService({
       stream: STREAMS.claimsDetected,
       group: 'fact-checker',
       consumer: `${hostname()}-${String(process.pid)}`,
-      // One entry at a time: a handler runs up to CHECK_TIMEOUT_MS, so entries waiting in a larger
+      // One entry at a time: a handler runs up to CHECKER_TIMEOUT_MS, so entries waiting in a larger
       // batch would exceed claimIdleMs and be taken over by another replica (review, phase 1).
       batchSize: 1,
-      claimIdleMs: CHECK_TIMEOUT_MS + 30_000,
+      claimIdleMs: config.CHECKER_TIMEOUT_MS + 30_000,
       logger,
       handle: async ({ event }) => {
         if (event.type !== 'claim.detected') return;
         const { sessionId, claimId } = event.payload;
         if (await marker.isProcessed(claimId)) return;
-        const result = await checkClaim(event.payload, deps, AbortSignal.timeout(CHECK_TIMEOUT_MS));
+        const result = await checkClaim(
+          event.payload,
+          deps,
+          AbortSignal.timeout(config.CHECKER_TIMEOUT_MS),
+        );
         await publishEvent(
           redis.client,
           STREAMS.claimsChecked,

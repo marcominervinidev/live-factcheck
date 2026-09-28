@@ -154,6 +154,9 @@ services:
       CHECKER_LLM_PROVIDER: ${CHECKER_LLM_PROVIDER:-mock}
       CHECKER_LLM_MODEL: ${CHECKER_LLM_MODEL:-mock}
       CHECKER_LLM_BASE_URL: ${CHECKER_LLM_BASE_URL:-}
+      # Per model call and per whole check; raise both for slow local models (empty = default).
+      CHECKER_LLM_TIMEOUT_MS: ${CHECKER_LLM_TIMEOUT_MS:-}
+      CHECKER_TIMEOUT_MS: ${CHECKER_TIMEOUT_MS:-}
       CHECKER_LLM_API_KEY_FILE: /run/secrets/anthropic_api_key
       CHECKER_CLASSIFIER_PROVIDER: ${CHECKER_CLASSIFIER_PROVIDER:-mock}
       CHECKER_CLASSIFIER_MODEL: ${CHECKER_CLASSIFIER_MODEL:-}
@@ -196,6 +199,8 @@ services:
       EXPLAINER_LLM_PROVIDER: ${EXPLAINER_LLM_PROVIDER:-mock}
       EXPLAINER_LLM_MODEL: ${EXPLAINER_LLM_MODEL:-mock}
       EXPLAINER_LLM_BASE_URL: ${EXPLAINER_LLM_BASE_URL:-}
+      EXPLAINER_LLM_TIMEOUT_MS: ${EXPLAINER_LLM_TIMEOUT_MS:-}
+      EXPLAINER_TIMEOUT_MS: ${EXPLAINER_TIMEOUT_MS:-}
       EXPLAINER_LLM_API_KEY_FILE: /run/secrets/anthropic_api_key
       CLOUD_DAILY_BUDGET_USD: ${CLOUD_DAILY_BUDGET_USD:-2}
     # Only the LLM key, never the classifier or search keys (brief 15.1, ADR 0009).

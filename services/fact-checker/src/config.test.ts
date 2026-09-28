@@ -32,6 +32,19 @@ describe('fact-checker config', () => {
     ).toEqual(['CHECKER_FETCH_MAX_BYTES', 'CHECKER_WEB_PAGES', 'CHECKER_TOP_K']);
   });
 
+  it('bounds the check time budget (default 60 s, raised for slow local models)', () => {
+    expect(configSchema.parse(MOCK_CONFIG_ENV).CHECKER_TIMEOUT_MS).toBe(60_000);
+    expect(
+      configSchema.parse({ ...MOCK_CONFIG_ENV, CHECKER_TIMEOUT_MS: '300000' }).CHECKER_TIMEOUT_MS,
+    ).toBe(300_000);
+    expect(issuePaths({ ...MOCK_CONFIG_ENV, CHECKER_TIMEOUT_MS: '600001' })).toEqual([
+      'CHECKER_TIMEOUT_MS',
+    ]);
+    expect(issuePaths({ ...MOCK_CONFIG_ENV, CHECKER_TIMEOUT_MS: '999' })).toEqual([
+      'CHECKER_TIMEOUT_MS',
+    ]);
+  });
+
   it('requires an https contact URL for the User-Agent', () => {
     expect(
       issuePaths({ ...MOCK_CONFIG_ENV, CHECKER_USER_AGENT_URL: 'http://example.org' }),

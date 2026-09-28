@@ -32,6 +32,14 @@ describe('explainer config', () => {
     ).toBe(true);
   });
 
+  it('bounds the explanation time budget (default 45 s)', () => {
+    expect(configSchema.parse(ENV).EXPLAINER_TIMEOUT_MS).toBe(45_000);
+    expect(
+      configSchema.parse({ ...ENV, EXPLAINER_TIMEOUT_MS: '180000' }).EXPLAINER_TIMEOUT_MS,
+    ).toBe(180_000);
+    expect(configSchema.safeParse({ ...ENV, EXPLAINER_TIMEOUT_MS: '600001' }).success).toBe(false);
+  });
+
   it('gets only its own LLM key, never classifier or search keys (ADR 0009)', () => {
     expect(secretKeys).toEqual(['REDIS_PASSWORD', 'EXPLAINER_LLM_API_KEY']);
   });
