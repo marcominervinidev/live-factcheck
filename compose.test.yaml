@@ -61,6 +61,30 @@ services:
     networks: [edge]
     command: ['sh', '-c', 'node_modules/.bin/playwright test $${PLAYWRIGHT_ARGS}']
 
+  # Phase 1b (brief 15.7, ADR 0014): OWASP ZAP baseline scan (passive DAST) against the app
+  # through Caddy, like a browser sees it. Reports go to tests/security/reports/ (must be
+  # writable for uid 1000). Accepted findings and their reasons: tests/security/zap-rules.tsv.
+  zap:
+    image: zaproxy/zap-stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+    profiles: [test]
+    networks: [edge]
+    volumes:
+      - ./tests/security:/zap/wrk
+    command:
+      - zap-baseline.py
+      # AJAX spider: the app is a SPA, the plain spider only sees the HTML shell.
+      - -j
+      - -t
+      - https://${LAN_HOST:-lfc.local}:8443
+      - -c
+      - zap-rules.tsv
+      - -r
+      - reports/zap-report.html
+      - -J
+      - reports/zap-report.json
+      - -I
+      - -s
+
   # Stage 5 (brief 13.5): `make eval` runs the claim set against this stack like a client.
   # The providers under test are whatever the stack is configured with; reports go to
   # docs/evidence/phase-1/evals/.

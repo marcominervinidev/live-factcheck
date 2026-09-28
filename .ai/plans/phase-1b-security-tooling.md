@@ -28,7 +28,7 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 |---|---|---|---|
 | 1 | SonarQube Cloud oder selbst gehostet | Cloud, Organisation = GitHub-Account `marcominervinidev` | offen (Marco) |
 | 2 | Quality Gate sofort Pflicht? | erst beratend, nach einer Woche Baseline als Pflicht-Check `sonar passed` im Ruleset | offen (Marco) |
-| 3 | Modelle für Red Team und Code-Scan | Qwen3-Coder (30B-A3B) als Standard, DeepSeek-Coder-V2-Lite als Vergleich, beide in LM Studio | offen (Marco, je nach RAM des Mac) |
+| 3 | Modelle für Red Team und Code-Scan | Mac M2 mit 16 GB, davon 8 GB für Docker: **Qwen2.5-Coder-7B-Instruct Q4_K_M** (~4,7 GB) für Angreifer und Code-Scan; Qwen3-8B als Alternative. 30B-Modelle passen nicht. promptfoo ergänzt feste Angriffsmuster, die nicht vom Modell abhängen | entschieden (2026-09-27, RAM-Angabe von Marco) |
 | 4 | Red Team in CI? | nein, lokal (GitHub-Runner können die Modelle nicht laden); nightly nur der deterministische Teil mit Mock-Providern | Vorschlag |
 
 ## TP1 – Entscheidung und Dokumentation
@@ -87,9 +87,12 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 |---|---|
 | Freigabe dieses Plans | Entscheidungen 1–4 oben |
 | Beginn TP2 (Claude erinnert) | SonarQube-Cloud-Account und Projekt, Secret `SONAR_TOKEN` |
-| Beginn TP4 (Claude erinnert) | Qwen3-Coder (und optional DeepSeek-Coder) in LM Studio laden, Server starten |
+| Beginn TP4 (Claude erinnert) | Qwen2.5-Coder-7B-Instruct (Q4_K_M) in LM Studio laden, Server auf `localhost:1234` starten; Ziel-Modell der Pipeline wählen (lokal kostenlos oder Claude Haiku nach Kostenschätzung) |
 
 ## Status
 
 - [x] Plan freigegeben (Marco, 2026-09-27); Entscheidungen 1–4 wie vorgeschlagen, sofern Marco nichts anderes sagt
-- Nächster Task nach Freigabe: T1 (ADR und Dokumentation), erst nach Gate 8 von Phase 1
+- [x] TP1 ADR 0014 und Dokumentation (PR #20)
+- [ ] TP2 SonarQube Cloud: wartet auf Marco (Account, Projekt, Secret `SONAR_TOKEN`); daher TP3 vorgezogen
+- [x] TP3 OWASP ZAP (PR `phase-1b/tp3-zap`): FAIL 0 / WARN 0 / PASS 64 nach Fix der Cross-Origin-Header; Nachweis `docs/evidence/phase-1b/tp3-zap.txt`
+- Nächster Task: TP4 promptfoo-Red-Team (braucht LM Studio mit Qwen3-Coder, Claude erinnert Marco); bis dahin der deterministische Teil (feste Injection-Fälle als Stufe-3-Tests)

@@ -1,0 +1,65 @@
+# OWASP ZAP baseline rules (brief 15.7, ADR 0014). FAIL breaks the PR, WARN is reported,
+# IGNORE only with a reason. Changing a line needs the owner (AGENTS.md: agents never dismiss
+# a security finding themselves). Format: id<TAB>level<TAB>(name) reason
+10003	FAIL	(Vulnerable JS Library (Powered by Retire.js)) a JS library with known vulnerabilities
+10009	WARN	(In Page Banner Information Leak)
+10010	FAIL	(Cookie No HttpOnly Flag) no cookies are set; a cookie without HttpOnly would be new
+10011	FAIL	(Cookie Without Secure Flag) no cookies are set; a cookie without Secure would be new
+10015	IGNORE	(Re-examine Cache-control Directives) informational: see 10049
+10017	FAIL	(Cross-Domain JavaScript Source File Inclusion) script from another origin (CSP forbids it)
+10019	WARN	(Content-Type Header Missing)
+10020	FAIL	(Anti-clickjacking Header) Caddy sends X-Frame-Options DENY
+10021	FAIL	(X-Content-Type-Options Header Missing) Caddy sends X-Content-Type-Options nosniff
+10023	WARN	(Information Disclosure - Debug Error Messages)
+10024	FAIL	(Information Disclosure - Sensitive Information in URL) the gateway token must never be in a URL (ADR 0011)
+10025	WARN	(Information Disclosure - Sensitive Information in HTTP Referrer Header)
+10027	WARN	(Information Disclosure - Suspicious Comments)
+10028	WARN	(Off-site Redirect)
+10029	WARN	(Cookie Poisoning)
+10030	WARN	(User Controllable Charset)
+10031	WARN	(User Controllable HTML Element Attribute (Potential XSS))
+10032	WARN	(Viewstate)
+10033	WARN	(Directory Browsing)
+10034	WARN	(Heartbleed OpenSSL Vulnerability (Indicative))
+10035	FAIL	(Strict-Transport-Security Header) Caddy sends HSTS
+10036	FAIL	(HTTP Server Response Header) Caddy removes the Server header
+10037	FAIL	(Server Leaks Information via "X-Powered-By" HTTP Response Header Field(s)) no framework banners
+10038	FAIL	(Content Security Policy (CSP) Header Not Set) Caddy sends a strict CSP; the token in localStorage depends on it
+10039	WARN	(X-Backend-Server Header Information Leak)
+10040	WARN	(Secure Pages Include Mixed Content)
+10041	WARN	(HTTP to HTTPS Insecure Transition in Form Post)
+10042	WARN	(HTTPS to HTTP Insecure Transition in Form Post)
+10043	WARN	(User Controllable JavaScript Event (XSS))
+10044	WARN	(Big Redirect Detected (Potential Sensitive Information Leak))
+10050	WARN	(Retrieved from Cache)
+10052	WARN	(X-ChromeLogger-Data (XCOLD) Header Information Leak)
+10054	FAIL	(Cookie without SameSite Attribute) no cookies are set; a cookie without SameSite would be new
+10055	FAIL	(CSP) CSP must stay strict
+10056	WARN	(X-Debug-Token Information Leak)
+10057	WARN	(Username Hash Found)
+10061	WARN	(X-AspNet-Version Response Header)
+10062	WARN	(PII Disclosure)
+10096	WARN	(Timestamp Disclosure)
+10097	WARN	(Hash Disclosure)
+10098	FAIL	(Cross-Domain Misconfiguration) the app sends no CORS headers
+10105	WARN	(Weak Authentication Method)
+10108	WARN	(Reverse Tabnabbing)
+10109	IGNORE	(Modern Web Application) informational: the app is a SPA by design; the scan uses the AJAX spider (-j)
+10111	WARN	(Authentication Request Identified)
+10112	WARN	(Session Management Response Identified)
+10113	WARN	(Verification Request Identified)
+10115	WARN	(Script Served From Malicious Domain (polyfill))
+10116	IGNORE	(ZAP is Out of Date) the image is pinned by digest and updated by Renovate
+10202	WARN	(Absence of Anti-CSRF Tokens)
+2	WARN	(Private IP Disclosure)
+3	WARN	(Session ID in URL Rewrite)
+50001	WARN	(Script Passive Scan Rules)
+90001	WARN	(Insecure JSF ViewState)
+90002	WARN	(Java Serialization Object)
+90003	WARN	(Sub Resource Integrity Attribute Missing)
+90011	WARN	(Charset Mismatch)
+90022	WARN	(Application Error Disclosure)
+90030	WARN	(WSDL File Detection)
+90033	WARN	(Loosely Scoped Cookie)
+10049	IGNORE	(Non-Storable Content) informational: hashed assets are cacheable by design, /config.json is no-store by design
+90004	FAIL	(Cross-Origin-Embedder-Policy Header Missing or Invalid) Caddy sends COOP/CORP/COEP (cross-origin isolation)

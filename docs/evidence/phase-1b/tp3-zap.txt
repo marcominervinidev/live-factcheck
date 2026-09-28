@@ -1,0 +1,34 @@
+Phase 1b · TP3 – OWASP ZAP baseline (2026-09-27, branch phase-1b/tp3-zap)
+========================================================================
+
+Setup
+  zaproxy/zap-stable pinned by digest (sha256:781a2bda…), service `zap` in compose.test.yaml
+  (profile test, network edge), `make zap`, step + artifact `zap-report` in stack-tests.yml
+  (shard 1, after stage 4). Rules: tests/security/zap-rules.tsv – 15 FAIL (security headers
+  Caddy guarantees, CORS, token in URL, vulnerable JS, cookies), 4 IGNORE with reasons, rest WARN.
+  The AJAX spider (-j) is on: the plain spider only saw 4 URLs of the SPA shell.
+
+Runs on the isolated stack (lfc-verify, throwaway secrets)
+  1st run, plain spider:  PASS 60, only informational alerts, 4 URLs (/, robots.txt, sitemap.xml)
+  2nd run, AJAX spider:   PASS 63, WARN 4 – new: 90004 Cross-Origin-Embedder/Resource-Policy
+                          missing (low) on 9 responses incl. /config.json and the JS/CSS assets
+  Fix: Caddy now sends Cross-Origin-Resource-Policy same-origin and
+       Cross-Origin-Embedder-Policy require-corp (COOP was already set)
+  3rd run, with rules:    FAIL-NEW 0  WARN-NEW 0  IGNORE 3  PASS 64
+  Report: docs/evidence/phase-1b/zap-baseline-report.html
+
+Regression tests (stage 3, through Caddy)
+  edge.spec.ts: /%61pi/status, /ap%69/status, /%61%70%69/status, /api/%73tatus → 401, no
+  provider data (phase 1 review blocker B1); COOP/CORP/COEP asserted with the other headers.
+  stage 3: 32 passed · stage 4 (chromium desktop/mobile, webkit-iphone): 6 passed – the app works
+  with cross-origin isolation.
+
+Incident during the run
+  The Docker VM disk was full (58.4 GB, 0 free) after pulling the 2.3 GB ZAP image, so Redis in
+  the isolated stack came up unhealthy. `docker builder prune` + `docker image prune` (unused
+  build cache and dangling images only) freed 17 GB.
+
+Limits (named in the PR)
+  Baseline = passive scan, no attacks; the API is only seen unauthenticated (401 responses,
+  headers). An authenticated API scan would need the token inside ZAP's config and thereby in
+  CI logs; left out on purpose. Active attacks on the LLM pipeline come with TP4 (promptfoo).
