@@ -4,6 +4,7 @@ packages:
   - packages/*
   - tests/*
   - evals
+  - scripts/llm-scan
 
 # Dependency install scripts are denied unless explicitly allowed here.
 allowBuilds:

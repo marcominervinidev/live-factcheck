@@ -4,8 +4,11 @@ import { z } from 'zod';
 export const LLM_PROVIDERS = ['anthropic', 'openai-compatible', 'mock'] as const;
 export type LlmProviderName = (typeof LLM_PROVIDERS)[number];
 
-/** Each LLM task has its own configuration (brief 8): extraction, verdict and explanation can differ. */
-export type LlmTask = 'EXTRACTOR' | 'CHECKER' | 'EXPLAINER';
+/**
+ * Each LLM task has its own configuration (brief 8): extraction, verdict and explanation can
+ * differ. `SCAN` is the local security code scan (brief 15.7, ADR 0014), a dev tool.
+ */
+export type LlmTask = 'EXTRACTOR' | 'CHECKER' | 'EXPLAINER' | 'SCAN';
 
 const providerField = () => z.enum(LLM_PROVIDERS);
 const baseUrlField = () => z.url({ protocol: /^https?$/ }).optional();

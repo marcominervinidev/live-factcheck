@@ -1,0 +1,34 @@
+Phase 1b · TP5 – local LLM security scan (2026-09-28, branch phase-1b/tp4-redteam)
+==================================================================================
+
+Setup
+  scripts/llm-scan (workspace @lfc/llm-scan): diff against origin/main in line-numbered chunks
+  (only new lines of production code/config; tests, docs, lockfiles, generated files skipped),
+  prompt with an OWASP/CWE checklist, code passed as delimited data (random tag per request),
+  model via @lfc/providers (task SCAN: structured output, schema validation, one repair attempt),
+  findings outside the new lines dropped, output SARIF 2.1.0 + Markdown. `make llm-scan`.
+  Never a gate (ADR 0014). Unit tests: 22 passed, coverage lines 100 % / branches 95.2 %.
+
+Run on this branch (Qwen2.5-Coder-7B-Instruct Q4_K_M, LM Studio 0.4.25, M2 16 GB)
+  Scanning 12 chunks against origin/main
+  Chunks: 12 (without a valid answer: 2) · findings: 11 (1 more dropped: outside the new lines)
+  | high   | CWE-94  | compose.test.yaml:107                  | Command Injection     |
+  | high   | CWE-22  | compose.test.yaml:108                  | Path Traversal        |
+  | high   | CWE-79  | services/fact-checker/src/mocks.ts:143 | XSS vulnerability     |
+  | high   | CWE-94  | services/fact-checker/src/mocks.ts:143 | Command Injection     |
+  | high   | CWE-89  | services/fact-checker/src/mocks.ts:143 | SQL Injection         |
+  | high   | CWE-90  | services/fact-checker/src/mocks.ts:143 | NoSQL Injection       |
+  | high   | CWE-602 | services/fact-checker/src/mocks.ts:143 | Path Traversal        |
+  | high   | CWE-78  | services/fact-checker/src/mocks.ts:143 | OS Command Injection  |
+  | medium | CWE-22  | compose.test.yaml:102                  | Path Traversal        |
+  | medium | CWE-78  | docker-compose.yml:158                 | Command Injection     |
+  | medium | CWE-78  | docker-compose.yml:159                 | Command Injection     |
+
+Triage (for the owner; agents never dismiss findings, this is an assessment)
+  All 11 look like false positives:
+  - mocks.ts:143 is the deliberately crafted red-team page (plain text in a mock corpus); the
+    model reacted to its injected instructions and reported six unrelated weakness classes.
+  - compose.test.yaml:102/107/108 are volume mounts and environment values; nothing is executed.
+  - docker-compose.yml:158/159 are the new timeout variables.
+  Conclusion: as expected in ADR 0014, a 7B model produces much noise; useful as a prompt for a
+  second look, never as a gate. SARIF upload to GitHub stays optional (README).

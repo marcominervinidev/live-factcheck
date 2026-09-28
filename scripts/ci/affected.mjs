@@ -33,7 +33,8 @@ const select = (kind, script) =>
       ({ dir }) =>
         (kind === 'frontend'
           ? dir.startsWith('apps/')
-          : /^(packages\/|services\/|evals$)/.test(dir)) && script in scriptsOf(dir),
+          : /^(packages\/|services\/|evals$|scripts\/llm-scan$)/.test(dir)) &&
+        script in scriptsOf(dir),
     )
     .map((workspace) => {
       // Coverage thresholds (brief 13.5) are enforced on one run per workspace: `test:coverage`
