@@ -46,7 +46,8 @@ The Playwright MCP server (from phase 1, brief 1.1) runs the official image `mcr
 ## SonarQube for IDE and MCP (from phase 1b)
 
 - **SonarQube for IDE** (formerly SonarLint): install the VS Code extension, connect it in Connected Mode to the SonarQube Cloud project `live-factcheck` (Settings → Sonar). Both Claude Code's and Antigravity's editors are VS Code-based, so the same install and connection cover both.
-- **SonarQube MCP server**: official image, pinned by digest, token via `${SONAR_TOKEN}` from the environment, listed in both `.mcp.json` and `.agents/mcp_config.json` (CI checks the two stay in sync). Lets an agent read open findings before opening a PR, e.g. "any new SonarQube findings on this branch?".
+- **SonarQube MCP server**: official image `sonarsource/sonarqube-mcp`, pinned by digest, listed in both `.mcp.json` and `.agents/mcp_config.json` (CI checks the two stay in sync). It runs with `SONARQUBE_READ_ONLY=true`, so an agent can read findings, quality gate and coverage but can never change an issue status (AGENTS.md: the owner decides on findings). Lets an agent ask "any new SonarQube findings on this branch?" before opening a PR.
+- **Local token:** create a personal token in SonarQube Cloud (My Account → Security) and add `export SONAR_TOKEN=…` to `~/.zprofile`; the MCP server refuses to start without it. The CI uses its own token from the GitHub secret `SONAR_TOKEN`.
 - The `SONAR_TOKEN` used by CI and by the MCP server is a personal access token from the SonarQube Cloud account, never committed; it goes into `~/.zprofile` for local MCP use and into the GitHub repo secrets for CI.
 
 ## Switching tools

@@ -99,7 +99,7 @@ jobs:
         run: |
           coverage=()
           if [ "$COVERAGE" = true ]; then
-            coverage=(--coverage.enabled --coverage.reporter=text-summary --coverage.reporter=json-summary)
+            coverage=(--coverage.enabled --coverage.reporter=text-summary --coverage.reporter=json-summary --coverage.reporter=lcov)
           fi
           pnpm run "$TEST_SCRIPT" \
             --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml "${coverage[@]}"
@@ -120,6 +120,24 @@ jobs:
             node -e "const t=require('./reports/coverage/coverage-summary.json').total;console.log(['lines','branches','functions','statements'].map(k=>k+': '+t[k].pct+'%').join(' · '))" \
               | tee -a "$GITHUB_STEP_SUMMARY"
           fi
+      - name: prepare coverage for SonarQube
+        id: lcov
+        if: ${{ !cancelled() && matrix.workspace.coverage }}
+        working-directory: ${{ matrix.workspace.dir }}
+        env:
+          DIR: ${{ matrix.workspace.dir }}
+        run: |
+          if [ -f reports/coverage/lcov.info ]; then
+            # SonarQube analyses from the repo root; vitest writes paths relative to the workspace.
+            sed -i "s#^SF:#SF:${DIR}/#" reports/coverage/lcov.info
+            echo "name=coverage-${DIR//\//-}" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() && steps.lcov.outputs.name != '' }}
+        with:
+          name: ${{ steps.lcov.outputs.name }}
+          path: ${{ matrix.workspace.dir }}/reports/coverage/lcov.info
+          retention-days: 3
 
   backend-int:
     name: backend integration · ${{ matrix.workspace.name }}
@@ -200,6 +218,52 @@ jobs:
             ${{ matrix.workspace.dir }}/playwright-report
             ${{ matrix.workspace.dir }}/test-results
           retention-days: 7
+
+  # SonarQube Cloud (brief 15.7, ADR 0014): code smells, duplication, security hotspots and the
+  # coverage trend on new code. Advisory during the baseline week, hence not part of `ci passed`.
+  sonar:
+    name: sonarqube
+    needs: [changes, backend-unit, backend-int, frontend-unit]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: SonarQube needs it for blame and to detect new code.
+          fetch-depth: 0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: coverage-*
+          path: coverage-reports
+      - name: analysis parameters
+        id: params
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          args=()
+          lcov=$(find coverage-reports -name lcov.info 2>/dev/null | sort | paste -sd, -)
+          if [ -n "$lcov" ]; then args+=("-Dsonar.javascript.lcov.reportPaths=$lcov"); fi
+          # A push to a branch with an open PR is analysed as that PR, so SonarQube comments on it.
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/pulls" \
+            --jq '[.[] | select(.state == "open")][0] // empty | "\(.number) \(.base.ref)"' || true)
+          if [ -n "$pr" ]; then
+            read -r number base <<< "$pr"
+            args+=("-Dsonar.pullrequest.key=$number" "-Dsonar.pullrequest.branch=$BRANCH" "-Dsonar.pullrequest.base=$base")
+          elif [ "$BRANCH" != main ]; then
+            args+=("-Dsonar.branch.name=$BRANCH")
+          fi
+          echo "args=${args[*]}" >> "$GITHUB_OUTPUT"
+      - uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: ${{ steps.params.outputs.args }}
 
   # Single required check for branch protection: green only if every stage above
   # succeeded or was skipped because nothing relevant changed.

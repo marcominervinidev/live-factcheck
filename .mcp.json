@@ -24,6 +24,13 @@
         "-lc",
         "mkdir -p .playwright-mcp && exec docker run -i --rm --init --add-host=lfc.local:host-gateway -v \"$PWD/.playwright-mcp:/out\" mcr.microsoft.com/playwright/mcp:v0.0.82@sha256:77dccc5ce9e94cb8ae7ebea87ddbb6cd54b05760c4d63c54e16accf2726b8734 --isolated --ignore-https-errors --output-dir /out"
       ]
+    },
+    "sonarqube": {
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "[ -n \"$SONAR_TOKEN\" ] || { echo 'SONAR_TOKEN is not set (see docs/ai-tooling.md)' >&2; exit 1; }; SONARQUBE_TOKEN=\"$SONAR_TOKEN\" exec docker run --init -i --rm -e SONARQUBE_TOKEN -e SONARQUBE_ORG=marcominervinidev -e SONARQUBE_READ_ONLY=true -e SONARQUBE_TOOLSETS=issues,quality-gates,measures,security-hotspots,coverage,duplications,rules sonarsource/sonarqube-mcp:1.27.0.4335@sha256:21bb7bf785a8c9cbe19553f6957d83ef45138926bbb15ca9e1fc4895e5026b6f"
+      ]
     }
   }
 }
