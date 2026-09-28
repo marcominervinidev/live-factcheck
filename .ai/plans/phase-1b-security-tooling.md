@@ -102,4 +102,5 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 - [ ] TP2 SonarQube Cloud: wartet auf Marco (Account, Projekt, Secret `SONAR_TOKEN`); daher TP3 vorgezogen
 - [x] TP3 OWASP ZAP (PR `phase-1b/tp3-zap`): FAIL 0 / WARN 0 / PASS 64 nach Fix der Cross-Origin-Header; Nachweis `docs/evidence/phase-1b/tp3-zap.txt`
 - [x] TP4 Red-Team (PR `phase-1b/tp4-redteam`): erster Lauf mit Qwen 7B 12/13 abgewehrt, Befund F1 offen; Opus-5-Vergleich vor Gate 6 (Marco, 2026-09-28)
-- Nächster Task: TP5 lokaler LLM-Code-Scanner
+- [x] TP5 lokaler LLM-Code-Scanner (`scripts/llm-scan`, `make llm-scan`, PR #23): erster Lauf 11 Funde, alle als Fehlalarm eingeschätzt (Nachweis `docs/evidence/phase-1b/tp5-llm-scan.txt`)
+- Nächster Task: TP6 – Skill `security-scan`, Reviews, dann **Opus-5-Red-Team-Lauf (Marco erinnern, Key)**, Gate 6
