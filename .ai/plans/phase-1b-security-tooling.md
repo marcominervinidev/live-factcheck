@@ -92,6 +92,9 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 
 ## Status
 
+- TP4 Befund (2026-09-28): Red-Team-Gerüst fertig (13 Fälle, deterministische Prüfungen, präparierte Seite, `make redteam`), aber mit Qwen 7B bisher ohne Aussage: jede Prüfung endet `nicht_pruefbar` (`invalid_llm_output`). Ursache: LM Studio **0.2.24** ignoriert `response_format: json_schema` (auch mit `strict`); das Modell antwortet frei (z. B. `{"true":0.8,"false":0.2}` statt einer Zahl, JSON in Markdown-Blöcken). Dazu starker Swap auf dem 16-GB-Mac (ein Aufruf bis 431 s). Nächster Schritt: Marco aktualisiert LM Studio (≥ 0.3, Structured Output), dann Einzelaufruf-Test, dann Red-Team-Lauf; bleibt es zu langsam → Option C (Claude Haiku als Ziel, Kostenschätzung vorher)
+- Phase-1-Befund dabei behoben: Zeitbudgets `CHECKER_TIMEOUT_MS` / `EXPLAINER_TIMEOUT_MS` konfigurierbar (vorher fest 60/45 s, lokale Modelle scheiterten daran)
+
 - [x] Plan freigegeben (Marco, 2026-09-27); Entscheidungen 1–4 wie vorgeschlagen, sofern Marco nichts anderes sagt
 - [x] TP1 ADR 0014 und Dokumentation (PR #20)
 - [ ] TP2 SonarQube Cloud: wartet auf Marco (Account, Projekt, Secret `SONAR_TOKEN`); daher TP3 vorgezogen
