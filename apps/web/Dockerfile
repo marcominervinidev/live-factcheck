@@ -10,7 +10,7 @@ ARG PNPM_VERSION=12.6.0
 ENV PNPM_HOME=/pnpm \
     PNPM_STORE_DIR=/pnpm/store \
     CI=true
-RUN npm install -g "pnpm@${PNPM_VERSION}" && npm cache clean --force
+RUN npm install -g --ignore-scripts "pnpm@${PNPM_VERSION}" && npm cache clean --force
 WORKDIR /repo
 
 FROM base AS deps
@@ -21,7 +21,7 @@ COPY package.json tsconfig.base.json ./
 COPY packages/contracts/ packages/contracts/
 COPY apps/web/ apps/web/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile --filter "@lfc/web..."
+    pnpm install --frozen-lockfile --ignore-scripts --filter "@lfc/web..."
 
 # Development: sources are synced in by `docker compose watch`; Vite serves with HMR.
 FROM deps AS dev
