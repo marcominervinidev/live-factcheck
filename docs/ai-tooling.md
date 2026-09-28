@@ -45,10 +45,11 @@ The Playwright MCP server (from phase 1, brief 1.1) runs the official image `mcr
 
 ## SonarQube for IDE and MCP (from phase 1b)
 
-- **SonarQube for IDE** (formerly SonarLint): install the VS Code extension, connect it in Connected Mode to the SonarQube Cloud project `live-factcheck` (Settings → Sonar). Both Claude Code's and Antigravity's editors are VS Code-based, so the same install and connection cover both.
+- **SonarQube for IDE** (formerly SonarLint): install the VS Code extension, connect it in Connected Mode to the SonarQube Cloud project `live-factcheck` (Settings → Sonar). The project binding is checked in (`.vscode/settings.json`); the connection itself, with your token, stays in your user settings and must be named `marcominervinidev`. Both Claude Code's and Antigravity's editors are VS Code-based, so the same install and connection cover both.
 - **SonarQube MCP server**: official image `sonarsource/sonarqube-mcp`, pinned by digest, listed in both `.mcp.json` and `.agents/mcp_config.json` (CI checks the two stay in sync). It runs with `SONARQUBE_READ_ONLY=true`, so an agent can read findings, quality gate and coverage but can never change an issue status (AGENTS.md: the owner decides on findings). Lets an agent ask "any new SonarQube findings on this branch?" before opening a PR.
-- **Local token:** create a personal token in SonarQube Cloud (My Account → Security) and add `export SONAR_TOKEN=…` to `~/.zprofile`; the MCP server refuses to start without it. The CI uses its own token from the GitHub secret `SONAR_TOKEN`.
-- The `SONAR_TOKEN` used by CI and by the MCP server is a personal access token from the SonarQube Cloud account, never committed; it goes into `~/.zprofile` for local MCP use and into the GitHub repo secrets for CI.
+- **Local token (MCP server):** a personal token from SonarQube Cloud (My Account → Security); the MCP server refuses to start without `SONAR_TOKEN`. The token carries all rights of your account: `SONARQUBE_READ_ONLY` only limits the MCP server's tools, not the token. So do not export it permanently in `~/.zprofile`, where every process of your user can read it; keep it in the macOS keychain and set it only in the terminal you start the agent tool from:
+  `security add-generic-password -a "$USER" -s sonar-token -w` (once), then `export SONAR_TOKEN="$(security find-generic-password -s sonar-token -w)"`.
+- **CI token:** a separate token, stored only as the GitHub secret `SONAR_TOKEN`; ideally from a technical account that may only run analyses (*Execute Analysis*). Never committed, never in a file in the repo.
 
 ## Switching tools
 

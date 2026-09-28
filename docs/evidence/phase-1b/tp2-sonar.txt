@@ -1,0 +1,31 @@
+Phase 1b · TP2 – SonarQube Cloud (2026-09-28, branch phase-1b/tp2-sonar)
+=====================================================================
+
+Setup
+  Organization marcominervinidev, project marcominervinidev_live-factcheck, automatic analysis
+  off; analysed only by the ci.yml job `sonarqube` (sonarqube-scan-action v8.2.2, pinned by SHA)
+  with the GitHub secret SONAR_TOKEN. LCOV from every workspace's unit tests (artifacts
+  coverage-*). Advisory: not part of `ci passed` until the gate is tuned (ADR 0014).
+
+First CI analysis, PR #22 (public API, sonarcloud.io/api)
+  project_pull_requests/list:
+    22 phase-1b/tp2-sonar → main  qualityGateStatus OK · bugs 0 · vulnerabilities 0 · codeSmells 0
+       analysisDate 2026-09-28T07:34:21+0000
+  qualitygates/project_status?pullRequest=22: OK
+    new_reliability_rating 1 · new_security_rating 1 · new_maintainability_rating 1 ·
+    new_security_hotspots_reviewed 100.0
+  measures?pullRequest=22: coverage 91.9 % over 2071 lines to cover (LCOV import works)
+
+Baseline on main (last automatic analysis before it was switched off, 2026-09-28T06:46Z)
+  bugs 2 · vulnerabilities 15 · code smells 96 · duplication 1.7 % · 27 340 lines of code
+  The 17 bugs/vulnerabilities concern existing code (Dockerfile installs without
+  --ignore-scripts, PATH in CI scripts, CI helper inputs, a sort without compare function, http
+  in ready.sh/toolbox). They are fixed on their own branch, not dismissed (AGENTS.md).
+
+Review fixes on this branch
+  - PR detection matches only an open PR whose head is the pushed branch (the same commit can
+    be in several PRs)
+  - sonar.tests includes scripts/; coverage exclusions list the untestable CLI entry points
+    instead of all of scripts/
+  - docs/ai-tooling.md: local MCP token from the keychain instead of ~/.zprofile, separate CI
+    token; .vscode/settings.json binds the project for SonarQube for IDE (Connected Mode)

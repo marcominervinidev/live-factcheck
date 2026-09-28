@@ -1,0 +1,6 @@
+{
+  "sonarlint.connectedMode.project": {
+    "connectionId": "marcominervinidev",
+    "projectKey": "marcominervinidev_live-factcheck"
+  }
+}

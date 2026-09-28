@@ -250,8 +250,9 @@ jobs:
           lcov=$(find coverage-reports -name lcov.info 2>/dev/null | sort | paste -sd, -)
           if [ -n "$lcov" ]; then args+=("-Dsonar.javascript.lcov.reportPaths=$lcov"); fi
           # A push to a branch with an open PR is analysed as that PR, so SonarQube comments on it.
+          # Only a PR whose head is this branch: the same commit can also be in other PRs.
           pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/pulls" \
-            --jq '[.[] | select(.state == "open")][0] // empty | "\(.number) \(.base.ref)"' || true)
+            --jq '[.[] | select(.state == "open" and .head.ref == env.BRANCH)][0] // empty | "\(.number) \(.base.ref)"' || true)
           if [ -n "$pr" ]; then
             read -r number base <<< "$pr"
             args+=("-Dsonar.pullrequest.key=$number" "-Dsonar.pullrequest.branch=$BRANCH" "-Dsonar.pullrequest.base=$base")
