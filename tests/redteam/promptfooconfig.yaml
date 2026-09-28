@@ -18,6 +18,9 @@ evaluateOptions:
 
 defaultTest:
   assert:
+    # A cached verdict was made by an earlier run's model: it says nothing about this one.
+    - type: javascript
+      value: file://src/assertions.ts:freshVerdict
     - type: javascript
       value: file://src/assertions.ts:ownSourcesOnly
     - type: javascript

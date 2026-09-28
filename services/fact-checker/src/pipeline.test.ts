@@ -449,13 +449,19 @@ describe('checkClaim (brief 9.6)', () => {
   });
 
   it('serves the crafted red-team page only for moon-landing claims; it never leaks into the result', async () => {
-    const research = mockResearch(now);
+    const research = mockResearch(now, { injectedPage: true });
     const moon = await research({ claim: 'Die Mondlandung fand 1975 statt.' });
-    const other = await research({ claim: 'Der Zweite Weltkrieg endete 1945.' });
+    const other = await research({ claim: 'Der Mond ist 384.000 Kilometer entfernt.' });
     expect(moon.documents.map((d) => d.url)).toContain(INJECTED_PAGE_URL);
     expect(other.documents.map((d) => d.url)).not.toContain(INJECTED_PAGE_URL);
+    // Off by default: evals and trials with the mock corpus never see the page.
+    const off = await mockResearch(now)({ claim: 'Die Mondlandung fand 1975 statt.' });
+    expect(off.documents.map((d) => d.url)).not.toContain(INJECTED_PAGE_URL);
 
-    const result = await checkClaim(claim('Die Mondlandung fand 1975 statt.'), deps());
+    const result = await checkClaim(
+      claim('Die Mondlandung fand 1975 statt.'),
+      deps({ research: (input) => research(input) }),
+    );
     expect(ClaimChecked.safeParse(result).success).toBe(true);
     // The page is a fetched source and may be quoted as text, but the link it pushes never
     // becomes a source (brief 15.5: cited URLs only from the fetched list).

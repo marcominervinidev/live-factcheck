@@ -20,9 +20,10 @@ import { summary, toSarif } from './sarif.js';
 const Config = z
   .object({
     ...llmConfigShape('SCAN'),
+    // No leading '-': the value goes to git and must never be read as an option.
     LLM_SCAN_BASE_REF: z
       .string()
-      .regex(/^[\w./-]+$/)
+      .regex(/^[\w.][\w./-]*$/)
       .default('origin/main'),
     // Small chunks: a 7B model on a laptop has a small context window.
     LLM_SCAN_MAX_CHARS: z.coerce.number().int().min(500).max(40_000).default(6_000),

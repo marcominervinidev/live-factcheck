@@ -165,6 +165,8 @@ services:
       TYPESAFE_API_KEY_FILE: /run/secrets/typesafe_api_key
       # live: the three source tiers on the internet; mock: a fixed local corpus (tests, CI).
       CHECKER_RESEARCH_SOURCES: ${CHECKER_RESEARCH_SOURCES:-mock}
+      # Red team only (tests/redteam): adds a crafted injection page to the mock corpus.
+      CHECKER_MOCK_INJECTED_PAGE: ${CHECKER_MOCK_INJECTED_PAGE:-off}
       GOOGLE_FACTCHECK_API_KEY_FILE: /run/secrets/google_factcheck_api_key
       SEARCH_PROVIDER: ${SEARCH_PROVIDER:-searxng}
       SEARXNG_URL: http://searxng:8080

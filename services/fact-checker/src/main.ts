@@ -38,6 +38,17 @@ await runService({
       },
       'providers configured',
     );
+    if (config.CHECKER_MOCK_INJECTED_PAGE === 'on') {
+      logger.warn('red-team corpus on: moon-landing claims get a crafted injection page');
+    }
+    if (config.CHECKER_RESEARCH_SOURCES === 'mock' && config.CHECKER_LLM_PROVIDER !== 'mock') {
+      // The mock corpus is for tests and contains a crafted red-team page (security review,
+      // phase 1b): with a real model this is a test setup, never a real fact check.
+      logger.warn(
+        { research: 'mock', llm: config.CHECKER_LLM_PROVIDER },
+        'real model with the mock research corpus (test data incl. a red-team page); set CHECKER_RESEARCH_SOURCES=live for real checks',
+      );
+    }
     const redis = createRedis({
       url: config.REDIS_URL,
       ...(config.REDIS_USERNAME === undefined ? {} : { username: config.REDIS_USERNAME }),

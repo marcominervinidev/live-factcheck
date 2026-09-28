@@ -29,6 +29,8 @@ services:
     networks:
       edge:
         aliases: ['${LAN_HOST:-lfc.local}']
+      redteam:
+        aliases: ['${LAN_HOST:-lfc.local}']
 
   api-tests:
     <<: *playwright
@@ -91,9 +93,15 @@ services:
     <<: *playwright
     profiles: [redteam]
     working_dir: /workspace/tests/redteam
-    networks: [edge]
+    # Contained (security review, phase 1b): promptfoo brings ~625 third-party packages, so the
+    # container gets no internet (internal network, only Caddy), the repo read-only (no writes to
+    # .git/hooks, Makefile, scripts) and a non-root user; only its report folder is writable.
+    networks: [redteam]
+    # Non-root; uid 1000 is also the owner of Caddy's root.crt (mode 0600), so it can read it.
+    user: '1000:1000'
     volumes:
-      - .:/workspace
+      - .:/workspace:ro
+      - ./tests/redteam/reports:/workspace/tests/redteam/reports
       # Only the public root certificate of Caddy's local CA, never its keys.
       - type: volume
         source: caddy-data
@@ -113,6 +121,7 @@ services:
       PROMPTFOO_DISABLE_REMOTE_GENERATION: 'true'
       PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION: 'true'
       PROMPTFOO_CONFIG_DIR: /tmp/promptfoo
+      HOME: /tmp
     command:
       - node_modules/.bin/promptfoo
       - eval
@@ -152,3 +161,8 @@ services:
       EVAL_LIMIT: ${EVAL_LIMIT:-0}
       GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
     command: ['node_modules/.bin/tsx', '--conditions=development', 'src/run.ts']
+
+networks:
+  # Red team only: reaches Caddy, nothing else, no internet.
+  redteam:
+    internal: true

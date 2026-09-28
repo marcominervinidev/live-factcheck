@@ -17,14 +17,15 @@ WORKDIR /repo
 # Dependencies first so source edits do not invalidate this layer.
 FROM base AS deps
 ARG SERVICE
+# Only this service's dependencies: `pnpm fetch` would pull every package of the lockfile
+# (incl. dev tools like promptfoo) into every image's build; the store cache is shared anyway.
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch
 COPY package.json tsconfig.base.json ./
 COPY packages/ packages/
 COPY config/ config/
 COPY services/${SERVICE}/ services/${SERVICE}/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --offline --frozen-lockfile --filter "@lfc/${SERVICE}..."
+    pnpm install --frozen-lockfile --filter "@lfc/${SERVICE}..."
 
 # Development: sources are synced in by `docker compose watch`; tsx reloads on change.
 FROM deps AS dev

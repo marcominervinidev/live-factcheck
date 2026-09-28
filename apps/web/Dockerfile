@@ -14,13 +14,14 @@ RUN npm install -g "pnpm@${PNPM_VERSION}" && npm cache clean --force
 WORKDIR /repo
 
 FROM base AS deps
+# Only this service's dependencies: `pnpm fetch` would pull every package of the lockfile
+# (incl. dev tools like promptfoo) into every image's build; the store cache is shared anyway.
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch
 COPY package.json tsconfig.base.json ./
 COPY packages/contracts/ packages/contracts/
 COPY apps/web/ apps/web/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --offline --frozen-lockfile --filter "@lfc/web..."
+    pnpm install --frozen-lockfile --filter "@lfc/web..."
 
 # Development: sources are synced in by `docker compose watch`; Vite serves with HMR.
 FROM deps AS dev

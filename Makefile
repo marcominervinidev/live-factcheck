@@ -71,9 +71,18 @@ zap: ## OWASP ZAP baseline scan against the stack (brief 15.7); report in tests/
 	@mkdir -p tests/security/reports && chmod 777 tests/security/reports
 	$(TEST) --profile test run --rm zap
 
+# The red team runs in its own Compose project, created fresh and removed afterwards: no verdict
+# cache from earlier runs (a cached verdict says nothing about the current model) and the
+# owner's stack stays untouched.
+REDTEAM := COMPOSE_PROJECT_NAME=lfc-redteam LFC_HTTP_PORT=8083 LFC_HTTPS_PORT=8445 \
+	CHECKER_RESEARCH_SOURCES=mock CHECKER_MOCK_INJECTED_PAGE=on $(TEST)
+
 redteam: ## LLM red teaming with promptfoo (brief 15.7); needs a real model, see tests/redteam/README.md
-	$(TEST) up -d --build --wait
-	$(TEST) --profile redteam run --rm redteam
+	@mkdir -p tests/redteam/reports && chmod 777 tests/redteam/reports
+	$(REDTEAM) down -v --remove-orphans
+	$(REDTEAM) up -d --build --wait
+	$(REDTEAM) --profile redteam run --rm redteam; status=$$?; \
+	  $(REDTEAM) down -v --remove-orphans; exit $$status
 
 llm-scan: ## Local LLM security scan of the diff (advisory, brief 15.7); needs LM Studio, see scripts/llm-scan/README.md
 	$(TB) env SCAN_LLM_PROVIDER=$${SCAN_LLM_PROVIDER:-openai-compatible} \

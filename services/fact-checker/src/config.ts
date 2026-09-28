@@ -42,6 +42,11 @@ export const configSchema = baseConfigSchema
      * for tests and CI, which must not reach external networks (brief 13.1).
      */
     CHECKER_RESEARCH_SOURCES: z.enum(['live', 'mock']),
+    /**
+     * Red team only (brief 15.7): with `mock` research, moon-landing claims also get a crafted page
+     * with instructions aimed at the model. Off by default, so evals and trials never see it.
+     */
+    CHECKER_MOCK_INJECTED_PAGE: z.enum(['on', 'off']).default('off'),
     /** Tier 1; the tier is skipped when no key is configured. Secret. */
     GOOGLE_FACTCHECK_API_KEY: z.string().min(1).optional(),
     /** `config/source-tiers.yaml` inside the image (brief 9.1: tiers are data). */

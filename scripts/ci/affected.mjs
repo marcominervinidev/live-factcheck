@@ -33,7 +33,7 @@ const select = (kind, script) =>
       ({ dir }) =>
         (kind === 'frontend'
           ? dir.startsWith('apps/')
-          : /^(packages\/|services\/|evals$|scripts\/llm-scan$)/.test(dir)) &&
+          : /^(packages\/|services\/|evals$|scripts\/llm-scan$|tests\/redteam$)/.test(dir)) &&
         script in scriptsOf(dir),
     )
     .map((workspace) => {
