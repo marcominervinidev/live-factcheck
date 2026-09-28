@@ -24,13 +24,13 @@ RUN set -eu; \
       amd64) asset=linux_x64;   sum="${GITLEAKS_SHA256_AMD64}" ;; \
       *) echo "unsupported arch ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
-    curl -fsSL -o /tmp/gitleaks.tgz \
+    curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/gitleaks.tgz \
       "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_${asset}.tar.gz"; \
     echo "${sum}  /tmp/gitleaks.tgz" | sha256sum -c -; \
     tar -xzf /tmp/gitleaks.tgz -C /usr/local/bin gitleaks; \
     rm /tmp/gitleaks.tgz
 
-RUN npm install -g "pnpm@${PNPM_VERSION}" && npm cache clean --force
+RUN npm install -g --ignore-scripts "pnpm@${PNPM_VERSION}" && npm cache clean --force
 
 ENV PNPM_HOME=/home/node/.local/share/pnpm \
     PNPM_STORE_DIR=/pnpm-store \

@@ -2,13 +2,24 @@
 // owner can review videos and traces without searching the Actions UI.
 // Reports: stage 2b from the ci.yml push run of the head commit, stages 3 and 4 from this run.
 // Env: GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID, PR_NUMBER, HEAD_SHA.
-const {
-  GITHUB_TOKEN,
-  GITHUB_REPOSITORY: repo,
-  GITHUB_RUN_ID: runId,
-  PR_NUMBER,
-  HEAD_SHA,
-} = process.env;
+// Every value that ends up in an API path is checked first, so no input can point a request
+// (which carries the token) at another repository or endpoint.
+function input(name, pattern) {
+  const value = process.env[name] ?? '';
+  if (!pattern.test(value)) throw new Error(`${name} is missing or malformed`);
+  return value;
+}
+const { GITHUB_TOKEN } = process.env;
+const repo = input('GITHUB_REPOSITORY', /^[\w.-]+\/[\w.-]+$/);
+const runId = input('GITHUB_RUN_ID', /^\d+$/);
+const PR_NUMBER = input('PR_NUMBER', /^\d+$/);
+const HEAD_SHA = input('HEAD_SHA', /^[0-9a-f]{40}$/);
+/** Ids taken from API answers, checked before they go into a path or link. */
+function id(value) {
+  if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`unexpected id ${String(value)}`);
+  return String(value);
+}
+const API = 'https://api.github.com';
 const MARKER = '<!-- lfc-test-reports -->';
 const REPORTS = [
   ['playwright-report-stage-2b', 'Stage 2b · frontend against a mocked backend'],
@@ -17,7 +28,9 @@ const REPORTS = [
 ];
 
 async function api(path, init = {}) {
-  const response = await fetch(`https://api.github.com/repos/${repo}${path}`, {
+  const url = new URL(`/repos/${repo}${path}`, API);
+  if (url.origin !== API) throw new Error(`refusing request to ${url.origin}`);
+  const response = await fetch(url, {
     ...init,
     headers: {
       authorization: `Bearer ${GITHUB_TOKEN}`,
@@ -30,10 +43,10 @@ async function api(path, init = {}) {
   return response.status === 204 ? null : response.json();
 }
 
-const artifactsOf = async (id) =>
-  (await api(`/actions/runs/${id}/artifacts?per_page=100`)).artifacts.map((a) => ({
+const artifactsOf = async (run) =>
+  (await api(`/actions/runs/${run}/artifacts?per_page=100`)).artifacts.map((a) => ({
     ...a,
-    runId: id,
+    runId: run,
   }));
 
 // The push run may finish after this one; wait up to 10 minutes for its stage 2b report.
@@ -50,14 +63,14 @@ async function completedCiRun() {
 const ciRun = await completedCiRun();
 const artifacts = [
   ...(await artifactsOf(runId)),
-  ...(ciRun === undefined ? [] : await artifactsOf(ciRun.id)),
+  ...(ciRun === undefined ? [] : await artifactsOf(id(ciRun.id))),
 ];
 
 const rows = REPORTS.map(([name, label]) => {
   const artifact = artifacts.find((a) => a.name === name && !a.expired);
   if (artifact === undefined)
     return `| ${label} | not available (stage skipped or still running) |`;
-  const url = `https://github.com/${repo}/actions/runs/${String(artifact.runId)}/artifacts/${String(artifact.id)}`;
+  const url = `https://github.com/${repo}/actions/runs/${artifact.runId}/artifacts/${id(artifact.id)}`;
   return `| ${label} | [download](${url}) (${(artifact.size_in_bytes / 1e6).toFixed(1)} MB) |`;
 });
 
@@ -79,7 +92,7 @@ const comments = await api(`/issues/${PR_NUMBER}/comments?per_page=100`);
 const existing = comments.find((c) => c.body?.startsWith(MARKER));
 await (existing === undefined
   ? api(`/issues/${PR_NUMBER}/comments`, { method: 'POST', body: JSON.stringify({ body }) })
-  : api(`/issues/comments/${String(existing.id)}`, {
+  : api(`/issues/comments/${id(existing.id)}`, {
       method: 'PATCH',
       body: JSON.stringify({ body }),
     }));

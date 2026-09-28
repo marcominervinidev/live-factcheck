@@ -68,9 +68,10 @@ export function calibration(
     hit: [] as number[],
   }));
   for (const { probabilities, expected } of pairs) {
-    const [top, p] = (Object.entries(probabilities) as [Verdict, number][]).reduce((best, entry) =>
-      entry[1] > best[1] ? entry : best,
-    );
+    const entries = Object.entries(probabilities) as [Verdict, number][];
+    const first = entries[0];
+    if (first === undefined) throw new Error('calibration needs a probability per verdict');
+    const [top, p] = entries.reduce((best, entry) => (entry[1] > best[1] ? entry : best), first);
     const index = Math.min(binCount - 1, Math.floor(p * binCount));
     bins[index]?.p.push(p);
     bins[index]?.hit.push(top === expected ? 1 : 0);

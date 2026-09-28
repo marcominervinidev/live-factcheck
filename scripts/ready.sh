@@ -16,11 +16,13 @@ check() { # network url label
   [ "$code" = 200 ] || status=1
 }
 
+# Plain HTTP on purpose (hence NOSONAR): these are the ops endpoints inside the internal
+# Compose networks; TLS ends at Caddy, the only container with host ports (ADR 0004).
 for svc in gateway transcription claim-extractor fact-checker explainer; do
-  check internal "http://${svc}:8080/readyz" "$svc"
+  check internal "http://${svc}:8080/readyz" "$svc" # NOSONAR
 done
-check frontend "http://web:8080/healthz" web
-check internal "http://searxng:8080/healthz" searxng
+check frontend "http://web:8080/healthz" web # NOSONAR
+check internal "http://searxng:8080/healthz" searxng # NOSONAR
 
 # End to end through Caddy with TLS (internal CA, hence -k). The SNI must be "localhost".
 caddy_ip=$(docker inspect -f "{{(index .NetworkSettings.Networks \"${PROJECT}_edge\").IPAddress}}" "${PROJECT}-caddy-1")

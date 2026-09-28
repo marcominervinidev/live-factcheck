@@ -101,6 +101,11 @@ describe('calibration', () => {
     ];
     expect(calibration(pairs).ece).toBeCloseTo(0.45, 10);
   });
+
+  it('refuses an empty distribution instead of guessing a verdict', () => {
+    const pairs = [{ probabilities: {} as ReturnType<typeof dist>, expected: 'stimmt' as const }];
+    expect(() => calibration(pairs)).toThrow('calibration needs a probability per verdict');
+  });
 });
 
 describe('summarize', () => {
