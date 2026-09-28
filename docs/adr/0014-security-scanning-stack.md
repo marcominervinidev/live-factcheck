@@ -29,3 +29,10 @@ Phase 0 and 1 already run ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, depen
 - Two more accounts/credentials to manage: SonarQube Cloud (`SONAR_TOKEN` as a GitHub secret) and a locally running LM Studio server for red teaming and the code scanner. Both need Marco's one-time setup; the plan lists exactly when Claude reminds him (`.ai/plans/phase-1b-security-tooling.md`).
 - CI grows by one more job (`sonar`) and, in `nightly`/`stack-tests`, one more step (ZAP). Red teaming and the LLM code scan stay local/manual to avoid needing GPU-capable runners.
 - If SonarQube Cloud's Quality Gate turns out too noisy on this codebase's style, the plan is to tune the gate's ruleset before making it a required check, not to skip the trial period.
+
+## Amendment (2026-09-28, TP4/TP5)
+
+Implementation changed two details of the decision above:
+
+- **The local model is the target, not the attacker.** The red team uses 13 static attack cases written by hand (`tests/redteam/promptfooconfig.yaml`) instead of promptfoo's generated plugins, because those need promptfoo's hosted generation, which stays off. The model under test is the one behind the pipeline (checker, classifier, explainer); checks are deterministic code, no LLM grader. `make redteam` runs in its own Compose project with the mock research corpus and a crafted page that only this project switches on (`CHECKER_MOCK_INJECTED_PAGE=on`).
+- **Model: Qwen2.5-Coder-7B-Instruct** (official GGUF, Q4_K_M) in LM Studio ≥ 0.3, for both the red team and the code scan. Larger coder models (Qwen3-Coder, DeepSeek-Coder-V2) do not fit next to the Docker VM on a 16 GB Mac; the model stays configurable. The code scan refuses cloud providers and non-local endpoints, so source code never leaves the machine.

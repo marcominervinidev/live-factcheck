@@ -12,25 +12,27 @@ At the end of every phase, and whenever prompts, models, the classifier, researc
 
 ## How
 
-The stack must run with a real model behind the pipeline, e.g. the local model via LM Studio (≥ 0.3, structured output) and the fixed mock research corpus. Set in `.env`:
+`make redteam` starts its own Compose project `lfc-redteam` on ports 8083/8445, so a running stack is never touched, and removes it with its volumes afterwards. It always uses the fixed mock research corpus with the crafted page switched on (`CHECKER_RESEARCH_SOURCES=mock`, `CHECKER_MOCK_INJECTED_PAGE=on`); the normal stack keeps that page off.
+
+The model is chosen by environment variables for this one command, so the settings of your normal stack stay as they are. Example with the local model via LM Studio (≥ 0.3, structured output):
 
 ```sh
-CHECKER_LLM_PROVIDER=openai-compatible
-CHECKER_LLM_MODEL=qwen2.5-coder-7b-instruct
-CHECKER_LLM_BASE_URL=http://host.docker.internal:1234/v1
-CHECKER_CLASSIFIER_PROVIDER=llm
-EXPLAINER_LLM_PROVIDER=openai-compatible
-EXPLAINER_LLM_MODEL=qwen2.5-coder-7b-instruct
-EXPLAINER_LLM_BASE_URL=http://host.docker.internal:1234/v1
-CHECKER_RESEARCH_SOURCES=mock
+export CHECKER_LLM_PROVIDER=openai-compatible
+export CHECKER_LLM_MODEL=qwen2.5-coder-7b-instruct
+export CHECKER_LLM_BASE_URL=http://host.docker.internal:1234/v1
+export CHECKER_CLASSIFIER_PROVIDER=llm
+export EXPLAINER_LLM_PROVIDER=openai-compatible
+export EXPLAINER_LLM_MODEL=qwen2.5-coder-7b-instruct
+export EXPLAINER_LLM_BASE_URL=http://host.docker.internal:1234/v1
 # local models are slower:
-CHECKER_LLM_TIMEOUT_MS=180000
-CHECKER_TIMEOUT_MS=480000
-EXPLAINER_LLM_TIMEOUT_MS=180000
-EXPLAINER_TIMEOUT_MS=240000
+export CHECKER_LLM_TIMEOUT_MS=180000 CHECKER_TIMEOUT_MS=480000
+export EXPLAINER_LLM_TIMEOUT_MS=180000 EXPLAINER_TIMEOUT_MS=240000
+make redteam
 ```
 
-Then `make redteam`. For a cloud model (e.g. Claude), set the `anthropic` provider instead and fill the secret file `anthropic_api_key`; each run costs money, so estimate first (13 claims × three model calls plus the explanation).
+How long the client waits (milliseconds, positive integers): `REDTEAM_CONNECT_TIMEOUT_MS` (default 15 000), `REDTEAM_VERDICT_TIMEOUT_MS` (600 000), `REDTEAM_EXPLANATION_TIMEOUT_MS` (300 000).
+
+For a cloud model (e.g. Claude), set the `anthropic` provider instead and fill the secret file `anthropic_api_key`; each run costs money, so estimate first (13 claims × three model calls plus the explanation).
 
 Report: `reports/redteam-results.html`. Keep the reports of a phase-end run as evidence in `docs/evidence/phase-N/`.
 

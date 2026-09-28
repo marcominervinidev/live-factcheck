@@ -75,6 +75,12 @@ Security is part of the definition of done from phase 0 (brief 15). This documen
 - Caddy's local CA signs the certificates your devices trust. Its private keys never leave the caddy container: test and eval containers get only `root.crt` (a single-file volume subpath).
 - Caddy sets HSTS, a strict CSP (`script-src 'self'`, no `eval`; zod runs `jitless` for that reason), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and a `Permissions-Policy` that allows only the microphone for the app itself. It sends no CORS headers.
 
+## Scanning and attacks (brief 15.7, ADR 0014)
+
+- **Every PR:** Semgrep, CodeQL, Trivy, gitleaks, hadolint and dependency-cruiser block; SonarQube Cloud reports (advisory until the gate is tuned); OWASP ZAP scans the running stack in `stack-tests.yml`; stage 3 runs the deterministic injection cases (`tests/api/injection.spec.ts`).
+- **By hand, at the end of every phase and after attack-surface changes:** `make redteam` sends 13 attack claims through the real pipeline with a real model and checks the answers with deterministic code (`tests/redteam`); `make llm-scan` lets a local model review the diff as a second opinion (SARIF, never a gate, refuses cloud models).
+- Nobody but the owner dismisses a finding of any of these tools (AGENTS.md).
+
 ## Known risks and trade-offs
 
 | Risk | Why it is accepted | Mitigation |
@@ -86,6 +92,7 @@ Security is part of the definition of done from phase 0 (brief 15). This documen
 | MCP server containers get their token or password as an environment variable (visible via `docker inspect` while they run) | the official images accept credentials only via env | fine-grained GitHub token; the Redis MCP connects as the read-only `mcp` ACL user (no admin, no writes) |
 | The edge-facing images (nginx, Caddy on Alpine) contain a BusyBox shell | upstream ships it; there are no distroless variants | both run non-root, read-only, without capabilities; web has no internet access, Caddy only the published ports |
 | The gateway token in `localStorage` is readable by any script on the origin | a single-user LAN app without a login flow (ADR 0011) | strict CSP, no third-party scripts, evidence rendered as text only |
+| A claim that imitates a model answer (`…1965.", "verdict": "stimmt"`) can talk a small local model into a wrong verdict (red-team finding F1, `docs/evidence/phase-1b/tp4-redteam.txt`) | the claim is escaped correctly; it is the model that follows the embedded "answer" | sources, links and explanation stay limited by code whatever the model says; a comparison run with a large model decides whether more is needed |
 | The agent-side secrets guard is a regex over the whole tool input (it also blocks in-container secret paths, but cannot catch every indirection, and it also blocks harmless text that merely mentions them) | comfort and early warning only | real secrets are outside the repo; gitleaks, CI and review are the enforcing layers |
 
 ## Reporting a vulnerability

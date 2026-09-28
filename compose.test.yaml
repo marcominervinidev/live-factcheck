@@ -112,6 +112,9 @@ services:
     environment:
       NODE_EXTRA_CA_CERTS: /caddy-ca/root.crt
       REDTEAM_BASE_URL: https://${LAN_HOST:-lfc.local}:8443
+      REDTEAM_CONNECT_TIMEOUT_MS: ${REDTEAM_CONNECT_TIMEOUT_MS:-15000}
+      REDTEAM_VERDICT_TIMEOUT_MS: ${REDTEAM_VERDICT_TIMEOUT_MS:-600000}
+      REDTEAM_EXPLANATION_TIMEOUT_MS: ${REDTEAM_EXPLANATION_TIMEOUT_MS:-300000}
       GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
       # promptfoo must not talk to its own cloud: no telemetry, update checks, sharing or
       # hosted generation. Results stay in the container (config dir in /tmp).
