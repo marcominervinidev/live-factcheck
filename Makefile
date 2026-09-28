@@ -11,7 +11,7 @@ PLAYWRIGHT := docker run --rm --ipc=host -e CI -v $(CURDIR):/workspace mcr.micro
 IMAGES := caddy web gateway transcription claim-extractor fact-checker explainer
 
 .PHONY: help up up-local dev down logs ready check-ports lint test test-unit test-integration \
-        test-api test-e2e zap eval scan toolbox toolbox-down install secrets-init hooks-install
+        test-api test-e2e zap redteam eval scan toolbox toolbox-down install secrets-init hooks-install
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -70,6 +70,10 @@ zap: ## OWASP ZAP baseline scan against the stack (brief 15.7); report in tests/
 	$(TEST) up -d --build --wait
 	@mkdir -p tests/security/reports && chmod 777 tests/security/reports
 	$(TEST) --profile test run --rm zap
+
+redteam: ## LLM red teaming with promptfoo (brief 15.7); needs a real model, see tests/redteam/README.md
+	$(TEST) up -d --build --wait
+	$(TEST) --profile redteam run --rm redteam
 
 eval: ## Stage 5: claim eval against the stack (EVAL_LABEL=name; see evals/README.md)
 	$(TEST) up -d --build --wait

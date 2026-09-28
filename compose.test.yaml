@@ -85,6 +85,46 @@ services:
       - -I
       - -s
 
+  # Phase 1b (brief 15.7, ADR 0014): LLM red teaming with promptfoo against the running stack,
+  # like a client. Run the stack with a real model (see tests/redteam/README.md); `make redteam`.
+  redteam:
+    <<: *playwright
+    profiles: [redteam]
+    working_dir: /workspace/tests/redteam
+    networks: [edge]
+    volumes:
+      - .:/workspace
+      # Only the public root certificate of Caddy's local CA, never its keys.
+      - type: volume
+        source: caddy-data
+        target: /caddy-ca/root.crt
+        read_only: true
+        volume:
+          subpath: caddy/pki/authorities/local/root.crt
+    environment:
+      NODE_EXTRA_CA_CERTS: /caddy-ca/root.crt
+      REDTEAM_BASE_URL: https://${LAN_HOST:-lfc.local}:8443
+      GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
+      # promptfoo must not talk to its own cloud: no telemetry, update checks, sharing or
+      # hosted generation. Results stay in the container (config dir in /tmp).
+      PROMPTFOO_DISABLE_TELEMETRY: 'true'
+      PROMPTFOO_DISABLE_UPDATE: 'true'
+      PROMPTFOO_DISABLE_SHARING: 'true'
+      PROMPTFOO_DISABLE_REMOTE_GENERATION: 'true'
+      PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION: 'true'
+      PROMPTFOO_CONFIG_DIR: /tmp/promptfoo
+    command:
+      - node_modules/.bin/promptfoo
+      - eval
+      - --config
+      - promptfooconfig.yaml
+      - --no-cache
+      - --no-progress-bar
+      - --output
+      - reports/redteam-results.json
+      - --output
+      - reports/redteam-results.html
+
   # Stage 5 (brief 13.5): `make eval` runs the claim set against this stack like a client.
   # The providers under test are whatever the stack is configured with; reports go to
   # docs/evidence/phase-1/evals/.

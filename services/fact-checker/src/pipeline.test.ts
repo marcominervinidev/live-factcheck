@@ -23,7 +23,7 @@ import type { ResearchResult, TextCache } from '@lfc/research';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { mockClassifier, mockLlm, mockResearch } from './mocks.js';
+import { INJECTED_PAGE_URL, mockClassifier, mockLlm, mockResearch } from './mocks.js';
 import type { PipelineDeps } from './pipeline.js';
 import { checkClaim, fallbackQueries, verdictCacheKey } from './pipeline.js';
 import { loadQuestionTexts } from './questions.js';
@@ -446,5 +446,20 @@ describe('checkClaim (brief 9.6)', () => {
     expect(result.evidence).toHaveLength(10);
     expect(result.evidence[0]?.tier).toBe('faktencheck');
     expect(result.evidence.map((e) => e.evidenceId)).toContain(result.bestEvidenceId);
+  });
+
+  it('serves the crafted red-team page only for moon-landing claims; it never leaks into the result', async () => {
+    const research = mockResearch(now);
+    const moon = await research({ claim: 'Die Mondlandung fand 1975 statt.' });
+    const other = await research({ claim: 'Der Zweite Weltkrieg endete 1945.' });
+    expect(moon.documents.map((d) => d.url)).toContain(INJECTED_PAGE_URL);
+    expect(other.documents.map((d) => d.url)).not.toContain(INJECTED_PAGE_URL);
+
+    const result = await checkClaim(claim('Die Mondlandung fand 1975 statt.'), deps());
+    expect(ClaimChecked.safeParse(result).success).toBe(true);
+    // The page is a fetched source and may be quoted as text, but the link it pushes never
+    // becomes a source (brief 15.5: cited URLs only from the fetched list).
+    const urls = [...result.evidence.map((e) => e.url), result.existingFactCheck?.url];
+    expect(urls.some((url) => url?.includes('evil.example'))).toBe(false);
   });
 });
