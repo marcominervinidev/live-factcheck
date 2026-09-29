@@ -4,6 +4,7 @@ packages:
   - packages/*
   - tests/*
   - evals
+  - scripts/llm-scan
 
 # Dependency install scripts are denied unless explicitly allowed here.
 allowBuilds:
@@ -16,3 +17,8 @@ allowBuilds:
   cpu-features: false
   ssh2: false
   protobufjs: false
+  # Pulled in by promptfoo (tests/redteam) for features we do not use: a bundled Chromium,
+  # swc's binary check (the binary comes as an optional platform package), ONNX runtime downloads.
+  '@playwright/browser-chromium': false
+  '@swc/core': false
+  onnxruntime-node: false

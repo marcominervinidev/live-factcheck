@@ -11,7 +11,7 @@ PLAYWRIGHT := docker run --rm --ipc=host -e CI -v $(CURDIR):/workspace mcr.micro
 IMAGES := caddy web gateway transcription claim-extractor fact-checker explainer
 
 .PHONY: help up up-local dev down logs ready check-ports lint test test-unit test-integration \
-        test-api test-e2e zap eval scan toolbox toolbox-down install secrets-init hooks-install
+        test-api test-e2e zap redteam llm-scan eval scan toolbox toolbox-down install secrets-init hooks-install
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -70,6 +70,27 @@ zap: ## OWASP ZAP baseline scan against the stack (brief 15.7); report in tests/
 	$(TEST) up -d --build --wait
 	@mkdir -p tests/security/reports && chmod 777 tests/security/reports
 	$(TEST) --profile test run --rm zap
+
+# The red team runs in its own Compose project, created fresh and removed afterwards: no verdict
+# cache from earlier runs (a cached verdict says nothing about the current model) and the
+# owner's stack stays untouched.
+REDTEAM := COMPOSE_PROJECT_NAME=lfc-redteam LFC_HTTP_PORT=8083 LFC_HTTPS_PORT=8445 \
+	CHECKER_RESEARCH_SOURCES=mock CHECKER_MOCK_INJECTED_PAGE=on $(TEST)
+
+redteam: ## LLM red teaming with promptfoo (brief 15.7); needs a real model, see tests/redteam/README.md
+	@mkdir -p tests/redteam/reports && chmod 777 tests/redteam/reports
+	$(REDTEAM) down -v --remove-orphans
+	$(REDTEAM) up -d --build --wait
+	$(REDTEAM) --profile redteam run --rm redteam; status=$$?; \
+	  $(REDTEAM) down -v --remove-orphans; exit $$status
+
+llm-scan: ## Local LLM security scan of the diff (advisory, brief 15.7); needs LM Studio, see scripts/llm-scan/README.md
+	$(TB) env SCAN_LLM_PROVIDER=$${SCAN_LLM_PROVIDER:-openai-compatible} \
+	  SCAN_LLM_MODEL=$${SCAN_LLM_MODEL:-qwen2.5-coder-7b-instruct} \
+	  SCAN_LLM_BASE_URL=$${SCAN_LLM_BASE_URL:-http://host.docker.internal:1234/v1} \
+	  SCAN_LLM_TIMEOUT_MS=$${SCAN_LLM_TIMEOUT_MS:-180000} \
+	  LLM_SCAN_BASE_REF=$${LLM_SCAN_BASE_REF:-origin/main} \
+	  pnpm --filter @lfc/llm-scan run scan
 
 eval: ## Stage 5: claim eval against the stack (EVAL_LABEL=name; see evals/README.md)
 	$(TEST) up -d --build --wait

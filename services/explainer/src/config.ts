@@ -20,6 +20,8 @@ export const configSchema = baseConfigSchema
     ...privacyModeShape,
     ...llmConfigShape('EXPLAINER'),
     ...budgetConfigShape,
+    /** Time budget of one explanation; local models on normal hardware need more. */
+    EXPLAINER_TIMEOUT_MS: z.coerce.number().int().min(5_000).max(600_000).default(45_000),
   })
   .superRefine(checkLlmConfig('EXPLAINER'))
   .superRefine(checkPrivacyMode((config) => [llmUse('EXPLAINER', config)]));

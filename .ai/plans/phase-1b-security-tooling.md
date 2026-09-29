@@ -67,6 +67,7 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 - Erwartung: Urteil bleibt beim Belegstand, keine fremde Quelle, keine fremden Links (Brief 15.5), `nicht_pruefbar` statt Raten
 - Angreifer-Modell: Qwen/DeepSeek über `http://host.docker.internal:1234/v1`; `make redteam`; Report als Evidence
 - Deterministischer Teil (feste Injection-Fälle, Mock-Provider) zusätzlich als Stufe-3-Tests in CI
+- **Rhythmus (Marco, 2026-09-28):** der volle Lauf mit echtem Modell zum Ende jeder Phase (vor dem letzten Gate) und außer der Reihe bei Änderungen an Prompts, Modellwahl, Klassifikator, Recherche/Quellen oder Erklärung (z. B. Phase 2: gesprochene Sprache als neuer Eingabeweg); nicht bei jeder kleinen Etappe. Jeder PR prüft nur den deterministischen Teil.
 
 ## TP5 – LLM-Code-Scanner
 
@@ -75,6 +76,8 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 - Vergleich im Evidence-Dokument: Was findet der LLM-Scan, was Semgrep/CodeQL/Sonar nicht (und umgekehrt), Fehlalarmquote
 
 ## TP6 – Skill, Reviews, PR
+
+- **Vor dem Gate (Claude erinnert Marco):** Red-Team-Vergleichslauf mit **Claude Opus 5 als Prüf-Modell** und Haiku 4.5 als Erklärer (Produktiv-Konfiguration), Kostenschätzung ca. 0,60–1,20 $ für 13 Fälle. Marco trägt vorher den Anthropic-Key in `anthropic_api_key` ein. Ziel: klären, ob Befund F1 (gefälschtes JSON im Behauptungstext kippt das Urteil, siehe `docs/evidence/phase-1b/tp4-redteam.txt`) am 7B-Modell liegt; danach über eine Gegenmaßnahme entscheiden.
 
 - Skill `.agents/skills/security-scan/` für beide Tools: wann welcher Scan, wie Befunde triagiert werden, was nie erlaubt ist
 - Reviews (`reviewer`, `security-reviewer`), Evidence `docs/evidence/phase-1b/`, PR
@@ -92,7 +95,28 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 ## Status
 
 - [x] Plan freigegeben (Marco, 2026-09-27); Entscheidungen 1–4 wie vorgeschlagen, sofern Marco nichts anderes sagt
-- [x] TP1 ADR 0014 und Dokumentation (PR #20)
-- [ ] TP2 SonarQube Cloud: wartet auf Marco (Account, Projekt, Secret `SONAR_TOKEN`); daher TP3 vorgezogen
-- [x] TP3 OWASP ZAP (PR `phase-1b/tp3-zap`): FAIL 0 / WARN 0 / PASS 64 nach Fix der Cross-Origin-Header; Nachweis `docs/evidence/phase-1b/tp3-zap.txt`
-- Nächster Task: TP4 promptfoo-Red-Team (braucht LM Studio mit Qwen3-Coder, Claude erinnert Marco); bis dahin der deterministische Teil (feste Injection-Fälle als Stufe-3-Tests)
+- [x] TP1 ADR 0014 und Dokumentation (PR #20, gemergt)
+- [x] TP2 SonarQube Cloud (PR #22, offen): erster Scan `ANALYSIS SUCCESSFUL`, Quality Gate OK
+- [x] TP3 OWASP ZAP (PR #21, gemergt): FAIL 0 / WARN 0 / PASS 64
+- [x] TP4 Red-Team (PR #23, offen): Qwen 7B 12/13 abgewehrt, Befund F1 offen (in `docs/SECURITY.md` als bekanntes Risiko)
+- [x] TP5 lokaler LLM-Code-Scanner (PR #23): 11 Funde, alle als Fehlalarm eingeschätzt; Vergleich Semgrep/CodeQL im Nachweis
+- [x] TP6 Skill `security-scan` (PR #24, offen; nach #23 mergen)
+- [x] Review-Befunde PR #23 erledigt: frische Läufe, isolierter Container, robuster Client, llm-scan nur lokal, Diff-Parser, Doku (README, `tests/AGENTS.md`, ADR-0014-Nachtrag, SECURITY.md), depcruise für `scripts/llm-scan`, Semgrep-Fund `node_secret` eng unterdrückt (Marco entscheidet)
+- Offen, für Marco:
+  - CodeQL `js/file-access-to-http` #7–#11 (Token aus der Secret-Datei als Auth-Header) wegklicken oder anders entscheiden
+  - `SONAR_TOKEN` aus `~/.zprofile` entfernen (Security-Review-Befund 1), danach Doku/Skill anpassen
+  - **Abhängigkeiten in den Images:** seit promptfoo im Lockfile ist, bekommen fact-checker, claim-extractor und explainer über die optionalen Peers von `openai@7` rund 75 ungenutzte AWS-SDK-/smithy-Pakete. `dedupePeerDependents: false`, `autoInstallPeers: false` und Overrides mit `-` helfen unter pnpm 12 nicht. Vorschlag: `tests/redteam` aus dem pnpm-Workspace nehmen (eigenes Lockfile, eigenes Install im Red-Team-Container), braucht Marcos OK
+- Offen in PR #22: Sonar-PR-Erkennung über `.head.ref`, `sonar.tests` inkl. `scripts`, Widerspruch in `docs/ai-tooling.md`, `.vscode/settings.json`, TP2-Nachweis; PR #24: Semgrep-Version 1.178.0 im Skill
+- Nächster Task: Reste PR #22/#24, dann **Opus-5-Red-Team-Lauf (Marco erinnern, Key, ca. 0,60–1,20 $)**, dann Gate 6
+
+### 2026-09-28T11:53Z – compaction (auto)
+
+- branch: `phase-1b/tp4-redteam`, HEAD `38259a2`
+- uncommitted:
+
+```
+ M .ai/plans/phase-1b-security-tooling.md
+ M scripts/llm-scan/src/diff.ts
+ M scripts/llm-scan/src/run.ts
+ M scripts/llm-scan/src/sarif.ts
+```

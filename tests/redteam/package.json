@@ -1,0 +1,21 @@
+{
+  "name": "@lfc/redteam",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LLM red teaming of the text-mode pipeline with promptfoo (brief 15.7, ADR 0014). Run via `make redteam`.",
+  "scripts": {
+    "test:unit": "vitest run --project unit",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@lfc/contracts": "workspace:*",
+    "@types/node": "24.13.6",
+    "@types/ws": "8.18.1",
+    "@vitest/coverage-v8": "5.0.1",
+    "promptfoo": "0.123.1",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1",
+    "ws": "8.21.3"
+  }
+}

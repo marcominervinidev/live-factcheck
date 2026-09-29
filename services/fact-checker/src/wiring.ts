@@ -54,7 +54,7 @@ export function createPipelineDeps(config: Config, redis: Redis): PipelineDeps {
 
   let research: PipelineDeps['research'];
   if (config.CHECKER_RESEARCH_SOURCES === 'mock') {
-    research = mockResearch(now);
+    research = mockResearch(now, { injectedPage: config.CHECKER_MOCK_INJECTED_PAGE === 'on' });
   } else {
     const fetcher = cachedFetcher(
       createSafeFetcher({

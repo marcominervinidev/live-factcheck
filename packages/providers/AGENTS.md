@@ -7,7 +7,7 @@ Rules for this package only. Repo-wide rules: `/AGENTS.md`.
 - Every service that configures an external provider adds its uses to `checkPrivacyMode`, so `PRIVACY_MODE=local` refuses cloud providers at startup (brief 15.6). An unknown endpoint counts as cloud (fail closed).
 - Classifier answers always carry `probabilities` and a `confidence` computed with the one shared formula (ADR 0007), whatever the provider.
 - Model names are never hard-coded; they come from `<TASK>_LLM_MODEL`.
-- Configuration is per task (LLM: `EXTRACTOR`, `CHECKER`, `EXPLAINER`; classifier: `CHECKER`, `DETECTOR` from phase 2), so each step can use a different provider.
+- Configuration is per task (LLM: `EXTRACTOR`, `CHECKER`, `EXPLAINER`, and `SCAN` for the local security code scan in `scripts/llm-scan`; classifier: `CHECKER`, `DETECTOR` from phase 2), so each step can use a different provider.
 - Never log or return an API key; `describeLlmConfig` is the only thing services log about a provider.
 - Every adapter gets a `mock` counterpart that tests use at the system boundary.
 - `mock` providers get their answers from the calling service (`mock` handler option), so deterministic test answers live next to the prompts that need them; mock answers are validated like real ones.

@@ -11,19 +11,20 @@ ARG PNPM_VERSION=12.6.0
 ENV PNPM_HOME=/pnpm \
     PNPM_STORE_DIR=/pnpm/store \
     CI=true
-RUN npm install -g "pnpm@${PNPM_VERSION}" && npm cache clean --force
+RUN npm install -g --ignore-scripts "pnpm@${PNPM_VERSION}" && npm cache clean --force
 WORKDIR /repo
 
 # Dependencies first so source edits do not invalidate this layer.
 FROM base AS deps
 ARG SERVICE
+# Only this service's dependencies: `pnpm fetch` would pull every package of the lockfile
+# (incl. dev tools like promptfoo) into every image's build; the store cache is shared anyway.
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch
 COPY package.json tsconfig.base.json ./
 COPY packages/ packages/
 COPY services/${SERVICE}/ services/${SERVICE}/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --offline --frozen-lockfile --filter "@lfc/${SERVICE}..."
+    pnpm install --frozen-lockfile --ignore-scripts --filter "@lfc/${SERVICE}..."
 
 # Development: sources are synced in by `docker compose watch`; tsx reloads on change.
 FROM deps AS dev

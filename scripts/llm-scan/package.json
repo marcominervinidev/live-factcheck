@@ -1,0 +1,23 @@
+{
+  "name": "@lfc/llm-scan",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local LLM security scan of the diff against main, as SARIF (brief 15.7, ADR 0014). Advisory, never a gate. Run via `make llm-scan`.",
+  "scripts": {
+    "scan": "tsx --conditions=development src/run.ts",
+    "test:unit": "vitest run --project unit",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@lfc/providers": "workspace:*",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "@vitest/coverage-v8": "5.0.1",
+    "tsx": "4.23.14",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1"
+  }
+}
