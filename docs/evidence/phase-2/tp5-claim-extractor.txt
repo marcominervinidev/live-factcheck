@@ -34,3 +34,15 @@ Found on the way
 Open
   T5.6 detection eval set (~150 segments from Bundestag protocols, labels checked by Marco)
   and `pnpm eval --set detection`; Stryker for the deduplication (nightly)
+
+Security review fixes (owner-approved 2026-09-29, ADR 0018)
+  - transcription fails closed: a budget that cannot be booked or checked stops the recording
+    with budget_exceeded (2 new unit tests; the start test fails against the old code)
+  - publishEvent trims every stream with XADD MINID to 15 minutes (integration test: entry
+    16 min old removed, 14 min old kept)
+  - claim-extractor memory: EXTRACTOR_MEMORY_TTL_MS 15 min, refreshed on every segment
+    (integration test)
+  - Redis: --appendonly no --save '' --dir /tmp, redis-data volume removed
+  - make lint: exit 0 · unit: service-kit 27, transcription 19, claim-extractor 40 passed
+  - integration: service-kit 12, transcription 3, claim-extractor 7 passed
+  - stage 3: 40 passed · stage 4: 6 passed (isolated stack lfc-verify, Redis without persistence)

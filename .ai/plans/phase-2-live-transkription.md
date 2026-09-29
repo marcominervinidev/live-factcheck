@@ -161,3 +161,7 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - Nächster Task: T5.6 vorbereiten (Quellen, Vorlabels), dann TP6 Frontend (Branch `phase-2/tp6-web-live`)
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
+- Security-Review PR #33 eingearbeitet (Marco, 2026-09-29): Budget „fail closed“ in `transcription`; Aufbewahrung 15 Min für Streams und Extractor-Speicher, Redis ohne AOF/RDB (ADR 0018); nosemgrep im Vorfilter **behalten** (Marco)
+- Beobachten: Ein Redis-Neustart setzt den Tages-Budgetzähler zurück (ADR 0018, von Marco vorerst akzeptiert). Macht das Probleme, nur den Budgetzähler persistieren
+- Nach Phase 2: Distroless-Runtime-Image für `stt-local` (Marco: „definitiv“)
+- Offen für Marco: CodeQL-Alerts #7–#11; alte Volume `live-factcheck_redis-data` einmal löschen (`docker volume rm`, enthält AOF-Daten)
