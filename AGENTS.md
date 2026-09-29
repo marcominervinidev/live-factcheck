@@ -40,7 +40,7 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 - Every non-trivial architecture decision gets an ADR in `docs/adr/NNNN-title.md` (template `0000-template.md`).
 - A task is done only with evidence (brief 1.3): real command output, requests/responses, screenshots. Store it compactly in `docs/evidence/phase-N/`.
 - Scripts that change git state (checkout, reset, commit, branch) run only in a throwaway clone, start with `set -euo pipefail` and verify their working directory before the first write. Never run such experiments against the real working tree.
-- If the same correction happens twice, propose adding the rule to the right `AGENTS.md`, skill or review prompt. Do not use personal agent memory for project rules.
+- Learning from mistakes: note the first occurrence of an agent mistake (or a correction by the owner) in `.ai/lessons.md`. A rule is written only when the same mistake happens **a second time** and no tool (hook, lint, CI, gitleaks, contract check) already catches it. Prefer turning it into an automated check; otherwise add the rule to the narrowest `AGENTS.md`, skill or review prompt and mark the lesson as promoted. Do not use personal agent memory for project rules.
 
 ## Code conventions
 

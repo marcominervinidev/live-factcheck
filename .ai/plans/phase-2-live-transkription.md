@@ -120,6 +120,24 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 
 **🛑 Gate 4:** Phasenabschluss (PRs `phase-2/tp6-web-live`, `phase-2/tp7-e2e`). Marco prüft das DoD auf dem iPhone.
 
+## DoD → Tests
+
+Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden Stufe (`tests/AGENTS.md`); Tests, die ein DoD belegen, tragen `@dod` im Titel. Fehlerfälle liegen darunter (Stufe 1/2a) und stehen hier nicht einzeln.
+
+| Anforderung (Brief 11, 13.2, 17) | Stufe | Test | Stand |
+|---|---|---|---|
+| **DoD:** ins iPhone sprechen, Transkript live, Karte für eine falsche Behauptung in wenigen Sekunden | manuell | `docs/testing/iphone-smoke.md` (Marco, T7.2) | geplant |
+| Dasselbe automatisiert: Live-Modus mit WAV-Fixture bis zur Karte | 4 | `tests/e2e/live.spec.ts` `@dod` – Chromium Fake-Audio, WebKit synthetischer MediaStream (T7.1) | geplant |
+| Ohne Einwilligung keine Aufnahme; Dialog nennt die aktiven Anbieter | 2b + 4 | 2b: Dialog-Logik und Anbieterliste; 4: `@dod` Journey (T6.1, T7.1) | geplant |
+| Reconnect während einer Aufnahme | 1 + 4 | 1: Reconnect-Logik im Store; 4: `@dod` Journey (T6.4, T7.1) | geplant |
+| Live-Transkript: interim grau, final schwarz, Markierungen, Sprung zur Karte | 1 + 2b | Komponenten- und Store-Tests; 2b mit `mock-backend.ts` (T6.3) | geplant |
+| Audio-Weg Browser → Gateway → `transcription` → Transkript-Events | 3 | `tests/api/audio.spec.ts` (T4) | vorhanden |
+| Audio-Fehlercodes, Budget, Backpressure, Aufnahmelimit | 1 + 2a | `services/gateway/src/audio.test.ts`, `api.int.test.ts`, `services/transcription/src/recording.test.ts` (T2, T4) | vorhanden |
+| Segmente → `claims.detected` → Karte | 2a + 3 | `claim-extractor` mit Testcontainers-Redis; Stufe 3 Durchstich (T5) | geplant |
+| Erkennungsqualität (Precision, Recall, F1) | 5 | `pnpm eval --set detection` (T5.6) | geplant |
+| Echte STT-Anbieter (Deutsch, Latenz, Sprecher) | manuell | `make stt-probe` (Deepgram, `stt-local`), Nachweise TP2/TP3 | vorhanden |
+| Kein Audio gespeichert, kein Transkripttext und kein Key in Logs | 1 + 2a | `recording.test.ts`, `main.test.ts` (transcription), `test_app.py` (stt-local) | vorhanden |
+
 ## Risiken
 
 - **Latenz „innerhalb weniger Sekunden“:** STT-Finalisierung (ca. 1 s) + Erkennung (LLM) + Prüfung (Live-Recherche 5–10 s, Brief 9.6). Mit lokalen Modellen auf dem 16-GB-Mac deutlich langsamer; das DoD wird mit Deepgram und Claude bzw. einem Cache-Treffer realistisch, mit rein lokalen Modellen eher nicht. Gemessen wird pro Pfad (`timings`).
