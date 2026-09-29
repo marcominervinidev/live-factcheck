@@ -1,0 +1,136 @@
+# Phase 2: Live-Transkription – Plan
+
+> Grundlage: `docs/PROJECT_BRIEF.md` (Abschnitte 5, 6, 7, 8.1, 10, 11, 12, 13, 15, 17), `AGENTS.md`, ADR 0001–0014.
+> Branch pro Gate: `phase-2/tpN-<thema>`, jeder PR direkt gegen `main` (keine gestapelten PRs).
+> Voraussetzung: Phase 1b abgeschlossen (Gate 6, 2026-09-29); PR #26 (Folgearbeiten) sollte vor TP2 gemergt sein.
+
+## Context
+
+Bisher prüft die App nur eingetippte Behauptungen. Phase 2 setzt den Live-Weg davor: Das iPhone nimmt Audio auf, das `gateway` reicht es an `transcription` weiter, ein STT-Anbieter (Deepgram, AssemblyAI oder lokal `stt-local`) liefert Segmente, der `claim-extractor` erkennt darin prüfwürdige Behauptungen, und ab `claims.detected` läuft die bestehende Pipeline aus Phase 1. Im Browser erscheint ein Live-Transkript, in dem erkannte Behauptungen markiert und mit den Karten verknüpft sind.
+
+**DoD (Brief 17):** Ich spreche ins iPhone, sehe das Transkript live und bekomme für eine falsche Behauptung innerhalb weniger Sekunden eine Karte.
+
+Dazu laut Brief: Erkennungs-Eval-Set, Einwilligungsdialog, E2E-Tests mit WAV-Fixture (Chromium) und synthetischem MediaStream (WebKit), iPhone-Smoke-Checkliste einmal durchlaufen.
+
+## Geklärte Entscheidungen (Marco, 2026-09-29)
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| 1 | Cloud-STT | Marco legt einen kostenlosen **Deepgram**-Account an (Startguthaben, keine Kreditkarte). Beide Adapter werden gebaut; Deepgram wird zusätzlich echt getestet, AssemblyAI nur gegen Mocks und die offizielle Doku. Standard-Anbieter per ADR 0016 nach dem Test. |
+| 2 | `stt-local` | Standard im Container (Compose-Profil `local-stt`). Zusätzlich eine Anleitung für den nativen Start auf dem Mac über `uv` (schneller, optional). Agents installieren nichts auf dem Host. |
+| 3 | Erkennungs-Eval-Set | Start mit **~150 Segmenten** aus Bundestagsprotokollen; ein Modell labelt vor, Marco prüft jedes Label. Ausbau auf mehrere hundert später. |
+
+Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
+
+- **WebSocket-Protokoll v2 (ADR 0015):** Nach `auth` sendet der Client `audio.start { sampleRate: 16000, encoding: "pcm16", channels: 1, language: "de" }`, danach Binärframes (je ca. 100 ms = 3200 Byte, Obergrenze 8 KiB pro Frame), zum Schluss `audio.stop`. Der Server antwortet mit `audio.started` / `audio.stopped { reason }`. Audio ohne vorheriges `audio.start` oder nach Ablauf der maximalen Aufnahmedauer (`MAX_RECORDING_MINUTES`, Default 60) beendet die Aufnahme mit Fehlercode. Sprecher umbenennen folgt in Phase 3.
+- **Gateway → `transcription`:** interner WebSocket pro Aufnahme (Brief 6.3), nur im Netz `internal`. Das Gateway puffert nicht: Staut sich der Weg (Backpressure), wird die Aufnahme mit `audio.stopped { reason: "overloaded" }` beendet statt Audio still zu verwerfen.
+- **Interim-Segmente** gehen als `transcript.segment` mit `isFinal: false` nur per Pub/Sub an den Client, finale zusätzlich nach `transcript.segments` (Brief 6.4). Der vorhandene `TranscriptSegment`-Vertrag reicht dafür, keine Änderung.
+- **STT-Budget:** Cloud-STT wird pro Audiominute nach Preistabelle bepreist und über dasselbe Tagesbudget `CLOUD_DAILY_BUDGET_USD` gebucht wie die LLM-Aufrufe (Brief 15.5). Ist es aufgebraucht, endet die Aufnahme mit `audio.stopped { reason: "budget_exceeded" }`.
+- **Datenschutz:** `PRIVACY_MODE=local` verweigert Cloud-STT beim Start (wie bei den LLMs). Audio wird nie gespeichert; Transkripte werden nicht geloggt (`LOG_TRANSCRIPTS=false`).
+- **`claim-extractor` (ADR 0017):** rollierendes Fenster pro Session (letzte N finale Segmente, in Redis mit TTL, damit der Worker zustandslos bleibt), deterministischer Vorfilter, Klassifikator `DETECTOR_CLASSIFIER_PROVIDER` (Standard `llm`, Jev optional) mit Bool „enthält prüfwürdige Tatsachenbehauptung“ und Score „Prüfwürdigkeit 1–5“, Schwellen `DETECTOR_CONFIDENCE_HIGH` / `_LOW`, Umformulierung nur für positive Fälle über `EXTRACTOR_LLM_*`, Deduplizierung über normalisierten Hash plus Abgleich mit den bisherigen Behauptungen der Session (Bool „dieselbe Aussage“).
+
+## Vorgeschlagene ADRs
+
+| Nr. | Titel | Status nach Gate 0 |
+|---|---|---|
+| 0015 | Audio-Pfad und WebSocket-Protokoll v2: Frames, Limits, Backpressure, maximale Dauer, STT-Budget | accepted |
+| 0016 | STT-Anbieter: Deepgram und AssemblyAI (Streaming, Deutsch, Diarization, Preis), `stt-local` mit faster-whisper und VAD, Mock | proposed → accepted nach dem Deepgram-Test in TP2 |
+| 0017 | Behauptungserkennung: Fenster, Vorfilter, Klassifikatorfragen, Schwellen, Umformulierung, Deduplizierung | accepted |
+
+---
+
+## TP0 – Recherche, Zusammenfassungen, ADRs
+
+- **T0.1 Recherche** (Context7 und offizielle Doku, kompakt):
+  - `.ai/research/stt-providers.md`: Deepgram und AssemblyAI – Streaming-API, Deutsch, Diarization, Interim-Ergebnisse, Audioformat, Preise, Startguthaben, Limits, offizielle SDKs
+  - `.ai/research/faster-whisper.md`: Modellgrößen für Deutsch, VAD-Chunking, Geschwindigkeit auf CPU (Docker) und Apple Silicon (nativ), Speicherbedarf bei 16 GB
+  - `.ai/research/browser-audio.md`: AudioWorklet, Resampling auf 16 kHz, Safari/iOS-Eigenheiten (Secure Context, Displaysperre, App-Wechsel, AudioContext-Start nur nach Nutzeraktion), Playwright-Fake-Audio
+- **T0.2 Zusammenfassungen:** `.ai/summaries/gateway.md` auf den Stand nach Phase 1b gebracht (Session, Auth, Pub/Sub, geplanter Audio-Pfad) und neu `.ai/summaries/pipeline-streams.md` (Streams, Consumer Groups, Dead Letter)
+- **T0.3 ADRs 0015–0017** als Entwurf
+- Verifikation: Dateien vorhanden, Quellen verlinkt; `make lint`
+
+**🛑 Gate 0:** Marco gibt Recherche und ADRs frei (PR `phase-2/tp0-research`).
+
+## TP1 – Verträge
+
+- **T1.1** `packages/contracts/src/ws.ts` → v2: `WsAudioStart`, `WsAudioStop` (Client), `WsAudioStarted`, `WsAudioStopped { reason }` (Server), neue Fehlercodes (`audio_not_started`, `frame_too_large`, `recording_limit`, `overloaded`, `budget_exceeded`); Konstanten für Frame-Größen
+- **T1.2** internes Protokoll Gateway ↔ `transcription` in `packages/contracts/src/internal-audio.ts` (Start-Nachricht mit `sessionId`, Sprache, Format; Stop; Fehler)
+- **T1.3** Contract-Tests (gültige und ungültige Fixtures, alte v1-Nachrichten werden abgelehnt), `schemaVersion` erhöht, ADR 0015 referenziert
+- **T1.4** `ClaimDetected` v3 mit Pflichtfeld `detectMs` (Textmodus: 0), damit der fact-checker `timings.detectMs` nicht mehr fest auf 0 setzt (ADR 0017); Gateway und fact-checker im selben PR angepasst
+- Verifikation: `scripts/tb pnpm --filter @lfc/contracts test:unit`; Vertrags-Check in CI grün
+
+**🛑 Gate 1:** Vertragsänderung (eigener Commit mit ADR, Brief 4.2).
+
+## TP2 – `transcription` mit STT-Adaptern
+
+- **T2.1** `SttProvider` in `packages/providers/src/stt/`: Streaming-Interface (Audio rein, Interim- und Final-Segmente mit Sprecher raus), Konfiguration `STT_PROVIDER` (`mock` | `deepgram` | `assemblyai` | `local`), `STT_MODEL`, `STT_LANGUAGE`, Secrets `deepgram_api_key` / `assemblyai_api_key` per `_FILE`, `LOCAL_STT_URL`; Privacy-Prüfung (Cloud-STT bei `PRIVACY_MODE=local` verboten)
+- **T2.2** Adapter `mock` (spielt ein Skript mit Segmenten ab), `deepgram`, `assemblyai` (je mit offiziellem SDK, falls es Streaming sauber abbildet, sonst WebSocket direkt), `local` (WebSocket zu `stt-local`)
+- **T2.3** Service `services/transcription`: interner WebSocket-Server, Weiterleitung an den Adapter, finale Segmente nach `transcript.segments`, alle Segmente auf `session:{id}:events`, STT-Budget pro Audiominute, maximale Dauer, sauberes Beenden bei Verbindungsabbruch
+- **T2.4** Compose: `transcription` bekommt `egress` (nur für Cloud-STT) und die zwei Secrets; `scripts/secrets-init.sh` legt die leeren Dateien an; `.env.example` dokumentiert alle Variablen
+- Tests: Stufe 1 für jeden Adapter gegen einen Fake-Server an der Systemgrenze (Interim/Final, Diarization-Label, Abbruch, Timeout, fehlender Key); Stufe 2a `main.int.test.ts` mit Testcontainers-Redis und `mock`-Adapter (Audio rein → Stream-Eintrag + Pub/Sub)
+- **T2.5 Echter Deepgram-Test** (Marco trägt den Key in `deepgram_api_key` ein): deutsche WAV-Datei durch den Adapter, Latenz und Qualität notiert; Ergebnis in ADR 0016. Kosten: wenige Cent aus dem Startguthaben, Start nur nach Marcos OK
+- Verifikation: `scripts/tb pnpm --filter @lfc/transcription test:unit test:int`; Nachweis unter `docs/evidence/phase-2/`
+
+## TP3 – `stt-local` (Python)
+
+- **T3.1** `services/stt-local/`: FastAPI, faster-whisper, VAD-basierte Chunks („Pseudo-Streaming“), WebSocket-Endpunkt im selben Protokoll wie der `local`-Adapter, alle Segmente `speaker: "A"`, Health/Readiness, strukturierte Logs ohne Transkript-Inhalt
+- **T3.2** Qualität: `pyproject.toml` mit `uv`, ruff, mypy strict, pytest (Stufe 0/1 laut Brief 13.1); eigene `AGENTS.md`, `CLAUDE.md` und Glob-Regel in `.agents/rules/`
+- **T3.3** Dockerfile mit `dev`- und `runtime`-Stage (non-root, read-only, Modell-Cache als Volume), Compose-Profil `local-stt`, `make up-local`
+- **T3.4** Anleitung für den nativen Start auf dem Mac (`uv run …`, `LOCAL_STT_URL=http://host.docker.internal:<port>`) in der Service-README; Agents führen sie nicht aus
+- **T3.5** CI: Job für Python (ruff, mypy, pytest) in `ci.yml`, Image-Build und Trivy wie bei den anderen Services
+- Verifikation: `docker compose --profile local-stt run --rm stt-local pytest`; WAV-Fixture → Segmente über den `local`-Adapter im isolierten Stack
+
+**🛑 Gate 2:** `transcription` und `stt-local` (PRs `phase-2/tp2-transcription`, `phase-2/tp3-stt-local`).
+
+## TP4 – Audio-Pfad im Gateway
+
+- **T4.1** `services/gateway/src/ws.ts`: Nachrichten nach `auth` gemäß v2, Binärframes nur nach `audio.start`, Größenlimit pro Frame, Rate Limit (Frames pro Sekunde), Weiterleitung an `transcription`, Backpressure → `overloaded`, maximale Aufnahmedauer
+- **T4.2** Aufräumen: Client trennt oder schickt `audio.stop` → interne Verbindung wird geschlossen; `transcription` fällt aus → Client bekommt `audio.stopped { reason: "provider_error" }`
+- Tests: Stufe 2a (Gateway mit Fake-`transcription`), Stufe 3 `tests/api/audio.spec.ts`: WAV-Fixture als Frames über `/ws/session` → Interim- und Final-Segmente kommen zurück (mock-STT); Fehlerfälle (Frame zu groß, Audio ohne Start, falsches Token)
+
+## TP5 – `claim-extractor` und Erkennungs-Eval
+
+- **T5.1** Vorfilter (deterministisch: Mindestlänge, Fragen, Grußformeln, reine Meinungsmarker) mit ausführlichen Unit-Tests
+- **T5.2** Fenster pro Session in Redis (TTL), Klassifikatorfragen (Bool + Score) über den vorhandenen `ClassifierProvider`, Schwellen `DETECTOR_*`
+- **T5.3** Umformulierung in eine eigenständige Aussage (Prompt `services/claim-extractor/prompts/standalone.md`, Pronomen und Bezüge aufgelöst), nur für positive Fälle
+- **T5.4** Deduplizierung: normalisierter Hash plus Abgleich mit den bisherigen Behauptungen der Session; Stryker nightly für die Deduplizierung (Brief 13.5)
+- **T5.5** Ergebnis `ClaimDetected` nach `claims.detected` und auf den Session-Kanal; Timings (`detectMs`)
+- **T5.6** Erkennungs-Eval: `evals/detection.de.jsonl` (~150 Segmente aus Bundestagsprotokollen, vorgelabelt, **jedes Label von Marco geprüft**), `SOURCES.md` ergänzt, `pnpm eval` misst Precision, Recall, F1 und Latenz
+- Tests: Stufe 1 (Vorfilter, Fenster, Dedupe, Prompt-Rendering), Stufe 2a mit Testcontainers-Redis und mock-Klassifikator; Stufe 3: Segmente → `claims.detected` → Karte
+- Verifikation: kompletter Pfad im isolierten Stack mit mock-Providern, belegt durch Stream-Einträge (Redis-MCP) und Logs
+
+**🛑 Gate 3:** Backend-Pfad komplett (PRs `phase-2/tp4-gateway-audio`, `phase-2/tp5-claim-extractor`). Nachweis: WAV rein → Transkript-Events → Behauptung → Urteil.
+
+## TP6 – Frontend: Aufnahme und Live-Transkript
+
+- **T6.1 Einwilligungsdialog** (Brief 11, 15.6): vor jeder Aufnahme, nennt alle aktiven externen Anbieter (aus `/api/status`), ohne Bestätigung keine Aufnahme; Texte in `i18n/de.json`
+- **T6.2 Aufnahme:** AudioWorklet (PCM16, mono, 16 kHz, ca. 100 ms), Start/Stopp-Button, Aufnahme- und Verbindungsstatus, Verhalten bei Displaysperre und App-Wechsel (Aufnahme sauber beenden und anzeigen)
+- **T6.3 Live-Transkript:** Sprecher-Labels, interim grau, final schwarz; erkannte Behauptungen unterstrichen (grau „erkannt“ → Animation „wird geprüft“ → Farbe des Urteils, immer zusätzlich Icon/Text); Tipp auf die Markierung springt zur Karte; Zeitleiste zeigt auch Live-Behauptungen
+- **T6.4** Store-Erweiterungen (Zustand) für Segmente und Aufnahme, Reconnect-Verhalten während einer Aufnahme
+- Tests: Stufe 1 (Stores, Worklet-Umrechnung, Komponenten), Stufe 2b mit `page.routeWebSocket` und Fake-Audio (Chromium) bzw. synthetischem MediaStream (WebKit), axe-Prüfung
+
+## TP7 – E2E, iPhone, Phasenabschluss
+
+- **T7.1 Stufe 4:** Live-Modus mit WAV-Fixture in Chromium (Fake-Audio-Flags), in WebKit per Init-Script mit synthetischem MediaStream; Einwilligungsdialog; Reconnect während der Aufnahme
+- **T7.2** `docs/testing/iphone-smoke.md` anlegen (HTTPS-Zertifikat, Mikrofonfreigabe, Home-Bildschirm, Displaysperre, App-Wechsel); **Marco** läuft sie einmal auf dem echten iPhone durch (DoD)
+- **T7.3** Nachweise nach 1.3 unter `docs/evidence/phase-2/`, README (Live-Modus, `up-local`, Deepgram-Key), `AGENTS.md`-Dateien aktualisiert, Anleitung zum lokalen Testen mit manuellen Testfällen
+- **T7.4** Reviews (`reviewer`, `security-reviewer`, `/code-review`, `/security-review`), ZAP-Lauf (neue WebSocket-Oberfläche), `make llm-scan`
+- **T7.5 Red-Team am Meilenstein** (Brief 15.7, Angriffsfläche geändert: Audio-Pfad, Extraktions-Prompt): Lauf mit dem lokalen Modell und – **Marco erinnern** – der verschobene Vergleichslauf mit Claude Opus 5 (Key und Guthaben nötig, Kosten vorher schätzen, Start nur nach OK)
+
+**🛑 Gate 4:** Phasenabschluss (PRs `phase-2/tp6-web-live`, `phase-2/tp7-e2e`). Marco prüft das DoD auf dem iPhone.
+
+## Risiken
+
+- **Latenz „innerhalb weniger Sekunden“:** STT-Finalisierung (ca. 1 s) + Erkennung (LLM) + Prüfung (Live-Recherche 5–10 s, Brief 9.6). Mit lokalen Modellen auf dem 16-GB-Mac deutlich langsamer; das DoD wird mit Deepgram und Claude bzw. einem Cache-Treffer realistisch, mit rein lokalen Modellen eher nicht. Gemessen wird pro Pfad (`timings`).
+- **Safari/iOS:** AudioContext, Displaysperre und Hintergrundverhalten weichen von Playwrights WebKit ab; deshalb die manuelle Checkliste.
+- **Speicher:** `stt-local` im Container plus lokales LLM passen kaum gleichzeitig in 16 GB; für den lokalen Modus empfiehlt die Anleitung den nativen Start.
+
+## Status
+
+- [x] Plan freigegeben (Marco, 2026-09-29: „einfach jetzt mal weitermachen“)
+- [x] TP0 erledigt (im PR des Plans, `phase-2/plan`): Recherche `.ai/research/stt-providers.md`, `faster-whisper.md`, `browser-audio.md`; Zusammenfassungen `gateway.md` (aktualisiert), `pipeline-streams.md` (neu); ADR 0015–0017 als Entwurf
+- Aktuelles Gate: **Gate 0 – wartet auf Marcos Freigabe von Recherche und ADRs**
+- Offene Frage an Marco (Gate 0): faster-whisper hat **keine Metal-Unterstützung** und läuft auch nativ auf dem Mac nur auf der CPU. Beim Brief bleiben (faster-whisper überall) oder später für den nativen Modus eine Metal-Engine (whisper.cpp/mlx-whisper) ergänzen? Vorschlag: vorerst beim Brief bleiben, messen, dann entscheiden
+- Nebenbefund: `timings.detectMs` ist im fact-checker fest 0 → T1.4
+- Nächster Task nach Gate 0: T1.1 Verträge (Branch `phase-2/tp1-contracts`)
+- Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
