@@ -7,7 +7,7 @@ import { SettingsPage } from './SettingsPage';
 
 const TOKEN = 't'.repeat(48);
 const status = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   privacyMode: 'local',
   providers: [
     {
@@ -18,6 +18,7 @@ const status = {
       cloud: false,
     },
     { service: 'fact-checker', role: 'classifier', provider: 'typesafe', cloud: true },
+    { service: 'transcription', role: 'stt', provider: 'local', model: 'small', cloud: false },
   ],
 };
 
@@ -56,6 +57,7 @@ describe('SettingsPage (brief 11, 15.6)', () => {
     expect(rows[0]).toContain('Sprachmodell (fact-checker): openai-compatible · qwen3');
     expect(rows[0]).toContain('bleibt lokal');
     expect(rows[1]).toContain('Daten verlassen das eigene Netzwerk');
+    expect(rows[2]).toContain('Spracherkennung (transcription): local · small');
     expect(screen.getByTestId('jev-notice')).toBeTruthy();
     expect(requests[0]?.headers).toMatchObject({ authorization: `Bearer ${TOKEN}` });
 

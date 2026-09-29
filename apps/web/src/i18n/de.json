@@ -73,5 +73,6 @@
   "role.classifier": "Klassifikator",
   "role.embeddings": "Embeddings",
   "role.search": "Websuche",
-  "role.factcheck": "Faktencheck-Datenbank"
+  "role.factcheck": "Faktencheck-Datenbank",
+  "role.stt": "Spracherkennung"
 }

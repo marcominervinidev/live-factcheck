@@ -49,7 +49,7 @@ describe('checkClaim', () => {
 describe('fetchProviderStatus', () => {
   it('validates the status and returns null on errors', async () => {
     const body = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       privacyMode: 'local',
       providers: [
         {
