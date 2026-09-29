@@ -28,3 +28,12 @@ Brief 10 asks for a streaming `SttProvider` with cloud adapters for Deepgram and
 - The consent dialog lists the active STT provider (brief 15.6); the settings page shows it via `status:v1:transcription`. For that, `ProviderRole` gains `stt` (`ProviderStatus` v2, contract change in plan TP1).
 - Cost per audio minute enters the daily budget; the eval report gains STT latency (time to final segment).
 - If the real test shows poor German quality or slow finals, the default switches to AssemblyAI (config change only).
+
+## Real test (plan T2.5, 2026-09-29)
+
+`make stt-probe` streamed a 19 s German test conversation (two synthetic voices, three turns) to Deepgram Nova-3 over the EU host; details in `docs/evidence/phase-2/tp2-transcription.txt`.
+
+- **Default confirmed:** German recognition is good, the last sentence of a turn arrives 0.6–1.0 s after the end of speech, diarization separates the two voices.
+- **Deepgram finalizes in long blocks** (13.6 s with two speakers in one `is_final` result, despite 1 s pauses). The adapter therefore builds final segments per sentence from the word timings and sends `Finalize` after its own silence detection (500 ms below RMS 330 after speech). Sentences inside a turn still wait for the next pause.
+- **Known recognition error** on the synthetic voice: "Zweite Weltkrieg" → "2. Welt" (also without `smart_format`). Re-check with a human voice on the iPhone (TP7); Nova-3 keyterm prompting is an option if it persists.
+

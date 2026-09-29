@@ -32,6 +32,26 @@ Checks
   typecheck 0 · lint 0 · format 0 · depcruise 0
   stage 3: 36 passed · stage 4: 6 passed (isolated stack lfc-verify, throwaway secrets)
 
-Open
-  T2.5 real Deepgram test – waits for the owner's Deepgram account and key (secret file
-  deepgram_api_key); cost: a few cents from the starting credit.
+T2.5 real Deepgram test (2026-09-29, owner's key and approval, 5 runs, about 1.25 cents)
+  Tool: `make stt-probe` – tests/fixtures/audio/conversation.de.wav (19.2 s, synthetic voices
+  Anna/Eddy, three turns with 1 s pauses) streamed in real time to Deepgram Nova-3 over the EU
+  host; latency = arrival of the final segment minus the end of its last word (±100 ms).
+
+  Run 1 (sentence = Deepgram's speech_final): 2 finals. Deepgram finalized 0–13.6 s (three
+    sentences, two speakers) as one block; all speaker "A"; the first claim waited ~6.5 s.
+  Run 2 (sentence rule on whole blocks): unchanged – the block itself is 13.6 s long.
+  Fix: sentences from Deepgram's word timings (each with its own times and speaker) and own
+    silence detection (RMS < 330 for 500 ms after speech → documented `Finalize`).
+  Run 3: 6 finals, speakers A/B/A correct; "Der 2." split off (smart_format ordinal).
+  Fix: ordinals with up to three digits do not end a sentence.
+  Run 4 (final state):
+    Guten Abend und willkommen zur Diskussion.                    A  2333 ms
+    Der 2. Welt endete im Jahr neunzehnhundertfünfundsechzig.      A  1031 ms
+    Das sehe ich anders.                                           B  4366 ms
+    Berlin hat ungefähr 3900000 Einwohner.                         B   876 ms
+    Und die Mondlandung fand neunzehnhundertfünfundsiebzig statt.  A   573 ms
+    → 5/5 sentences, speakers correct; last sentence of a turn 0.6–1.0 s after speech,
+      sentences inside a turn wait for the pause (up to ~4 s).
+  Run 5 (comparison, smart_format off, not kept): "Der zweite Welt …", "drei Komma neun
+    Millionen" – "Weltkrieg" is missed with or without formatting (recognition of the
+    synthetic voice), so smart_format stays on. To re-check with a human voice (iPhone, TP7).
