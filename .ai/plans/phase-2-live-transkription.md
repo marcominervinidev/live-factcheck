@@ -132,7 +132,11 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 - [x] TP0 erledigt (im PR des Plans, `phase-2/plan`): Recherche `.ai/research/stt-providers.md`, `faster-whisper.md`, `browser-audio.md`; Zusammenfassungen `gateway.md` (aktualisiert), `pipeline-streams.md` (neu); ADR 0015–0017 als Entwurf
 - [x] **Gate 0** freigegeben (Marco, 2026-09-29): ADR 0015–0017 angenommen; Deepgram als Standard, Anbieter per Konfiguration austauschbar (`STT_PROVIDER`); faster-whisper bleibt, Messung in TP3 vor jeder Engine-Entscheidung
 - [x] TP1 Verträge (PR `phase-2/tp1-contracts`): WebSocket v2 mit Audio, `audio.ts` (Frame-Budget, Stop-Gründe, internes Protokoll), `ClaimDetected` v3 mit `detectMs` (T1.4); Verbraucher im selben PR umgestellt; Nachweis `docs/evidence/phase-2/tp1-contracts.txt`
-- Aktuelles Gate: **Gate 1 – wartet auf Marcos Review der Vertragsänderung**
+- [x] **Gate 1** freigegeben und PR #28 gemergt (Marco, 2026-09-29); dazu `ProviderStatus` v2 mit Rolle `stt`
+- [x] TP2 T2.1–T2.4 (PR `phase-2/tp2-transcription`): STT-Adapter in `packages/providers/src/stt/` (Deepgram, AssemblyAI, local, mock), `publishToSession` in service-kit, Service `transcription` mit `/v1/audio`, Budget, Backpressure, Status; Compose und `.env.example`; Nachweis `docs/evidence/phase-2/tp2-transcription.txt`
+- [ ] **T2.5 echter Deepgram-Test: wartet auf Marcos Deepgram-Account** (kostenlos, 200 $ Startguthaben; Key selbst in die Secret-Datei `deepgram_api_key`; Kosten wenige Cent, Start nur nach OK)
+- Offener Punkt für TP5: `packages/providers/AGENTS.md` verbietet Transkript-Kontext im Klassifikator-State (Jev in den USA); ADR 0017 gibt dem Klassifikator das Segmentfenster. Brief 15.6 erlaubt nötige Ausschnitte mit Platzhalter-Sprechern. Vorschlag: Fenster nur mit `DETECTOR_CLASSIFIER_PROVIDER=llm` bzw. lokal; bei `typesafe` nur das neueste Segment, Sprecher als A/B – vor TP5 mit Marco klären
+- Aktuelles Gate: Gate 2 erst nach TP3 (`stt-local`); TP2-PR kann vorher reviewt werden
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
-- Nächster Task nach Gate 1: T2.1 `SttProvider` in `packages/providers/src/stt/` (Branch `phase-2/tp2-transcription`); **vor T2.5 Marco an den Deepgram-Account erinnern**
+- Nächster Task: TP3 `stt-local` (Branch `phase-2/tp3-stt-local`); parallel T2.5, sobald der Deepgram-Key da ist
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6

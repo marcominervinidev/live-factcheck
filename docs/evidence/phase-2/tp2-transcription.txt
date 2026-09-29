@@ -1,0 +1,37 @@
+Phase 2 · TP2 – transcription with STT adapters (2026-09-29, branch phase-2/tp2-transcription)
+==============================================================================================
+
+packages/providers/src/stt (ADR 0016)
+  deepgram    Nova-3, EU host wss://api.eu.deepgram.com by default, key as `Authorization: Token`
+              header (never in the URL), mip_opt_out=true, diarize, endpointing, keep-alive,
+              Finalize + CloseStream on finish; is_final parts joined up to speech_final /
+              UtteranceEnd; speakers mapped to A, B, …
+  assemblyai  Universal-Streaming v3, EU host; only formatted ends of turns are final
+  local       own protocol to stt-local (start / frames / stop → segment / error)
+  mock        fixed German script driven by the amount of audio (stage 3/4)
+  config      STT_PROVIDER|MODEL|LANGUAGE|REGION|ENDPOINTING_MS|CONNECT_TIMEOUT_MS, LOCAL_STT_URL,
+              DEEPGRAM_API_KEY / ASSEMBLYAI_API_KEY (secrets via _FILE); sttUse: unknown hosts = cloud
+  cost        per audio minute (Deepgram list price 0.0077 $/min), unknown models 0.05 $/min;
+              DailyBudget.recordUsd
+  tests       136 passed against a local fake WebSocket server; lines 93 %, branches 85 %
+
+services/transcription (ADR 0015)
+  /v1/audio   start → ready; PCM16 frames; stop → stopped{client}; invalid / early audio → 4400
+  events      final → transcript.segments + session channel; interim → channel only
+              (service-kit publishToSession, tested against a real Redis)
+  limits      budget in 10 s steps (budget_exceeded), provider backlog (overloaded),
+              provider failure (provider_error); gateway gone → provider aborted, audio booked
+  privacy     no audio stored, no transcript text and no key in logs (tests)
+  status      status:v1:transcription → { role: stt, provider, model, cloud }
+  tests       unit 17, integration 3 (real process + Redis: audio in, interim on the channel,
+              final on the stream, status); coverage 84 % lines / 84 % branches
+  compose     STT_* (mock by default), deepgram_api_key / assemblyai_api_key only for
+              transcription, networks internal + egress
+
+Checks
+  typecheck 0 · lint 0 · format 0 · depcruise 0
+  stage 3: 36 passed · stage 4: 6 passed (isolated stack lfc-verify, throwaway secrets)
+
+Open
+  T2.5 real Deepgram test – waits for the owner's Deepgram account and key (secret file
+  deepgram_api_key); cost: a few cents from the starting credit.
