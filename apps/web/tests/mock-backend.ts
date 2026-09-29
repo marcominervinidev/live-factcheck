@@ -66,7 +66,7 @@ export class MockBackend {
           ws.send(
             JSON.stringify({
               type: 'error',
-              schemaVersion: 1,
+              schemaVersion: 2,
               code: 'unauthorized',
               message: 'Missing or invalid token',
             }),
@@ -76,7 +76,7 @@ export class MockBackend {
         }
         this.socket = ws;
         this.sessions++;
-        ws.send(JSON.stringify({ type: 'session.ready', schemaVersion: 1, sessionId: SESSION_ID }));
+        ws.send(JSON.stringify({ type: 'session.ready', schemaVersion: 2, sessionId: SESSION_ID }));
       });
     });
 
@@ -133,7 +133,7 @@ export class MockBackend {
   }
 
   private send(event: object) {
-    this.socket?.send(JSON.stringify({ type: 'event', schemaVersion: 1, event }));
+    this.socket?.send(JSON.stringify({ type: 'event', schemaVersion: 2, event }));
   }
 
   private emit(claimId: string, text: string) {
@@ -146,7 +146,7 @@ export class MockBackend {
       type: 'claim.detected',
       schemaVersion: 2,
       payload: {
-        schemaVersion: 2,
+        schemaVersion: 3,
         sessionId: SESSION_ID,
         claimId,
         speaker: 'A',
@@ -156,6 +156,7 @@ export class MockBackend {
         checkworthiness: 1,
         sourceSegmentIds: [],
         detectedAt: now,
+        detectMs: 0,
         provider: { classifier: 'text-mode', model: 'none' },
       },
     });

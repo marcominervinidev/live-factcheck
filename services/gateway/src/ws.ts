@@ -28,6 +28,10 @@ const MESSAGES: Readonly<Record<WsErrorCode, string>> = {
   invalid_message: 'The message is not valid',
   session_expired: 'The session has ended',
   internal: 'Internal error',
+  audio_not_started: 'Send audio.start before audio frames',
+  audio_already_started: 'A recording is already running',
+  frame_too_large: 'Audio frame too large',
+  frame_rate_exceeded: 'Too many audio frames',
 };
 
 export interface WsDeps {
@@ -54,8 +58,9 @@ export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<
       if (socket.readyState === socket.OPEN)
         socket.send(JSON.stringify(WsServerMessageSchema.parse(message)));
     };
-    const fail = (code: WsErrorCode) => {
-      send({ type: 'error', schemaVersion: 1, code, message: MESSAGES[code] });
+    // Errors that end the connection; audio errors (phase 2, TP4) end only the recording.
+    const fail = (code: keyof typeof CLOSE) => {
+      send({ type: 'error', schemaVersion: 2, code, message: MESSAGES[code] });
       socket.close(CLOSE[code], code);
     };
 
@@ -83,7 +88,8 @@ export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<
       } catch {
         parsed = undefined;
       }
-      if (!parsed?.success) {
+      // The first message must be `auth`; audio before authentication is invalid.
+      if (!parsed?.success || parsed.data.type !== 'auth') {
         fail('invalid_message');
         return;
       }
@@ -106,7 +112,7 @@ export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<
             } catch {
               envelope = undefined;
             }
-            if (envelope?.success) send({ type: 'event', schemaVersion: 1, event: envelope.data });
+            if (envelope?.success) send({ type: 'event', schemaVersion: 2, event: envelope.data });
           });
           // Closed while subscribing: the close handler's leave may have run before the join.
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- set by the close handler during the await
@@ -117,7 +123,7 @@ export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<
           sessionTimer = setTimeout(() => {
             fail('session_expired');
           }, config.MAX_SESSION_MS);
-          send({ type: 'session.ready', schemaVersion: 1, sessionId: id });
+          send({ type: 'session.ready', schemaVersion: 2, sessionId: id });
           logger.info({ sessionId: id }, 'session started');
         } catch (error) {
           logger.error({ err: error }, 'session start failed');

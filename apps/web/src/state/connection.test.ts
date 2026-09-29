@@ -80,17 +80,17 @@ describe('connection store', () => {
     last().open();
     expect(JSON.parse(last().sent[0] ?? '')).toEqual({
       type: 'auth',
-      schemaVersion: 1,
+      schemaVersion: 2,
       token: 'token-123',
     });
-    last().receive({ type: 'session.ready', schemaVersion: 1, sessionId: SESSION_ID });
+    last().receive({ type: 'session.ready', schemaVersion: 2, sessionId: SESSION_ID });
     expect(useConnection.getState()).toMatchObject({ status: 'open', sessionId: SESSION_ID });
   });
 
   it('reconnects with backoff after a drop and re-authenticates', () => {
     useConnection.getState().connect('wss://lfc.local/ws/session', 'token-123', factory);
     last().open();
-    last().receive({ type: 'session.ready', schemaVersion: 1, sessionId: SESSION_ID });
+    last().receive({ type: 'session.ready', schemaVersion: 2, sessionId: SESSION_ID });
     last().drop();
     expect(useConnection.getState()).toMatchObject({ status: 'reconnecting', sessionId: null });
     expect(FakeSocket.instances).toHaveLength(1);
@@ -105,7 +105,7 @@ describe('connection store', () => {
     last().open();
     last().receive({
       type: 'error',
-      schemaVersion: 1,
+      schemaVersion: 2,
       code: 'unauthorized',
       message: 'Missing or invalid token',
     });
@@ -118,15 +118,15 @@ describe('connection store', () => {
   it('feeds events into the claims store and ignores invalid messages', () => {
     useConnection.getState().connect('wss://lfc.local/ws/session', 't', factory);
     last().open();
-    last().receive({ type: 'session.ready', schemaVersion: 1, sessionId: SESSION_ID });
+    last().receive({ type: 'session.ready', schemaVersion: 2, sessionId: SESSION_ID });
     last().receive({
       type: 'event',
-      schemaVersion: 1,
+      schemaVersion: 2,
       event: { type: 'claim.checked', schemaVersion: 2, payload: checked() },
     });
     last().receive({
       type: 'event',
-      schemaVersion: 1,
+      schemaVersion: 2,
       event: { type: 'claim.checked', schemaVersion: 2, payload: { broken: true } },
     });
     last().onmessage?.call(last(), { data: 'not json' });
@@ -139,7 +139,7 @@ describe('connection store', () => {
     last().open();
     last().receive({
       type: 'event',
-      schemaVersion: 1,
+      schemaVersion: 2,
       event: { type: 'claim.checked', schemaVersion: 2, payload: checked() },
     });
     vi.advanceTimersByTime(EXPLANATION_TIMEOUT_MS - 1);
@@ -150,7 +150,7 @@ describe('connection store', () => {
     // A late explanation still wins.
     last().receive({
       type: 'event',
-      schemaVersion: 1,
+      schemaVersion: 2,
       event: { type: 'claim.explained', schemaVersion: 2, payload: explained() },
     });
     expect(useClaims.getState().claims[CLAIM_ID]).toMatchObject({
@@ -164,13 +164,13 @@ describe('connection store', () => {
     last().open();
     const verdict = {
       type: 'event',
-      schemaVersion: 1,
+      schemaVersion: 2,
       event: { type: 'claim.checked', schemaVersion: 2, payload: checked() },
     };
     last().receive(verdict);
     last().receive({
       type: 'event',
-      schemaVersion: 1,
+      schemaVersion: 2,
       event: { type: 'claim.explained', schemaVersion: 2, payload: explained() },
     });
     // The same verdict again (at-least-once delivery) must not start a new timer.

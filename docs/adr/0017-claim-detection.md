@@ -1,6 +1,6 @@
 # 0017: Claim detection in the live transcript
 
-- Status: proposed
+- Status: accepted (Marco, Gate 0, 2026-09-29)
 - Date: 2026-09-29
 
 ## Context

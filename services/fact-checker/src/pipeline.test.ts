@@ -95,8 +95,8 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps & { researchC
   });
 }
 
-const claim = (text: string): ClaimDetected => ({
-  schemaVersion: 2,
+const claim = (text: string, detectMs = 0): ClaimDetected => ({
+  schemaVersion: 3,
   sessionId: randomUUID(),
   claimId: randomUUID(),
   speaker: 'A',
@@ -106,6 +106,7 @@ const claim = (text: string): ClaimDetected => ({
   checkworthiness: 1,
   sourceSegmentIds: [],
   detectedAt: now().toISOString(),
+  detectMs,
   provider: { classifier: 'text-mode', model: 'none' },
 });
 
@@ -158,6 +159,18 @@ describe('checkClaim (brief 9.6)', () => {
       claimId: again.claimId,
     });
     expect(second.usage).toEqual({ inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 });
+  });
+
+  it('counts the detection time into the latency from the end of the sentence', async () => {
+    const d = deps();
+    const fresh = await checkClaim(claim('Der Zweite Weltkrieg endete 1945.', 1_850), d);
+    expect(fresh.timings.detectMs).toBe(1_850);
+    expect(fresh.timings.totalMs).toBeGreaterThanOrEqual(1_850);
+
+    const cached = await checkClaim(claim('Der Zweite Weltkrieg endete 1945.', 900), d);
+    expect(cached.cacheHit).toBe('verdict_exact');
+    expect(cached.timings).toMatchObject({ detectMs: 900, retrieveMs: 0, classifyMs: 0 });
+    expect(cached.timings.totalMs).toBeGreaterThanOrEqual(900);
   });
 
   it('keeps the provider that produced a cached verdict', async () => {

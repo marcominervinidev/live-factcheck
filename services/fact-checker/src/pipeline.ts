@@ -187,7 +187,12 @@ async function readCachedVerdict(
     speaker: detected.speaker,
     claim: detected.standaloneText,
     cacheHit: 'verdict_exact',
-    timings: { detectMs: 0, retrieveMs: 0, classifyMs: 0, totalMs: 0 },
+    timings: {
+      detectMs: detected.detectMs,
+      retrieveMs: 0,
+      classifyMs: 0,
+      totalMs: detected.detectMs,
+    },
     checkedAt: deps.now().toISOString(),
     usage: { inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 },
   });
@@ -482,7 +487,9 @@ export async function checkClaim(
     // A cached verdict keeps the provider that produced it (eval provider comparison).
     provider: ClaimChecked['provider'] = currentProvider,
   ): ClaimChecked => {
-    const totalMs = Math.max(0, Math.round(deps.clock() - started));
+    const checkMs = Math.max(0, Math.round(deps.clock() - started));
+    // Latency per path from the end of the sentence (brief 9.6): detection plus this check.
+    const totalMs = detected.detectMs + checkMs;
     return ClaimCheckedSchema.parse({
       schemaVersion: 2,
       sessionId: detected.sessionId,
@@ -492,9 +499,9 @@ export async function checkClaim(
       cacheHit: 'none',
       ...fields,
       timings: {
-        detectMs: 0,
-        retrieveMs: Math.min(Math.round(timings.retrieveMs), totalMs),
-        classifyMs: Math.min(Math.round(timings.classifyMs), totalMs),
+        detectMs: detected.detectMs,
+        retrieveMs: Math.min(Math.round(timings.retrieveMs), checkMs),
+        classifyMs: Math.min(Math.round(timings.classifyMs), checkMs),
         totalMs,
       },
       checkedAt: deps.now().toISOString(),

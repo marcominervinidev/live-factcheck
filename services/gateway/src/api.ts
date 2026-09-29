@@ -119,7 +119,7 @@ export async function registerApi(app: HttpServer, deps: ApiDeps): Promise<void>
       const claimId = randomUUID();
       const trimmed = text.trim();
       const payload: ClaimDetected = {
-        schemaVersion: 2,
+        schemaVersion: 3,
         sessionId,
         claimId,
         speaker: 'A',
@@ -129,6 +129,8 @@ export async function registerApi(app: HttpServer, deps: ApiDeps): Promise<void>
         checkworthiness: 1,
         sourceSegmentIds: [],
         detectedAt: deps.now().toISOString(),
+        // Typed claims need no detection (ADR 0017).
+        detectMs: 0,
         provider: { classifier: 'text-mode', model: 'none' },
       };
       await publishEvent(

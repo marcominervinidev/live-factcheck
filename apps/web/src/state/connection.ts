@@ -81,7 +81,7 @@ export const useConnection = create<ConnectionStore>((set, get) => {
     const current = factory(url);
     socket = current;
     current.onopen = () => {
-      current.send(JSON.stringify({ type: 'auth', schemaVersion: 1, token }));
+      current.send(JSON.stringify({ type: 'auth', schemaVersion: 2, token }));
     };
     current.onmessage = (event) => {
       let parsed: ReturnType<typeof WsServerMessage.safeParse> | undefined;
@@ -103,7 +103,7 @@ export const useConnection = create<ConnectionStore>((set, get) => {
           stopped = true;
           set({ status: 'unauthorized', sessionId: null });
         }
-      } else {
+      } else if (message.type === 'event') {
         useClaims.getState().applyEvent(message.event);
         if (message.event.type === 'claim.checked') {
           const { claimId } = message.event.payload;

@@ -99,7 +99,7 @@ describe('fact-checker with a secret file against a real Redis', () => {
         type: 'claim.detected',
         schemaVersion: 2,
         payload: {
-          schemaVersion: 2,
+          schemaVersion: 3,
           sessionId,
           claimId,
           speaker: 'A',
@@ -109,6 +109,7 @@ describe('fact-checker with a secret file against a real Redis', () => {
           checkworthiness: 1,
           sourceSegmentIds: [],
           detectedAt: new Date().toISOString(),
+          detectMs: 0,
           provider: { classifier: 'text-mode', model: 'none' },
         },
       };

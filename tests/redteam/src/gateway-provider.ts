@@ -103,7 +103,7 @@ function openSession(auth: string): Promise<Session> {
       fail(`WebSocket error: ${error.message}`);
     });
     socket.once('open', () => {
-      socket.send(JSON.stringify({ type: 'auth', schemaVersion: 1, token: auth }));
+      socket.send(JSON.stringify({ type: 'auth', schemaVersion: 2, token: auth }));
     });
     const waitReady = (): void => {
       const ready = events.find((event) => event.type === 'session.ready');

@@ -1,6 +1,6 @@
 # 0015: Audio path and WebSocket protocol v2
 
-- Status: proposed
+- Status: accepted (Marco, Gate 0, 2026-09-29)
 - Date: 2026-09-29
 
 ## Context
@@ -9,7 +9,7 @@ Phase 2 streams microphone audio from the browser to a speech-to-text provider (
 
 ## Decision
 
-**Client → gateway (`/ws/session`, protocol v2, `schemaVersion: 2`):**
+**Client → gateway (`/ws/session`, protocol v2: every message has `schemaVersion: 2`, v1 is rejected):**
 
 1. `auth` (unchanged semantics) → `session.ready`.
 2. `audio.start { sampleRate: 16000, encoding: "pcm16", channels: 1, language: "de" }` → the gateway opens the internal connection to `transcription` and answers `audio.started`.
@@ -18,9 +18,9 @@ Phase 2 streams microphone audio from the browser to a speech-to-text provider (
 
 Only one recording per session at a time; after `audio.stopped` a new `audio.start` is allowed. Text mode keeps working throughout.
 
-**Server → client:** `audio.started`, `audio.stopped { reason }` with `reason` ∈ `client`, `recording_limit`, `overloaded`, `budget_exceeded`, `provider_error`, `privacy_mode`; errors keep the `error` message with new codes `audio_not_started`, `frame_too_large`, `frame_rate_exceeded`. Transcript segments reach the client as the existing `event` messages carrying `transcript.segment` envelopes (interim: `isFinal: false`).
+**Server → client:** `audio.started { recordingId }`, `audio.stopped { recordingId, reason }` with `reason` ∈ `client`, `recording_limit`, `overloaded`, `budget_exceeded`, `provider_error` (a cloud provider under `PRIVACY_MODE=local` is refused at startup, so it is no runtime reason); errors keep the `error` message with new codes `audio_not_started`, `audio_already_started`, `frame_too_large`, `frame_rate_exceeded`. Format constants and the stop reasons live in `packages/contracts/src/audio.ts`. Transcript segments reach the client as the existing `event` messages carrying `transcript.segment` envelopes (interim: `isFinal: false`).
 
-**Gateway → `transcription` (internal, network `internal` only):** one WebSocket per recording to `ws://transcription:8080/v1/audio`. First message `{ type: "start", sessionId, recordingId, sampleRate, encoding, channels, language }` (schema in `packages/contracts/src/internal-audio.ts`), then the client's binary frames unchanged, then `{ type: "stop" }`. `transcription` answers `ready`, `stopped { reason }` or `error { code }`. No token: the network is internal (same trust model as Redis access; revisited with NetworkPolicies in phase 5).
+**Gateway → `transcription` (internal, network `internal` only):** one WebSocket per recording to `ws://transcription:8080/v1/audio`. First message `{ type: "start", sessionId, recordingId, sampleRate, encoding, channels, language }` (schema `TranscriptionStart` in `packages/contracts/src/audio.ts`, `schemaVersion: 1`), then the client's binary frames unchanged, then `{ type: "stop" }`. `transcription` answers `ready { recordingId }` or `stopped { recordingId, reason }` (the same reasons as towards the client). No token: the network is internal (same trust model as Redis access; revisited with NetworkPolicies in phase 5).
 
 **Backpressure:** the gateway does not buffer audio. If the internal socket's send buffer exceeds 64 KiB (≈ 2 s of audio), the recording is stopped with `overloaded` instead of silently dropping audio.
 
