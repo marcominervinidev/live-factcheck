@@ -66,10 +66,22 @@ module.exports = {
       from: {},
       to: { dependencyTypes: ['npm-no-pkg', 'npm-unknown'] },
     },
+    {
+      name: 'not-to-dev-dep-in-production',
+      comment:
+        'Production code of services and packages must not import devDependencies: the runtime image installs only dependencies, so the service would crash at start while every test passes (.ai/lessons.md, 2026-09-29). Type-only imports are erased and allowed; tests and test helpers may use devDependencies.',
+      severity: 'error',
+      from: {
+        path: '^(services|packages)/[^/]+/src/',
+        pathNot: ['\\.test\\.ts$', '/src/testing/'],
+      },
+      to: { dependencyTypes: ['npm-dev'], dependencyTypesNot: ['type-only'] },
+    },
   ],
   options: {
-    includeOnly: '^(apps|services|packages|tests|scripts/llm-scan)/',
-    exclude: { path: '(^|/)(node_modules|dist|coverage)/' },
+    // npm packages are included as leaves (doNotFollow), so the npm rules below can see them.
+    includeOnly: '^(apps|services|packages|tests|scripts/llm-scan)/|(^|/)node_modules/',
+    exclude: { path: '(^|/)(dist|coverage)/' },
     doNotFollow: { path: 'node_modules' },
     tsPreCompilationDeps: true,
     combinedDependencies: false,

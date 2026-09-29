@@ -74,19 +74,21 @@ test('refuses audio before audio.start without ending the session', async ({ bas
   }
 });
 
-test('stops a recording that sends faster than real time', async ({ baseURL }) => {
+test('ends a recording that bursts audio faster than real time', async ({ baseURL }) => {
   const { socket, messages } = await openSession(baseURL ?? '');
   try {
     socket.send(START);
     await expect.poll(() => messages.at(-1)?.type).toBe('audio.started');
-    // 101 frames at once: above 20 frames/s over 5 s – not a microphone.
+    // 101 frames at once – not a microphone. In the real stack either the frame-rate limit or
+    // the backpressure guard fires first (timing); both end the recording with `overloaded`.
+    // Which error code comes with it is covered deterministically in the gateway's stage 2a.
     for (let i = 0; i < 101; i++) socket.send(pcm.subarray(0, FRAME_BYTES));
     await expect
-      .poll(() => messages.filter((m) => m.type === 'error').map((m) => m.code))
-      .toContain('frame_rate_exceeded');
-    await expect
-      .poll(() => messages.at(-1))
+      .poll(() => messages.find((m) => m.type === 'audio.stopped'))
       .toMatchObject({ type: 'audio.stopped', reason: 'overloaded' });
+    // The session survives: a new recording can start.
+    socket.send(START);
+    await expect.poll(() => messages.filter((m) => m.type === 'audio.started').length).toBe(2);
   } finally {
     socket.close();
   }

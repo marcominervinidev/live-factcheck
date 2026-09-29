@@ -1,0 +1,35 @@
+Phase 2 · TP4 – audio path in the gateway (2026-09-29, branch phase-2/tp4-gateway-audio)
+========================================================================================
+
+Change (ADR 0015)
+  /ws/session after session.ready: audio.start → internal WebSocket to transcription
+  (TRANSCRIPTION_URL) → audio.started; binary PCM16 frames forwarded; audio.stop → stopped from
+  transcription → audio.stopped. src/audio.ts: one recording per session, no buffering.
+  Stops: backpressure (internal socket > 64 KiB) or > 20 frames/s over 5 s → overloaded;
+  MAX_RECORDING_MS (60 min) → recording_limit; transcription unreachable / silent / wrong
+  recording / closed → provider_error. Oversized frame → frame_too_large, dropped. Audio errors
+  end only the recording; a second auth or an invalid message closes the session (4400).
+
+Tests
+  stage 1  audio.test.ts: 14 passed (fake transcription at the internal boundary)
+  stage 2a api.int.test.ts incl. one dedicated test per audio error code (review of gate 1):
+           audio_not_started, audio_already_started, frame_too_large, frame_rate_exceeded
+  gateway total 55 passed; coverage 92 % lines / 87 % branches
+  stage 3  tests/api/audio.spec.ts through the real stack (Caddy → gateway → transcription with
+           the mock STT): transcript segments interim/final with speakers A/B, audio before start
+           refused without ending the session, a burst ends the recording with overloaded;
+           stage 3: 39 passed · stage 4: 6 passed (isolated stack lfc-verify)
+
+Found on the way (second occurrence of "tests green, runtime lacks a dependency")
+  The stack showed the gateway crashing at start: `ws` was only a devDependency (used by tests
+  before), so the runtime image did not have it. Fixed, and made automatic instead of a written
+  rule (AGENTS.md, learning from mistakes):
+  - dependency-cruiser rule `not-to-dev-dep-in-production` (production code of services and
+    packages must not import devDependencies; type-only imports allowed)
+  - the configuration excluded node_modules completely, so npm rules never fired; npm packages
+    are now included as leaves (299 modules instead of 275)
+  - negative test: with ws moved back to devDependencies the rule reports
+    `services/gateway/src/audio.ts → node_modules/.pnpm/ws@8.21.3/…/ws/wrapper.mjs`; with the fix
+    "no dependency violations found"
+  Stage 3 test adjusted: in the real stack backpressure or the rate limit fire first depending on
+  timing; the test checks the purpose (overloaded), the exact code stays in stage 2a.
