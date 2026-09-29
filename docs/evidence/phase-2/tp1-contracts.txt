@@ -1,0 +1,34 @@
+Phase 2 · TP1 – contracts (2026-09-29, branch phase-2/tp1-contracts)
+====================================================================
+
+Change (ADR 0015, 0017; accepted at gate 0)
+  ws.ts            schemaVersion 1 -> 2: audio.start / audio.stop (client), audio.started /
+                   audio.stopped { recordingId, reason } (server), audio error codes; v1 rejected
+  audio.ts         new (v1): frame budget (3200 B per 100 ms, max 8 KiB, 20 frames/s), stop
+                   reasons, internal protocol gateway -> transcription (start/stop, ready/stopped)
+  claim-detected   schemaVersion 2 -> 3: required detectMs (0..600000)
+
+Contract check (scripts/check-contract-change.sh origin/main)
+  packages/contracts/src/audio.ts: new schema (schemaVersion 1)
+  packages/contracts/src/claim-detected.ts: schemaVersion 2 -> 3
+  packages/contracts/src/ws.ts: schemaVersion 1 -> 2
+  contract check: ok (ADR: 0015, 0016, 0017)
+
+Consumers switched in the same PR
+  gateway (v2; first message must be auth – a valid audio.start before auth was accepted as a
+  first message by the type narrowing and is now rejected, regression test), fact-checker
+  (timings.detectMs from the claim, totalMs = detection + check, also on the cache path;
+  before: fixed 0), web, evals, stage 3 helpers, red-team client, fixtures.
+
+Checks
+  typecheck: exit 0 · lint: exit 0 · contract check: ok
+  unit: contracts 149, gateway 15, fact-checker 38 (+1 detectMs test), web 55, evals 16,
+        service-kit 23, red team 8 – all passed
+  stage 2a: service-kit 10, gateway 21 (+2 rejection cases), claim-extractor 2,
+            transcription 2, explainer 3, fact-checker 3 – all passed
+  stage 2b: 30 passed
+  stage 3: 36 passed · stage 4: 6 passed (isolated stack lfc-verify, throwaway secrets)
+
+Note
+  An earlier `pnpm typecheck | grep "error TS"` looked clean although it failed: `tsc --pretty`
+  colours the output. Checks are now judged by exit code.

@@ -129,8 +129,8 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 
 - [x] Plan freigegeben (Marco, 2026-09-29: „einfach jetzt mal weitermachen“)
 - [x] TP0 erledigt (im PR des Plans, `phase-2/plan`): Recherche `.ai/research/stt-providers.md`, `faster-whisper.md`, `browser-audio.md`; Zusammenfassungen `gateway.md` (aktualisiert), `pipeline-streams.md` (neu); ADR 0015–0017 als Entwurf
-- Aktuelles Gate: **Gate 0 – wartet auf Marcos Freigabe von Recherche und ADRs**
-- Offene Frage an Marco (Gate 0): faster-whisper hat **keine Metal-Unterstützung** und läuft auch nativ auf dem Mac nur auf der CPU. Beim Brief bleiben (faster-whisper überall) oder später für den nativen Modus eine Metal-Engine (whisper.cpp/mlx-whisper) ergänzen? Vorschlag: vorerst beim Brief bleiben, messen, dann entscheiden
-- Nebenbefund: `timings.detectMs` ist im fact-checker fest 0 → T1.4
-- Nächster Task nach Gate 0: T1.1 Verträge (Branch `phase-2/tp1-contracts`)
+- [x] **Gate 0** freigegeben (Marco, 2026-09-29): ADR 0015–0017 angenommen; Deepgram als Standard, Anbieter per Konfiguration austauschbar (`STT_PROVIDER`); faster-whisper bleibt, Messung in TP3 vor jeder Engine-Entscheidung
+- [x] TP1 Verträge (PR `phase-2/tp1-contracts`): WebSocket v2 mit Audio, `audio.ts` (Frame-Budget, Stop-Gründe, internes Protokoll), `ClaimDetected` v3 mit `detectMs` (T1.4); Verbraucher im selben PR umgestellt; Nachweis `docs/evidence/phase-2/tp1-contracts.txt`
+- Aktuelles Gate: **Gate 1 – wartet auf Marcos Review der Vertragsänderung**
+- Nächster Task nach Gate 1: T2.1 `SttProvider` in `packages/providers/src/stt/` (Branch `phase-2/tp2-transcription`); **vor T2.5 Marco an den Deepgram-Account erinnern**
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
