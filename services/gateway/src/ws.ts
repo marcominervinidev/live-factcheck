@@ -7,6 +7,8 @@ import {
 import websocket from '@fastify/websocket';
 import type { HttpServer, Logger } from '@lfc/service-kit';
 
+import type { AudioChannel } from './audio.js';
+import { DEFAULT_AUDIO_OPTIONS, audioChannel } from './audio.js';
 import { tokenMatches } from './auth.js';
 import type { Config } from './config.js';
 import type { SessionHub, SessionStore } from './sessions.js';
@@ -42,9 +44,10 @@ export interface WsDeps {
 }
 
 /**
- * `/ws/session` (brief 6.1, 6.7; ADR 0010, 0011): the first message must authenticate within
+ * `/ws/session` (brief 6.1, 6.7; ADR 0010, 0011, 0015): the first message must authenticate within
  * WS_AUTH_TIMEOUT_MS; then the session is created and every event on its Pub/Sub channel is
- * forwarded. The connection ends after MAX_SESSION_MS.
+ * forwarded. After `session.ready` the client may record: `audio.start`, binary PCM16 frames,
+ * `audio.stop` (see `audio.ts`). The connection ends after MAX_SESSION_MS.
  */
 export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<void> {
   await app.register(websocket, { options: { maxPayload: MAX_MESSAGE_BYTES } });
@@ -52,6 +55,7 @@ export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<
   app.get('/ws/session', { websocket: true }, (socket) => {
     const { config, sessions, hub, logger } = deps;
     let sessionId: string | undefined;
+    let audio: AudioChannel | undefined;
     let closed = false;
 
     const send = (message: WsServerMessage) => {
@@ -71,10 +75,13 @@ export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<
 
     let authenticating = false;
     socket.on('message', (data: Buffer, isBinary: boolean) => {
-      // Anything after the first message (also while the session is still being created) is
-      // invalid, so one socket can never open several sessions (security review, phase 1).
+      if (audio !== undefined) {
+        onSessionMessage(audio, data, isBinary);
+        return;
+      }
+      // Anything while the session is still being created is invalid, so one socket can never
+      // open several sessions (security review, phase 1).
       if (authenticating || sessionId !== undefined) {
-        // Phase 1 has no client messages after auth; audio and control follow in phase 2.
         fail('invalid_message');
         return;
       }
@@ -123,6 +130,16 @@ export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<
           sessionTimer = setTimeout(() => {
             fail('session_expired');
           }, config.MAX_SESSION_MS);
+          audio = audioChannel(
+            id,
+            send,
+            {
+              ...DEFAULT_AUDIO_OPTIONS,
+              transcriptionUrl: config.TRANSCRIPTION_URL,
+              maxRecordingMs: config.MAX_RECORDING_MS,
+            },
+            logger,
+          );
           send({ type: 'session.ready', schemaVersion: 2, sessionId: id });
           logger.info({ sessionId: id }, 'session started');
         } catch (error) {
@@ -132,10 +149,31 @@ export async function registerWebSocket(app: HttpServer, deps: WsDeps): Promise<
       })();
     });
 
+    /** After `session.ready`: audio frames and recording control; a second `auth` is invalid. */
+    const onSessionMessage = (channel: AudioChannel, data: Buffer, isBinary: boolean) => {
+      if (isBinary) {
+        channel.frame(data);
+        return;
+      }
+      let parsed: ReturnType<typeof WsClientMessage.safeParse> | undefined;
+      try {
+        parsed = WsClientMessage.safeParse(JSON.parse(data.toString('utf8')));
+      } catch {
+        parsed = undefined;
+      }
+      if (!parsed?.success || parsed.data.type === 'auth') {
+        fail('invalid_message');
+        return;
+      }
+      if (parsed.data.type === 'audio.start') channel.start(parsed.data);
+      else channel.stop();
+    };
+
     socket.on('close', () => {
       closed = true;
       clearTimeout(authTimer);
       clearTimeout(sessionTimer);
+      audio?.close();
       const id = sessionId;
       if (id === undefined) return;
       void hub

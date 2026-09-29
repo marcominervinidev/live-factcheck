@@ -18,6 +18,15 @@ export const configSchema = baseConfigSchema.extend({
     .int()
     .positive()
     .default(2 * 60 * 60 * 1_000),
+  /** Internal WebSocket of `transcription` (network `internal` only, ADR 0015). */
+  TRANSCRIPTION_URL: z.url({ protocol: /^wss?$/ }),
+  /** A recording ends after this (brief 15.5, ADR 0015); the session may go on. */
+  MAX_RECORDING_MS: z.coerce
+    .number()
+    .int()
+    .min(60_000)
+    .max(4 * 60 * 60 * 1_000)
+    .default(60 * 60 * 1_000),
   /** Text-mode checks per minute, shared by all replicas (brief 15.5). */
   RATE_LIMIT_CHECKS_PER_MINUTE: z.coerce.number().int().positive().default(20),
 });

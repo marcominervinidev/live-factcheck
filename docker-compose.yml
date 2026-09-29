@@ -95,10 +95,14 @@ services:
       GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
       PRIVACY_MODE: ${PRIVACY_MODE:-cloud}
       RATE_LIMIT_CHECKS_PER_MINUTE: ${RATE_LIMIT_CHECKS_PER_MINUTE:-20}
+      # Audio path (ADR 0015): one internal WebSocket per recording, network internal only.
+      TRANSCRIPTION_URL: ws://transcription:8080/v1/audio
+      MAX_RECORDING_MS: ${MAX_RECORDING_MS:-}
     secrets: [redis_password, gateway_token]
     networks: [frontend, internal]
     depends_on:
       redis: { condition: service_healthy }
+      transcription: { condition: service_healthy }
 
   transcription:
     <<: *node-service
