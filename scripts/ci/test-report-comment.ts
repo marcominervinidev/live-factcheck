@@ -20,7 +20,7 @@ const headSha = input('HEAD_SHA', /^[0-9a-f]{40}$/);
 /** Ids taken from API answers, checked before they go into a path or link. */
 function id(value: unknown): string {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
-    throw new Error(`unexpected id ${String(value)}`);
+    throw new TypeError(`unexpected id ${String(value)}`);
   }
   return String(value);
 }
@@ -114,6 +114,7 @@ const rows = REPORTS.map(([name, label]) => {
   return `| ${label} | [download](${url}) (${(artifact.sizeBytes / 1e6).toFixed(1)} MB) |`;
 });
 
+const ciLink = ciRun === undefined ? '' : ' · [ci run](' + ciRun.htmlUrl + ')';
 const body = `${MARKER}
 ### Test reports for \`${headSha.slice(0, 7)}\`
 
@@ -125,17 +126,20 @@ https://trace.playwright.dev (runs locally in the browser, nothing is uploaded).
 |---|---|
 ${rows.join('\n')}
 
-Reports are kept for 7 days (stage 4: 14 days). [This run](https://github.com/${repo}/actions/runs/${runId})${ciRun === undefined ? '' : ` · [ci run](${ciRun.htmlUrl})`}
+Reports are kept for 7 days (stage 4: 14 days). [This run](https://github.com/${repo}/actions/runs/${runId})${ciLink}
 `;
 
 const comments = array(await api(`/issues/${prNumber}/comments?per_page=100`), 'comments');
 const existing = comments
   .map((entry) => object(entry, 'comment'))
   .find((c) => typeof c['body'] === 'string' && c['body'].startsWith(MARKER));
-await (existing === undefined
-  ? api(`/issues/${prNumber}/comments`, { method: 'POST', body: JSON.stringify({ body }) })
-  : api(`/issues/comments/${id(existing['id'])}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ body }),
-    }));
-console.log(existing === undefined ? 'comment created' : 'comment updated');
+if (existing === undefined) {
+  await api(`/issues/${prNumber}/comments`, { method: 'POST', body: JSON.stringify({ body }) });
+  console.log('comment created');
+} else {
+  await api(`/issues/comments/${id(existing['id'])}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ body }),
+  });
+  console.log('comment updated');
+}

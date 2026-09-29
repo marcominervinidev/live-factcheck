@@ -32,7 +32,8 @@ for (const name of names) {
 }
 
 if (problems.length > 0) {
-  console.error(`MCP configs out of sync:\n${problems.map((p) => `  - ${p}`).join('\n')}`);
+  const list = problems.map((problem) => '  - ' + problem).join('\n');
+  console.error(`MCP configs out of sync:\n${list}`);
   process.exit(1);
 }
 console.log(`MCP configs in sync: ${[...names].sort((a, b) => a.localeCompare(b)).join(', ')}`);

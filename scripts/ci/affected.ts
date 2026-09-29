@@ -41,7 +41,7 @@ function scriptsOf(dir: string): ReadonlySet<string> {
     `${dir}/package.json`,
   );
   if (scripts === undefined) return new Set();
-  if (!isObject(scripts)) throw new Error(`${dir}/package.json: scripts is not an object`);
+  if (!isObject(scripts)) throw new TypeError(`${dir}/package.json: scripts is not an object`);
   return new Set(Object.keys(scripts));
 }
 

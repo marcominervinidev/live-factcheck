@@ -10,29 +10,29 @@ export function isObject(value: unknown): value is JsonObject {
 }
 
 export function object(value: unknown, what: string): JsonObject {
-  if (!isObject(value)) throw new Error(`${what}: expected an object`);
+  if (!isObject(value)) throw new TypeError(`${what}: expected an object`);
   return value;
 }
 
 export function array(value: unknown, what: string): readonly unknown[] {
-  if (!Array.isArray(value)) throw new Error(`${what}: expected an array`);
+  if (!Array.isArray(value)) throw new TypeError(`${what}: expected an array`);
   return value as readonly unknown[];
 }
 
 export function string(value: unknown, what: string): string {
-  if (typeof value !== 'string') throw new Error(`${what}: expected a string`);
+  if (typeof value !== 'string') throw new TypeError(`${what}: expected a string`);
   return value;
 }
 
 export function number(value: unknown, what: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new Error(`${what}: expected a number`);
+    throw new TypeError(`${what}: expected a number`);
   }
   return value;
 }
 
 export function boolean(value: unknown, what: string): boolean {
-  if (typeof value !== 'boolean') throw new Error(`${what}: expected a boolean`);
+  if (typeof value !== 'boolean') throw new TypeError(`${what}: expected a boolean`);
   return value;
 }
 
