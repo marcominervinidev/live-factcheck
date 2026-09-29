@@ -19,7 +19,7 @@ Brief 5, 6.5 and 8.1 describe the `claim-extractor`: a rolling window of recent 
 
 **Standalone formulation (`EXTRACTOR_LLM_*`):** only for positive cases. Prompt `services/claim-extractor/prompts/standalone.md` (versioned, placeholders, segments passed as delimited data like in the fact-checker); output schema `{ standaloneText, originalText }`; the text must be one German sentence, at most 300 characters; invalid after one repair attempt → the claim is dropped and counted (no guess).
 
-**Deduplication per session:** (1) normalised hash of `standaloneText` (lower case, numbers kept, punctuation and stop words removed) against a Redis set `extractor:v1:claims:{sessionId}`; (2) if no exact hit, compare with the last `DETECTOR_DEDUP_CANDIDATES` (default 10) claims of the session by token overlap (Jaccard ≥ 0.6) and confirm with the classifier's Bool "both statements have the same truth value" (protects against different numbers or negation, brief 8.1). Duplicates are dropped and counted.
+**Deduplication per session:** (1) the normalised `standaloneText` (`normalizeClaimText`, the same normalisation as the verdict cache key: numbers and negations kept, no stop-word removal, so "ist" and "ist nicht" never collapse) against a Redis set `extractor:v1:claims:{sessionId}`; (2) if no exact hit, compare with the last `DETECTOR_DEDUP_CANDIDATES` (default 10) claims of the session by token overlap (Jaccard ≥ 0.6) and confirm with the classifier's Bool "both statements have the same truth value" (protects against different numbers or negation, brief 8.1). Duplicates are dropped and counted.
 
 **Output:** `ClaimDetected` (existing contract) to `claims.detected` with `toSession`, `sourceSegmentIds` = the segments the claim was built from, `provider: { classifier, model }`, `detectedAt`. The detection time (end of the newest source segment until publishing) is measured in the extractor. Today the fact-checker writes `timings.detectMs: 0`, because `ClaimDetected` does not carry it; plan task T1.4 adds a `detectMs` field to `ClaimDetected` (v3, text mode sends 0) so the fact-checker can copy it into `ClaimChecked.timings.detectMs` and the latency per path (brief 9.6) includes detection.
 
@@ -38,3 +38,11 @@ Brief 5, 6.5 and 8.1 describe the `claim-extractor`: a rolling window of recent 
 - The extractor makes one classifier call per segment that passes the pre-filter, plus one LLM call per positive and occasionally one dedup confirmation; the pre-filter keeps most small talk away from the model.
 - Precision-first thresholds will miss some claims; the eval makes this visible and the thresholds are configuration.
 - Stryker covers the deduplication nightly (brief 13.5).
+
+## Implementation notes (plan TP5, 2026-09-29)
+
+- The exact duplicate check uses `normalizeClaimText` from `@lfc/service-kit` (moved there from the gateway), not a stop-word-free hash: removing stop words would merge "ist" and "ist nicht".
+- `detectMs` is measured from receiving the final segment to publishing the claim; STT finalisation is not included.
+- The classifier sees the window for every provider, Jev included; speakers are letters (owner decision 2026-09-29).
+- Defaults: window 6 segments, at least 5 words, checkworthiness ≥ 3 of 5, confidence high 0.75 / low 0.5, 10 duplicate candidates.
+

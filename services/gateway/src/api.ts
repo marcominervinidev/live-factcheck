@@ -48,9 +48,10 @@ const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   '/ws/session',
 ]);
 
-/** Workers publish what they use at startup (transcription, fact-checker, explainer); never keys or URLs. */
+/** Workers publish what they use at startup (transcription, claim-extractor, fact-checker, explainer); never keys or URLs. */
 const WORKER_STATUS_KEYS = [
   'status:v1:transcription',
+  'status:v1:claim-extractor',
   'status:v1:fact-checker',
   'status:v1:explainer',
 ] as const;
