@@ -608,6 +608,9 @@ importers:
       ioredis:
         specifier: 6.0.0
         version: 6.0.0(supports-color@7.2.0)
+      ws:
+        specifier: 8.21.3
+        version: 8.21.3
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -639,9 +642,6 @@ importers:
       vitest:
         specifier: 5.0.1
         version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(jsdom@30.1.1)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.14)(yaml@2.9.1))
-      ws:
-        specifier: 8.21.3
-        version: 8.21.3
 
   services/transcription:
     dependencies:

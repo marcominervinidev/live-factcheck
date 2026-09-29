@@ -2,6 +2,7 @@
 // In-process (the real routes on a real port), so coverage counts; the process-level start is
 // covered by main.test.ts and main.int.test.ts.
 import { randomBytes, randomUUID } from 'node:crypto';
+import type { AddressInfo } from 'node:net';
 
 import { EventEnvelope, STREAMS, sessionEventsChannel } from '@lfc/contracts';
 import { createHttpServer, createLogger, createRedis } from '@lfc/service-kit';
@@ -11,7 +12,7 @@ import type { StartedRedisContainer } from '@testcontainers/redis';
 import { Redis } from 'ioredis';
 import { Registry } from 'prom-client';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 
 import { registerApi } from './api.js';
 import { configSchema } from './config.js';
@@ -30,6 +31,8 @@ describe('gateway API and WebSocket against a real Redis', () => {
   const logLines: string[] = [];
   let base = '';
   let redis: Redis;
+  let transcription: WebSocketServer;
+  let transcribedBytes = 0;
 
   const authHeaders = { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json' };
 
@@ -66,6 +69,34 @@ describe('gateway API and WebSocket against a real Redis', () => {
   beforeAll(async () => {
     container = await new RedisContainer('redis:8.10.2-alpine').withPassword(PASSWORD).start();
     const url = `redis://${container.getHost()}:${String(container.getMappedPort(6379))}`;
+    // A fake `transcription` at the internal system boundary (ADR 0015): answers `start` with
+    // `ready`, counts audio, answers `stop` with `stopped`.
+    transcription = new WebSocketServer({ port: 0, host: '127.0.0.1' });
+    await new Promise<void>((resolve) =>
+      transcription.once('listening', () => {
+        resolve();
+      }),
+    );
+    transcription.on('connection', (socket) => {
+      let recordingId = '';
+      socket.on('message', (data: Buffer, isBinary: boolean) => {
+        if (isBinary) {
+          transcribedBytes += data.byteLength;
+          return;
+        }
+        const message = JSON.parse(data.toString('utf8')) as { type: string; recordingId?: string };
+        if (message.type === 'start') {
+          recordingId = message.recordingId ?? '';
+          socket.send(JSON.stringify({ type: 'ready', schemaVersion: 1, recordingId }));
+        } else {
+          socket.send(
+            JSON.stringify({ type: 'stopped', schemaVersion: 1, recordingId, reason: 'client' }),
+          );
+          socket.close(1000);
+        }
+      });
+    });
+    const { port } = transcription.address() as AddressInfo;
     const config = configSchema.parse({
       PORT: '8080', // unused: the test server listens on a free port
       REDIS_URL: url,
@@ -73,6 +104,7 @@ describe('gateway API and WebSocket against a real Redis', () => {
       GATEWAY_TOKEN: TOKEN,
       WS_AUTH_TIMEOUT_MS: '500',
       RATE_LIMIT_CHECKS_PER_MINUTE: '5',
+      TRANSCRIPTION_URL: `ws://127.0.0.1:${String(port)}/v1/audio`,
     });
     const logger = createLogger({
       service: 'gateway',
@@ -104,6 +136,10 @@ describe('gateway API and WebSocket against a real Redis', () => {
   });
 
   afterAll(async () => {
+    for (const client of transcription.clients) client.terminate();
+    await new Promise((resolve) => {
+      transcription.close(resolve);
+    });
     redis.disconnect();
     await app.close();
     hub.close();
@@ -280,11 +316,96 @@ describe('gateway API and WebSocket against a real Redis', () => {
       await expect.poll(async () => (await redis.keys('session:v1:*')).length).toBe(before);
     });
 
-    it('closes an authenticated session on any further client message (audio follows in TP4)', async () => {
-      const client = await session();
-      client.socket.send(JSON.stringify({ type: 'auth', schemaVersion: 2, token: TOKEN }));
-      await expect.poll(() => client.closeCode()).toBe(4400);
-      await expect.poll(async () => redis.exists(`session:v1:${client.sessionId}`)).toBe(0);
+    it('closes an authenticated session on a second auth or an invalid message', async () => {
+      const again = await session();
+      again.socket.send(JSON.stringify({ type: 'auth', schemaVersion: 2, token: TOKEN }));
+      await expect.poll(() => again.closeCode()).toBe(4400);
+      await expect.poll(async () => redis.exists(`session:v1:${again.sessionId}`)).toBe(0);
+
+      const garbage = await session();
+      garbage.socket.send('{"type":"rename","schemaVersion":2}');
+      await expect.poll(() => garbage.closeCode()).toBe(4400);
+    });
+
+    describe('audio (ADR 0015, plan TP4)', () => {
+      const audioStart = JSON.stringify({
+        type: 'audio.start',
+        schemaVersion: 2,
+        sampleRate: 16_000,
+        encoding: 'pcm16',
+        channels: 1,
+        language: 'de',
+      });
+      const frame = Buffer.alloc(3_200);
+      const last = (client: { messages: Record<string, unknown>[] }) => client.messages.at(-1);
+      const errorCodes = (client: { messages: Record<string, unknown>[] }) =>
+        client.messages.filter((m) => m['type'] === 'error').map((m) => m['code']);
+
+      /** A session with a running recording. */
+      const recording = async () => {
+        const client = await session();
+        client.socket.send(audioStart);
+        await expect.poll(() => last(client)?.['type']).toBe('audio.started');
+        return client;
+      };
+
+      it('records: audio.started, frames to transcription, audio.stopped; the session stays usable', async () => {
+        const before = transcribedBytes;
+        const client = await recording();
+        for (let i = 0; i < 5; i++) client.socket.send(frame);
+        await expect.poll(() => transcribedBytes - before).toBe(5 * 3_200);
+        client.socket.send(JSON.stringify({ type: 'audio.stop', schemaVersion: 2 }));
+        await expect
+          .poll(() => last(client))
+          .toMatchObject({ type: 'audio.stopped', reason: 'client' });
+
+        // The session stays open and can record again (text mode is untouched by recordings;
+        // not called here because the file shares one text-mode rate limit).
+        client.socket.send(audioStart);
+        await expect
+          .poll(() => client.messages.filter((m) => m['type'] === 'audio.started').length)
+          .toBe(2);
+        expect(client.closeCode()).toBeUndefined();
+        client.socket.close();
+      });
+
+      // One dedicated test per audio error code (reminder from the review of gate 1).
+      it('audio_not_started: audio before audio.start is refused, the session stays open', async () => {
+        const client = await session();
+        client.socket.send(frame);
+        await expect.poll(() => errorCodes(client)).toEqual(['audio_not_started']);
+        expect(client.closeCode()).toBeUndefined();
+        client.socket.close();
+      });
+
+      it('audio_already_started: a second audio.start during a recording is refused', async () => {
+        const client = await recording();
+        client.socket.send(audioStart);
+        await expect.poll(() => errorCodes(client)).toEqual(['audio_already_started']);
+        expect(client.messages.filter((m) => m['type'] === 'audio.started')).toHaveLength(1);
+        client.socket.close();
+      });
+
+      it('frame_too_large: an oversized frame is dropped, the recording goes on', async () => {
+        const before = transcribedBytes;
+        const client = await recording();
+        client.socket.send(Buffer.alloc(8 * 1024 + 2));
+        client.socket.send(frame);
+        await expect.poll(() => errorCodes(client)).toEqual(['frame_too_large']);
+        await expect.poll(() => transcribedBytes - before).toBe(3_200);
+        expect(client.messages.some((m) => m['type'] === 'audio.stopped')).toBe(false);
+        client.socket.close();
+      });
+
+      it('frame_rate_exceeded: audio faster than real time ends the recording', async () => {
+        const client = await recording();
+        // 20 frames/s averaged over 5 s: 101 frames at once exceed it.
+        for (let i = 0; i < 101; i++) client.socket.send(frame);
+        await expect.poll(() => errorCodes(client)).toEqual(['frame_rate_exceeded']);
+        expect(last(client)).toMatchObject({ type: 'audio.stopped', reason: 'overloaded' });
+        expect(client.closeCode()).toBeUndefined();
+        client.socket.close();
+      });
     });
 
     it('text mode end to end: claim accepted, claim.detected and the verdict pushed to the session', async () => {

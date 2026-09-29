@@ -11,3 +11,4 @@ Rules for this service only. Repo-wide rules: `/AGENTS.md`. This service is the 
 - Every error leaves as `ApiError` with a stable code; WebSocket errors as `error` messages with close codes 44xx. Never put internals into messages.
 - Never log claim text or tokens; log session and claim ids only (brief 15.6).
 - Sessions are records in Redis, events arrive via Pub/Sub, so any replica can serve any request (no session affinity needed; brief 5).
+- Audio (phase 2, ADR 0015): `src/audio.ts` holds one recording per session and forwards it over an internal WebSocket to `transcription` (`TRANSCRIPTION_URL`). Never buffer audio: a slow internal socket, a frame rate above real time or the recording limit end the **recording** with `audio.stopped`; an oversized frame is dropped with an error. Audio errors never end the session; only a second `auth` or an invalid message closes it. Every audio error code has its own integration test in `src/api.int.test.ts`.

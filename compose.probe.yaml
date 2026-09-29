@@ -31,4 +31,4 @@ services:
       - --import
       - tsx
       - src/probe.ts
-      - /workspace/tests/fixtures/audio/conversation.de.wav
+      - conversation.de.wav

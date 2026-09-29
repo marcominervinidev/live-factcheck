@@ -120,6 +120,24 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 
 **🛑 Gate 4:** Phasenabschluss (PRs `phase-2/tp6-web-live`, `phase-2/tp7-e2e`). Marco prüft das DoD auf dem iPhone.
 
+## DoD → Tests
+
+Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden Stufe (`tests/AGENTS.md`); Tests, die ein DoD belegen, tragen `@dod` im Titel. Fehlerfälle liegen darunter (Stufe 1/2a) und stehen hier nicht einzeln.
+
+| Anforderung (Brief 11, 13.2, 17) | Stufe | Test | Stand |
+|---|---|---|---|
+| **DoD:** ins iPhone sprechen, Transkript live, Karte für eine falsche Behauptung in wenigen Sekunden | manuell | `docs/testing/iphone-smoke.md` (Marco, T7.2) | geplant |
+| Dasselbe automatisiert: Live-Modus mit WAV-Fixture bis zur Karte | 4 | `tests/e2e/live.spec.ts` `@dod` – Chromium Fake-Audio, WebKit synthetischer MediaStream (T7.1) | geplant |
+| Ohne Einwilligung keine Aufnahme; Dialog nennt die aktiven Anbieter | 2b + 4 | 2b: Dialog-Logik und Anbieterliste; 4: `@dod` Journey (T6.1, T7.1) | geplant |
+| Reconnect während einer Aufnahme | 1 + 4 | 1: Reconnect-Logik im Store; 4: `@dod` Journey (T6.4, T7.1) | geplant |
+| Live-Transkript: interim grau, final schwarz, Markierungen, Sprung zur Karte | 1 + 2b | Komponenten- und Store-Tests; 2b mit `mock-backend.ts` (T6.3) | geplant |
+| Audio-Weg Browser → Gateway → `transcription` → Transkript-Events | 3 | `tests/api/audio.spec.ts` (T4) | vorhanden |
+| Audio-Fehlercodes, Budget, Backpressure, Aufnahmelimit | 1 + 2a | `services/gateway/src/audio.test.ts`, `api.int.test.ts`, `services/transcription/src/recording.test.ts` (T2, T4) | vorhanden |
+| Segmente → `claims.detected` → Karte | 2a + 3 | `claim-extractor` mit Testcontainers-Redis; Stufe 3 Durchstich (T5) | geplant |
+| Erkennungsqualität (Precision, Recall, F1) | 5 | `pnpm eval --set detection` (T5.6) | geplant |
+| Echte STT-Anbieter (Deutsch, Latenz, Sprecher) | manuell | `make stt-probe` (Deepgram, `stt-local`), Nachweise TP2/TP3 | vorhanden |
+| Kein Audio gespeichert, kein Transkripttext und kein Key in Logs | 1 + 2a | `recording.test.ts`, `main.test.ts` (transcription), `test_app.py` (stt-local) | vorhanden |
+
 ## Risiken
 
 - **Latenz „innerhalb weniger Sekunden“:** STT-Finalisierung (ca. 1 s) + Erkennung (LLM) + Prüfung (Live-Recherche 5–10 s, Brief 9.6). Mit lokalen Modellen auf dem 16-GB-Mac deutlich langsamer; das DoD wird mit Deepgram und Claude bzw. einem Cache-Treffer realistisch, mit rein lokalen Modellen eher nicht. Gemessen wird pro Pfad (`timings`).
@@ -136,10 +154,10 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 - [x] TP2 T2.1–T2.4 (PR `phase-2/tp2-transcription`): STT-Adapter in `packages/providers/src/stt/` (Deepgram, AssemblyAI, local, mock), `publishToSession` in service-kit, Service `transcription` mit `/v1/audio`, Budget, Backpressure, Status; Compose und `.env.example`; Nachweis `docs/evidence/phase-2/tp2-transcription.txt`
 - [x] T2.5 echter Deepgram-Test (Marcos Key und Freigabe, 5 Läufe, ca. 1,25 Cent): Standard bestätigt; Befund „Deepgram finalisiert in langen Blöcken“ behoben (Sätze aus Wort-Zeitstempeln, eigene Stille-Erkennung → `Finalize`, Ordinalzahlen); offen: „Weltkrieg“ → „2. Welt“ bei synthetischer Stimme, mit echter Stimme in TP7 prüfen. Werkzeug `make stt-probe`
 - [x] Entschieden (Marco, 2026-09-29): Der Klassifikator bekommt in TP5 das ganze Segmentfenster als Kontext, **auch Jev**; Sprechernamen werden immer durch A, B, … ersetzt (ADR 0017, `packages/providers/AGENTS.md` angepasst)
-- [x] TP3 `stt-local` (Branch `phase-2/tp3-stt-local`, PR nach dem Merge von #29): Python-Service mit faster-whisper, ruff/mypy/pytest (16 Tests), Image und Compose-Profil `local-stt`, `make up-local`, CI-Job, native Anleitung; echter Lauf mit `small`: drei korrekte Segmente, 1,7–2,2 s nach jeder Pause; Nachweis `docs/evidence/phase-2/tp3-stt-local.txt`
+- [x] TP3 `stt-local` (PR #31): Python-Service mit faster-whisper, ruff/mypy/pytest (19 Tests), Image und Compose-Profil `local-stt`, `make up-local`, CI-Job, native Anleitung; echter Lauf mit `small`: drei korrekte Segmente, 1,7–2,2 s nach jeder Pause; Nachweis `docs/evidence/phase-2/tp3-stt-local.txt`
 - Vorschlag (nach Phase 2): distroless-Python-Runtime für `stt-local` (44 HIGH-Befunde im Debian-Basisimage, 0 kritisch)
-- Aktuelles Gate: **Gate 2 – wartet auf Marcos Review von PR #29 (TP2) und TP3**
+- [x] TP4 Audio-Pfad im Gateway (PR #32, gemergt): `src/audio.ts`, je ein Integrationstest pro Audio-Fehlercode, Stufe 3 `audio.spec.ts` über den echten Stack; neue depcruise-Regel gegen Dev-Abhängigkeiten im Produktionscode; Nachweis `docs/evidence/phase-2/tp4-gateway-audio.txt`
+- Aktuelles Gate: Gate 2 (PR #31 `stt-local`) und Gate 3 (PR #33 `claim-extractor`) warten auf Marcos Review
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
-- Nächster Task nach Gate 2: TP4 Audio-Pfad im Gateway (Branch `phase-2/tp4-gateway-audio`)
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Labels des Erkennungs-Sets (Marco) in T5.6
 - **Beim Phasenwechsel nach Phase 2 (Marco erinnern, 2026-09-29):** Umstieg von Docker Desktop auf **OrbStack** prüfen. Grund: Die Docker-VM (8 GB RAM, 58 GB Platte) ist auf dem 16-GB-Mac knapp – starkes Swapping bei lokalen Modellen, die Platte lief dreimal voll (zuletzt `stt-local` konnte sein Modell nicht laden). Vorher: Volumes sichern, die für den Umzug zählen (Caddy-CA → iPhone-Zertifikat, Redis-Daten), und `make up`, `make test`, `make up-local` danach einmal komplett prüfen

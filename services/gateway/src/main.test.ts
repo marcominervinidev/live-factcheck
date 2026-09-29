@@ -17,6 +17,7 @@ describe('gateway startup', () => {
       'REDIS_URL',
       'REDIS_PASSWORD',
       'GATEWAY_TOKEN',
+      'TRANSCRIPTION_URL',
     ]);
   });
 
@@ -26,6 +27,7 @@ describe('gateway startup', () => {
       REDIS_URL: 'http://redis:6379',
       REDIS_PASSWORD: 'x'.repeat(16),
       GATEWAY_TOKEN: 't'.repeat(32),
+      TRANSCRIPTION_URL: 'ws://transcription:8080/v1/audio',
     });
     expect(await run.exitCode).toBe(1);
     expect(run.output()).toContain('REDIS_URL');
@@ -37,6 +39,7 @@ describe('gateway startup', () => {
       REDIS_URL: 'redis://redis:6379',
       REDIS_PASSWORD: 'x'.repeat(16),
       GATEWAY_TOKEN: 'short-token-value',
+      TRANSCRIPTION_URL: 'ws://transcription:8080/v1/audio',
     });
     expect(await run.exitCode).toBe(1);
     expect(run.output()).toContain('GATEWAY_TOKEN');

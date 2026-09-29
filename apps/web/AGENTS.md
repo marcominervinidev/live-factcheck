@@ -13,4 +13,5 @@ Rules for the frontend only. Repo-wide rules: `/AGENTS.md`.
 - Honest display (brief 11): medium confidence is "unsicher" in a neutral colour, no percentage outside the details view, every card carries the disclaimer, no per-person scores. `src/lib/format.ts` is the only place that maps verdicts to labels, icons and colours.
 - Server messages are validated with `@lfc/contracts` (`WsServerMessage`, `ApiError`, …) before they touch state; invalid messages are dropped.
 - The gateway token lives only in `localStorage` (`src/state/settings.ts`, ADR 0011) and is sent only in the `Authorization` header or the WebSocket `auth` message, never in a URL.
-- Stage 2b uses `tests/mock-backend.ts` (routeWebSocket + route) with contract-shaped events; keep it in sync when contracts change.
+- Stage 2b uses `tests/mock-backend.ts` (routeWebSocket + route) with contract-shaped events; keep it in sync when contracts change. Extend it and the page objects in `tests/pages/` before writing new helpers; one page object per page or component.
+- Test pyramid for the frontend: stores, hooks, formatting and single components in stage 1 (Vitest); flows across components against the mocked backend in 2b; only the journeys of brief 13.2 in stage 4 (`tests/e2e`).
