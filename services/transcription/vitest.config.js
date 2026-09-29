@@ -6,7 +6,8 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.ts'],
       // main.ts is wiring only, tested as a real child process (main*.test.ts); v8 coverage does not follow child processes.
-      exclude: ['src/**/*.test.ts', 'src/main.ts'],
+      // probe.ts is a dev tool (make stt-probe) that talks to a real provider.
+      exclude: ['src/**/*.test.ts', 'src/main.ts', 'src/probe.ts'],
       reportsDirectory: 'reports/coverage',
       // Brief 13.5; measured over unit and integration tests together (test:coverage where both exist).
       thresholds: { lines: 80, branches: 80 },
