@@ -6,7 +6,7 @@ import { validDetected, validTextModeDetected } from './testing/fixtures.js';
 const failurePaths = (input: unknown) =>
   ClaimDetected.safeParse(input).error?.issues.map((issue) => issue.path.join('.'));
 
-describe('ClaimDetected v2 contract', () => {
+describe('ClaimDetected v3 contract', () => {
   it('accepts a claim from the transcript with a resolved standalone wording', () => {
     expect(ClaimDetected.parse(validDetected())).toEqual(validDetected());
   });
@@ -16,7 +16,7 @@ describe('ClaimDetected v2 contract', () => {
   });
 
   it.each([
-    ['schemaVersion', { schemaVersion: 1 }],
+    ['schemaVersion', { schemaVersion: 2 }],
     ['claimId', { claimId: '123' }],
     ['originalText', { originalText: ' ' }],
     ['standaloneText', { standaloneText: 'x'.repeat(1_001) }],
@@ -28,6 +28,10 @@ describe('ClaimDetected v2 contract', () => {
     ['detectedAt', { detectedAt: '2026-09-25 10:00' }],
     ['detectedAt', { detectedAt: '2026-09-25T12:00:00+02:00' }],
     ['provider.classifier', { provider: { classifier: '', model: 'm' } }],
+    ['detectMs', { detectMs: -1 }],
+    ['detectMs', { detectMs: 1.5 }],
+    ['detectMs', { detectMs: 600_001 }],
+    ['detectMs', { detectMs: undefined }],
   ])('rejects an invalid %s', (path, override) => {
     expect(failurePaths({ ...validDetected(), ...override })).toContain(path);
   });

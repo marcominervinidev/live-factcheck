@@ -3,12 +3,12 @@ import { z } from 'zod';
 import { IsoDateTimeUtc, Speaker, Uuid, text } from './common.js';
 
 /**
- * A check-worthy factual claim found in the transcript or typed in text mode (ADR 0010).
+ * A check-worthy factual claim found in the transcript or typed in text mode (ADR 0010, 0017).
  * Text-mode claims (brief 6.8): `originalText = standaloneText`, `checkworthiness: 1`,
- * `provider: { classifier: 'text-mode', model: 'none' }` and no `sourceSegmentIds`.
+ * `provider: { classifier: 'text-mode', model: 'none' }`, no `sourceSegmentIds` and `detectMs: 0`.
  */
 export const ClaimDetected = z.strictObject({
-  schemaVersion: z.literal(2),
+  schemaVersion: z.literal(3),
   sessionId: Uuid,
   claimId: Uuid,
   speaker: Speaker,
@@ -22,6 +22,11 @@ export const ClaimDetected = z.strictObject({
   checkworthiness: z.number().min(0).max(1),
   sourceSegmentIds: z.array(Uuid).max(100),
   detectedAt: IsoDateTimeUtc,
+  /**
+   * Detection time: end of the newest source segment until publishing (v3, ADR 0017). The
+   * fact-checker copies it into `ClaimChecked.timings.detectMs` (latency per path, brief 9.6).
+   */
+  detectMs: z.int().min(0).max(600_000),
   provider: z.strictObject({ classifier: text(64), model: text(128) }),
 });
 

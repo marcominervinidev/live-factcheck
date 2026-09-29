@@ -1,6 +1,6 @@
 # 0016: Speech-to-text providers
 
-- Status: proposed (accepted after the real Deepgram test in plan task T2.5)
+- Status: accepted (Marco, Gate 0, 2026-09-29: Deepgram as default, provider exchangeable by configuration; faster-whisper stays for `stt-local`, measured in T3 before any engine change). The real Deepgram test in T2.5 confirms the default.
 - Date: 2026-09-29
 
 ## Context

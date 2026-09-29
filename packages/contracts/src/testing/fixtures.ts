@@ -23,7 +23,7 @@ export const validSegment = (): TranscriptSegment => ({
 });
 
 export const validDetected = (): ClaimDetected => ({
-  schemaVersion: 2,
+  schemaVersion: 3,
   sessionId: SESSION_ID,
   claimId: CLAIM_ID,
   speaker: 'A',
@@ -33,6 +33,7 @@ export const validDetected = (): ClaimDetected => ({
   checkworthiness: 0.93,
   sourceSegmentIds: [SEGMENT_ID],
   detectedAt: '2026-09-25T10:00:04.000Z',
+  detectMs: 1_850,
   provider: { classifier: 'llm', model: 'example-model' },
 });
 
@@ -42,6 +43,7 @@ export const validTextModeDetected = (): ClaimDetected => ({
   originalText: 'Der Zweite Weltkrieg ist erst 20 Jahre vorbei.',
   checkworthiness: 1,
   sourceSegmentIds: [],
+  detectMs: 0,
   provider: { classifier: 'text-mode', model: 'none' },
 });
 

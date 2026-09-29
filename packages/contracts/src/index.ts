@@ -45,4 +45,14 @@ export {
   ProviderRole,
   ProviderStatus,
 } from './api.js';
-export { WsAuth, WsClientMessage, WsErrorCode, WsServerMessage } from './ws.js';
+export {
+  AUDIO_FRAME_BYTES,
+  AUDIO_FRAME_MAX_BYTES,
+  AUDIO_FRAMES_PER_SECOND_MAX,
+  AUDIO_SAMPLE_RATE,
+  AudioStopReason,
+  TranscriptionClientMessage,
+  TranscriptionServerMessage,
+  TranscriptionStart,
+} from './audio.js';
+export { WsAudioStart, WsAuth, WsClientMessage, WsErrorCode, WsServerMessage } from './ws.js';
