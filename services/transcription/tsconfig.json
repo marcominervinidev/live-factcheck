@@ -6,5 +6,9 @@
     "types": ["node"]
   },
   "include": ["src"],
-  "references": [{ "path": "../../packages/service-kit" }]
+  "references": [
+    { "path": "../../packages/contracts" },
+    { "path": "../../packages/providers" },
+    { "path": "../../packages/service-kit" }
+  ]
 }
