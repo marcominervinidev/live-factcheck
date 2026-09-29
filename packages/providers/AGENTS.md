@@ -12,7 +12,7 @@ Rules for this package only. Repo-wide rules: `/AGENTS.md`.
 - Every adapter gets a `mock` counterpart that tests use at the system boundary.
 - `mock` providers get their answers from the calling service (`mock` handler option), so deterministic test answers live next to the prompts that need them; mock answers are validated like real ones.
 - Every failure is typed (`LlmError`, `ClassifierError`, `EmbeddingError`, `SearchError`, `BudgetExceededError`) and carries the tokens already spent; callers turn it into `nicht_pruefbar`, never a crash.
-- Classifier state contains only what the question needs (claim, snippets). Never pass speaker names or transcript context to a classifier: Jev runs in the US (brief 15.6).
+- Classifier state contains only what the question needs (claim, snippets; for claim detection the recent transcript window, ADR 0017). Never pass speaker names: they are replaced by `A`, `B`, … before any classifier call, because Jev runs in the US (brief 15.6). Sending the transcript window to Jev was approved by the owner on 2026-09-29.
 - Search results are URLs chosen by strangers: fetch them only through the SSRF-safe fetch in `packages/research`, never with plain `fetch`.
 - The classifier prompt lives in `prompts/classifier.md` (shipped with the package via `files`).
 - Adapter tests run against the local fake API server in `src/testing/fake-server.ts` (HTTP) or `src/testing/fake-ws-server.ts` (streaming STT); no real network.
