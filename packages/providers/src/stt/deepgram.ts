@@ -67,6 +67,27 @@ interface TimedWord {
   readonly speaker: number | undefined;
 }
 
+/**
+ * The words of a result with their own times; without word details (not expected from Deepgram,
+ * but tolerated) the whole transcript counts as one word over the result's time range.
+ */
+function timedWords(
+  words: readonly z.infer<typeof Word>[],
+  transcript: string,
+  startMs: number,
+  endMs: number,
+): TimedWord[] {
+  if (words.length > 0) {
+    return words.map((w) => ({
+      text: w.punctuated_word ?? w.word,
+      startMs: Math.round(w.start * 1_000),
+      endMs: Math.round(w.end * 1_000),
+      speaker: w.speaker,
+    }));
+  }
+  return transcript === '' ? [] : [{ text: transcript, startMs, endMs, speaker: undefined }];
+}
+
 /** Root mean square of PCM16 LE samples. */
 export function rms(frame: Uint8Array): number {
   const samples = Math.floor(frame.byteLength / 2);
@@ -183,17 +204,7 @@ function deepgramSession(socket: WebSocket, handlers: SttHandlers): SttSession {
       if (transcript === '' && !results.data.speech_final) return;
       const startMs = Math.round(results.data.start * 1_000);
       const endMs = Math.round((results.data.start + results.data.duration) * 1_000);
-      const words: TimedWord[] =
-        alternative === undefined || alternative.words.length === 0
-          ? transcript === ''
-            ? []
-            : [{ text: transcript, startMs, endMs, speaker: undefined }]
-          : alternative.words.map((w) => ({
-              text: w.punctuated_word ?? w.word,
-              startMs: Math.round(w.start * 1_000),
-              endMs: Math.round(w.end * 1_000),
-              speaker: w.speaker,
-            }));
+      const words = timedWords(alternative?.words ?? [], transcript, startMs, endMs);
       if (results.data.is_final) {
         pending.push(...words);
         // Every finished sentence is a segment of its own, with its own speaker.

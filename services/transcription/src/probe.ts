@@ -3,6 +3,8 @@
 // spoken words to the arrival of the final segment). Talks to the provider only – no Redis, no
 // stack. Prints transcript text on purpose: it runs only on our own synthetic test audio.
 import { readFileSync } from 'node:fs';
+import { basename, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import type { SttSegment } from '@lfc/providers';
 import {
@@ -47,8 +49,17 @@ function pcmFromWav(path: string): Buffer {
   throw new Error(`${path}: no data chunk`);
 }
 
-const path = process.argv[2];
-if (path === undefined) throw new Error('usage: probe.ts <file.wav>');
+/** Only the committed audio fixtures can be played, never an arbitrary path (Sonar S8707). */
+const FIXTURES = fileURLToPath(new URL('../../../tests/fixtures/audio/', import.meta.url));
+const name = process.argv[2];
+if (name === undefined) throw new Error('usage: probe.ts <fixture.wav>');
+const path = resolve(FIXTURES, basename(name));
+if (
+  !path.startsWith(FIXTURES.endsWith(sep) ? FIXTURES : FIXTURES + sep) ||
+  !path.endsWith('.wav')
+) {
+  throw new Error(`not an audio fixture: ${name}`);
+}
 const { config } = loadConfig(z.object(sttConfigShape).superRefine(checkSttConfig), {
   secretKeys: [...STT_SECRET_KEYS],
 });

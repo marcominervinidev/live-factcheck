@@ -86,7 +86,8 @@ export function createDailyBudget(
       await this.recordUsd(budgetCostUsd(model, usage));
     },
     async recordUsd(costUsd) {
-      if (!(costUsd > 0)) return;
+      // NaN (a broken price) books nothing, like zero.
+      if (Number.isNaN(costUsd) || costUsd <= 0) return;
       const k = key();
       await store.incrbyfloat(k, costUsd);
       await store.expire(k, TWO_DAYS_S);
