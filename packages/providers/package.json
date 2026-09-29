@@ -27,11 +27,13 @@
     "@lfc/contracts": "workspace:*",
     "@typesafe-ai/sdk": "0.6.0",
     "openai": "7.23.0",
+    "ws": "8.21.3",
     "zod": "4.6.5"
   },
   "devDependencies": {
     "@stryker-mutator/core": "10.0.0",
     "@types/node": "24.13.6",
+    "@types/ws": "8.18.1",
     "@vitest/coverage-v8": "5.0.1",
     "typescript": "6.0.3",
     "vitest": "5.0.1"

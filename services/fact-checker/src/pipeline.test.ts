@@ -173,6 +173,32 @@ describe('checkClaim (brief 9.6)', () => {
     expect(cached.timings.totalMs).toBeGreaterThanOrEqual(900);
   });
 
+  it('adds exactly the check time to the detection time on a cache hit', async () => {
+    const d = deps();
+    await checkClaim(claim('Der Zweite Weltkrieg endete 1945.'), d);
+
+    // Frozen clock: the cache answer takes no time, so the total is the detection time.
+    const instant = await checkClaim(
+      claim('Der Zweite Weltkrieg endete 1945.', 900),
+      deps({ verdictCache: d.verdictCache, clock: () => 5_000 }),
+    );
+    expect(instant.cacheHit).toBe('verdict_exact');
+    expect(instant.timings).toEqual({ detectMs: 900, retrieveMs: 0, classifyMs: 0, totalMs: 900 });
+
+    // A clock that advances 40 ms per reading: total = detection + the measured check time.
+    let tick = 0;
+    const slow = await checkClaim(
+      claim('Der Zweite Weltkrieg endete 1945.', 900),
+      deps({ verdictCache: d.verdictCache, clock: () => (tick += 40) }),
+    );
+    expect(slow.cacheHit).toBe('verdict_exact');
+    const checkMs = slow.timings.totalMs - slow.timings.detectMs;
+    expect(slow.timings.detectMs).toBe(900);
+    expect(checkMs).toBeGreaterThanOrEqual(40);
+    // Only whole clock steps: nothing but the measured check time is added.
+    expect(checkMs % 40).toBe(0);
+  });
+
   it('keeps the provider that produced a cached verdict', async () => {
     const d = deps();
     const first = await checkClaim(claim('Der Zweite Weltkrieg endete 1945.'), d);
@@ -263,6 +289,7 @@ describe('checkClaim (brief 9.6)', () => {
   it('stops before any model call when the daily budget is exhausted', async () => {
     const budget: DailyBudget = {
       ensureAvailable: () => Promise.reject(new BudgetExceededError(2, 2)),
+      recordUsd: () => Promise.resolve(),
       record: () => Promise.resolve(),
     };
     const d = deps({ budget });
@@ -314,6 +341,7 @@ describe('checkClaim (brief 9.6)', () => {
     const recorded: string[] = [];
     const budget: DailyBudget = {
       ensureAvailable: () => Promise.resolve(),
+      recordUsd: () => Promise.resolve(),
       record: (model) => {
         recorded.push(model);
         return Promise.resolve();
@@ -390,6 +418,7 @@ describe('checkClaim (brief 9.6)', () => {
     const text = claim('Der Zweite Weltkrieg endete 1945.');
     const budget: DailyBudget = {
       ensureAvailable: () => Promise.reject(new Error('redis down')),
+      recordUsd: () => Promise.resolve(),
       record: () => Promise.resolve(),
     };
     await expect(checkClaim(text, deps({ budget }))).rejects.toThrow('redis down');

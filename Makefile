@@ -10,7 +10,7 @@ TRIVY := aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018
 PLAYWRIGHT := docker run --rm --ipc=host -e CI -v $(CURDIR):/workspace mcr.microsoft.com/playwright:v1.63.0-noble
 IMAGES := caddy web gateway transcription claim-extractor fact-checker explainer
 
-.PHONY: help up up-local dev down logs ready check-ports lint test test-unit test-integration \
+.PHONY: help up up-local dev down logs ready check-ports lint test test-unit test-integration stt-probe \
         test-api test-e2e zap redteam llm-scan eval scan toolbox toolbox-down install secrets-init hooks-install
 
 help: ## List targets
@@ -83,6 +83,10 @@ redteam: ## LLM red teaming with promptfoo (brief 15.7); needs a real model, see
 	$(REDTEAM) up -d --build --wait
 	$(REDTEAM) --profile redteam run --rm redteam; status=$$?; \
 	  $(REDTEAM) down -v --remove-orphans; exit $$status
+
+stt-probe: ## One real STT run with the WAV fixture (plan T2.5): latency and transcript; costs a few cents of provider credit
+	$(COMPOSE) -p lfc-probe -f docker-compose.yml -f compose.probe.yaml --profile probe run --rm stt-probe; \
+	  status=$$?; $(COMPOSE) -p lfc-probe -f docker-compose.yml -f compose.probe.yaml down --remove-orphans >/dev/null 2>&1; exit $$status
 
 llm-scan: ## Local LLM security scan of the diff (advisory, brief 15.7); needs LM Studio, see scripts/llm-scan/README.md
 	$(TB) env SCAN_LLM_PROVIDER=$${SCAN_LLM_PROVIDER:-openai-compatible} \

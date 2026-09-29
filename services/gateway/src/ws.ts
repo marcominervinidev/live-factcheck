@@ -30,6 +30,7 @@ const MESSAGES: Readonly<Record<WsErrorCode, string>> = {
   invalid_message: 'The message is not valid',
   session_expired: 'The session has ended',
   internal: 'Internal error',
+  // Raised by the audio path (plan TP4); each code gets its own integration test there.
   audio_not_started: 'Send audio.start before audio frames',
   audio_already_started: 'A recording is already running',
   frame_too_large: 'Audio frame too large',

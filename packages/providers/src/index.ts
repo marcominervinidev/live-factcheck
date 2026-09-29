@@ -99,11 +99,34 @@ export type {
   SearchProviderName,
   SearchResult,
 } from './search/search.js';
-export { estimateCostUsd } from './pricing.js';
+export { estimateCostUsd, estimateSttCostUsd } from './pricing.js';
 export {
   BudgetExceededError,
   budgetConfigShape,
   budgetCostUsd,
   createDailyBudget,
+  sttBudgetCostUsd,
 } from './budget.js';
+export {
+  STT_PROVIDERS,
+  STT_REGIONS,
+  STT_SECRET_KEYS,
+  checkSttConfig,
+  describeSttConfig,
+  sttConfigShape,
+  sttUse,
+} from './stt/config.js';
+export type { SttConfig, SttProviderName } from './stt/config.js';
+export { createSttProvider } from './stt/factory.js';
+export type { CreateSttOptions } from './stt/factory.js';
+export { MOCK_STT_SCRIPT, createMockSttProvider } from './stt/mock.js';
+export { SttError } from './stt/types.js';
+export type {
+  SttErrorKind,
+  SttHandlers,
+  SttOpenOptions,
+  SttProvider,
+  SttSegment,
+  SttSession,
+} from './stt/types.js';
 export type { BudgetStore, DailyBudget } from './budget.js';

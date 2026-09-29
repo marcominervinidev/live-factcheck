@@ -229,7 +229,7 @@ describe('gateway API and WebSocket against a real Redis', () => {
       const response = await fetch(`${base}/api/status`, { headers: authHeaders });
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual({
-        schemaVersion: 1,
+        schemaVersion: 2,
         privacyMode: 'cloud',
         providers: [
           {
