@@ -111,8 +111,20 @@ services:
       <<: *redis-env
       PORT: '8080'
       LOG_LEVEL: ${LOG_LEVEL:-info}
-    secrets: [redis_password]
-    networks: [internal]
+      PRIVACY_MODE: ${PRIVACY_MODE:-cloud}
+      # Speech-to-text (brief 10, ADR 0016); the provider is exchangeable by configuration.
+      STT_PROVIDER: ${STT_PROVIDER:-mock}
+      STT_MODEL: ${STT_MODEL:-mock}
+      STT_LANGUAGE: ${STT_LANGUAGE:-de}
+      STT_REGION: ${STT_REGION:-eu}
+      LOCAL_STT_URL: ${LOCAL_STT_URL:-}
+      STT_ENDPOINTING_MS: ${STT_ENDPOINTING_MS:-}
+      DEEPGRAM_API_KEY_FILE: /run/secrets/deepgram_api_key
+      ASSEMBLYAI_API_KEY_FILE: /run/secrets/assemblyai_api_key
+      CLOUD_DAILY_BUDGET_USD: ${CLOUD_DAILY_BUDGET_USD:-2}
+    # Only the STT keys (brief 15.1); egress for the cloud STT providers.
+    secrets: [redis_password, deepgram_api_key, assemblyai_api_key]
+    networks: [internal, egress]
     depends_on:
       redis: { condition: service_healthy }
 
@@ -295,3 +307,7 @@ secrets:
     file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/typesafe_api_key
   google_factcheck_api_key:
     file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/google_factcheck_api_key
+  deepgram_api_key:
+    file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/deepgram_api_key
+  assemblyai_api_key:
+    file: ${SECRETS_DIR:-${HOME}/.config/live-factcheck/secrets}/assemblyai_api_key

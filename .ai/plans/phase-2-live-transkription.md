@@ -86,6 +86,7 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 
 - **T4.1** `services/gateway/src/ws.ts`: Nachrichten nach `auth` gemäß v2, Binärframes nur nach `audio.start`, Größenlimit pro Frame, Rate Limit (Frames pro Sekunde), Weiterleitung an `transcription`, Backpressure → `overloaded`, maximale Aufnahmedauer
 - **T4.2** Aufräumen: Client trennt oder schickt `audio.stop` → interne Verbindung wird geschlossen; `transcription` fällt aus → Client bekommt `audio.stopped { reason: "provider_error" }`
+- **Erinnerung (Review Gate 1, Marco/Antigravity 2026-09-29):** Für **jeden** der vier Audio-Fehlercodes aus TP1 (`audio_not_started`, `audio_already_started`, `frame_too_large`, `frame_rate_exceeded`) gibt es einen eigenen Integrationstest in `services/gateway/src/api.int.test.ts` (Stufe 2a); ohne diese vier Tests ist TP4 nicht fertig
 - Tests: Stufe 2a (Gateway mit Fake-`transcription`), Stufe 3 `tests/api/audio.spec.ts`: WAV-Fixture als Frames über `/ws/session` → Interim- und Final-Segmente kommen zurück (mock-STT); Fehlerfälle (Frame zu groß, Audio ohne Start, falsches Token)
 
 ## TP5 – `claim-extractor` und Erkennungs-Eval
@@ -131,6 +132,11 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 - [x] TP0 erledigt (im PR des Plans, `phase-2/plan`): Recherche `.ai/research/stt-providers.md`, `faster-whisper.md`, `browser-audio.md`; Zusammenfassungen `gateway.md` (aktualisiert), `pipeline-streams.md` (neu); ADR 0015–0017 als Entwurf
 - [x] **Gate 0** freigegeben (Marco, 2026-09-29): ADR 0015–0017 angenommen; Deepgram als Standard, Anbieter per Konfiguration austauschbar (`STT_PROVIDER`); faster-whisper bleibt, Messung in TP3 vor jeder Engine-Entscheidung
 - [x] TP1 Verträge (PR `phase-2/tp1-contracts`): WebSocket v2 mit Audio, `audio.ts` (Frame-Budget, Stop-Gründe, internes Protokoll), `ClaimDetected` v3 mit `detectMs` (T1.4); Verbraucher im selben PR umgestellt; Nachweis `docs/evidence/phase-2/tp1-contracts.txt`
-- Aktuelles Gate: **Gate 1 – wartet auf Marcos Review der Vertragsänderung**
-- Nächster Task nach Gate 1: T2.1 `SttProvider` in `packages/providers/src/stt/` (Branch `phase-2/tp2-transcription`); **vor T2.5 Marco an den Deepgram-Account erinnern**
+- [x] **Gate 1** freigegeben und PR #28 gemergt (Marco, 2026-09-29); dazu `ProviderStatus` v2 mit Rolle `stt`
+- [x] TP2 T2.1–T2.4 (PR `phase-2/tp2-transcription`): STT-Adapter in `packages/providers/src/stt/` (Deepgram, AssemblyAI, local, mock), `publishToSession` in service-kit, Service `transcription` mit `/v1/audio`, Budget, Backpressure, Status; Compose und `.env.example`; Nachweis `docs/evidence/phase-2/tp2-transcription.txt`
+- [x] T2.5 echter Deepgram-Test (Marcos Key und Freigabe, 5 Läufe, ca. 1,25 Cent): Standard bestätigt; Befund „Deepgram finalisiert in langen Blöcken“ behoben (Sätze aus Wort-Zeitstempeln, eigene Stille-Erkennung → `Finalize`, Ordinalzahlen); offen: „Weltkrieg“ → „2. Welt“ bei synthetischer Stimme, mit echter Stimme in TP7 prüfen. Werkzeug `make stt-probe`
+- [x] Entschieden (Marco, 2026-09-29): Der Klassifikator bekommt in TP5 das ganze Segmentfenster als Kontext, **auch Jev**; Sprechernamen werden immer durch A, B, … ersetzt (ADR 0017, `packages/providers/AGENTS.md` angepasst)
+- Aktuelles Gate: Gate 2 erst nach TP3 (`stt-local`); TP2-PR kann vorher reviewt werden
+- Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
+- Nächster Task: TP3 `stt-local` (Branch `phase-2/tp3-stt-local`); parallel T2.5, sobald der Deepgram-Key da ist
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6

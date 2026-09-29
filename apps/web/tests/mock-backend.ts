@@ -103,7 +103,7 @@ export class MockBackend {
     await this.page.route('**/api/status', (route) =>
       route.fulfill({
         json: {
-          schemaVersion: 1,
+          schemaVersion: 2,
           privacyMode: 'cloud',
           providers: [
             {

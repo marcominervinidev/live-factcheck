@@ -1,0 +1,31 @@
+# Plan T2.5 (`make stt-probe`): one real run of an STT adapter with the WAV fixture, outside the
+# stack (own project `lfc-probe`, no Redis, no other service). The container gets only the STT key
+# secrets; the repo is mounted read-only. Costs a few cents from the provider's credit per run.
+services:
+  stt-probe:
+    image: lfc-toolbox:local
+    profiles: [probe]
+    user: '1000:1000'
+    working_dir: /workspace/services/transcription
+    volumes:
+      - .:/workspace:ro
+    environment:
+      STT_PROVIDER: ${STT_PROVIDER:-deepgram}
+      STT_MODEL: ${STT_MODEL:-nova-3}
+      STT_REGION: ${STT_REGION:-eu}
+      STT_LANGUAGE: ${STT_LANGUAGE:-de}
+      DEEPGRAM_API_KEY_FILE: /run/secrets/deepgram_api_key
+      ASSEMBLYAI_API_KEY_FILE: /run/secrets/assemblyai_api_key
+      HOME: /tmp
+    secrets: [deepgram_api_key, assemblyai_api_key]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    command:
+      - node
+      - --conditions=development
+      - --import
+      - tsx
+      - src/probe.ts
+      - conversation.de.wav

@@ -12,6 +12,27 @@ const PRICES: Readonly<Record<string, { readonly input: number; readonly output:
   'jev-1.13.0': { input: 0.042, output: 0 },
 };
 
+/**
+ * USD per minute of streamed audio, list prices as of 2026-09-29 (`.ai/research/stt-providers.md`;
+ * Deepgram's lower promotional rate is ignored on purpose). Keyed by `provider:model`.
+ */
+const STT_PRICES_PER_MINUTE: Readonly<Record<string, number>> = {
+  'deepgram:nova-3': 0.0077,
+  'assemblyai:universal-streaming-multilingual': 0.0025,
+  'assemblyai:universal-streaming-english': 0.0025,
+  'assemblyai:universal-3-5-pro': 0.0095,
+};
+
+/** Estimated STT cost in USD for `audioMs` of audio, or `null` when the price is unknown. */
+export function estimateSttCostUsd(
+  provider: string,
+  model: string,
+  audioMs: number,
+): number | null {
+  const perMinute = STT_PRICES_PER_MINUTE[`${provider}:${model}`];
+  return perMinute === undefined ? null : (perMinute * audioMs) / 60_000;
+}
+
 /** Estimated cost in USD, or `null` when the model's price is unknown (brief 13.5, ADR 0010). */
 export function estimateCostUsd(model: string, usage: TokenUsage): number | null {
   const price = PRICES[model];

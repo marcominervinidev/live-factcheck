@@ -29,6 +29,16 @@ export async function publishEvent(
   return id;
 }
 
+/**
+ * Publishes a client-only event to its session channel and **not** to a stream, e.g. interim
+ * transcript segments, which must never enter the pipeline (brief 6.4, ADR 0015). Validated like
+ * `publishEvent`.
+ */
+export async function publishToSession(redis: Redis, event: EventEnvelope): Promise<void> {
+  const envelope = EventEnvelope.parse(event);
+  await redis.publish(sessionEventsChannel(envelope.payload.sessionId), JSON.stringify(envelope));
+}
+
 export interface StreamMessage {
   readonly id: string;
   readonly event: EventEnvelope;

@@ -18,7 +18,15 @@ export const CheckClaimAccepted = z.strictObject({
 });
 export type CheckClaimAccepted = z.infer<typeof CheckClaimAccepted>;
 
-export const ProviderRole = z.enum(['llm', 'classifier', 'embeddings', 'search', 'factcheck']);
+/** `stt` since ProviderStatus v2 (ADR 0016): the consent dialog names the active STT provider (brief 15.6). */
+export const ProviderRole = z.enum([
+  'llm',
+  'classifier',
+  'embeddings',
+  'search',
+  'factcheck',
+  'stt',
+]);
 export type ProviderRole = z.infer<typeof ProviderRole>;
 
 /**
@@ -26,7 +34,7 @@ export type ProviderRole = z.infer<typeof ProviderRole>;
  * (brief 11, 15.6). Never contains keys or URLs with credentials.
  */
 export const ProviderStatus = z.strictObject({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   privacyMode: z.enum(['cloud', 'local']),
   providers: z
     .array(

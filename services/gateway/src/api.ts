@@ -49,8 +49,12 @@ const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   '/ws/session',
 ]);
 
-/** Workers publish what they use at startup (fact-checker, explainer); never keys or URLs. */
-const WORKER_STATUS_KEYS = ['status:v1:fact-checker', 'status:v1:explainer'] as const;
+/** Workers publish what they use at startup (transcription, fact-checker, explainer); never keys or URLs. */
+const WORKER_STATUS_KEYS = [
+  'status:v1:transcription',
+  'status:v1:fact-checker',
+  'status:v1:explainer',
+] as const;
 const ProviderList = ProviderStatusSchema.shape.providers;
 
 /** A corrupt status entry is skipped like a malformed one instead of failing the request. */
@@ -157,7 +161,7 @@ export async function registerApi(app: HttpServer, deps: ApiDeps): Promise<void>
       else logger.warn({ key }, 'ignoring malformed provider status');
     }
     return ProviderStatusSchema.parse({
-      schemaVersion: 1,
+      schemaVersion: 2,
       privacyMode: config.PRIVACY_MODE,
       providers,
     });

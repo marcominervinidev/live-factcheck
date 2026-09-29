@@ -32,3 +32,12 @@ Checks
 Note
   An earlier `pnpm typecheck | grep "error TS"` looked clean although it failed: `tsc --pretty`
   colours the output. Checks are now judged by exit code.
+
+Addition (same gate): ProviderStatus v2 with ProviderRole `stt`
+  api.ts ProviderStatus schemaVersion 1 -> 2 (contract check: ok, ADR 0016 updated). The gateway
+  also reads `status:v1:transcription`; the web shows "Spracherkennung (transcription): …".
+  Checks: typecheck 0, lint 0; unit contracts 150, web 55, gateway 15; stage 2a gateway 21;
+  stage 2b 30 passed.
+Review of gate 1 (Marco/Antigravity) incorporated: exact cache-hit latency test (frozen and
+  advancing clock); dedicated integration tests for the four audio error codes are a TP4 exit
+  criterion (plan).
