@@ -224,6 +224,19 @@ jobs:
           retention-days: 7
 
   # SonarQube Cloud (brief 15.7, ADR 0014): code smells, duplication, security hotspots and the
+  # The Python service (brief 13.1 stage 0/1 for stt-local): ruff, mypy strict and pytest in the
+  # same dev image as locally, so the runner needs no Python setup.
+  stt-local:
+    name: stt-local (ruff, mypy, pytest)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: checks in the dev image
+        run: |
+          docker build --target dev -t stt-local:dev -f services/stt-local/Dockerfile .
+          docker run --rm stt-local:dev sh -c 'ruff check . && ruff format --check . && mypy && pytest'
+
   # coverage trend on new code. Advisory during the baseline week, hence not part of `ci passed`.
   sonar:
     name: sonarqube
@@ -274,7 +287,7 @@ jobs:
   # succeeded or was skipped because nothing relevant changed.
   ci-passed:
     name: ci passed
-    needs: [static, changes, backend-unit, backend-int, frontend-unit, frontend-int]
+    needs: [static, changes, backend-unit, backend-int, frontend-unit, frontend-int, stt-local]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 2

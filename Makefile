@@ -8,6 +8,7 @@ TEST := $(COMPOSE) -f docker-compose.yml -f compose.test.yaml
 SECRETS_DIR ?= $(HOME)/.config/live-factcheck/secrets
 TRIVY := aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
 PLAYWRIGHT := docker run --rm --ipc=host -e CI -v $(CURDIR):/workspace mcr.microsoft.com/playwright:v1.63.0-noble
+# stt-local exists only with the local-stt profile (make up-local); CI builds and scans it on every PR.
 IMAGES := caddy web gateway transcription claim-extractor fact-checker explainer
 
 .PHONY: help up up-local dev down logs ready check-ports lint test test-unit test-integration stt-probe \
@@ -20,9 +21,9 @@ help: ## List targets
 up: ## Build and start the stack, wait until every service is healthy
 	$(COMPOSE) up -d --build --wait
 
-up-local: ## Stack with local speech-to-text (profile local-stt; arrives in phase 2)
-	@echo "The local-stt profile arrives in phase 2 (stt-local). Starting the default stack."
-	$(COMPOSE) --profile local-stt up -d --build --wait
+up-local: ## Stack with local speech-to-text in a container (profile local-stt; first start downloads the model)
+	STT_PROVIDER=local STT_MODEL=$${LOCAL_STT_MODEL:-small} LOCAL_STT_URL=ws://stt-local:8000/v1/stream \
+	  $(COMPOSE) --profile local-stt up -d --build --wait
 
 dev: ## Dev mode: dev images with hot reload via docker compose watch
 	$(DEV) up -d --build --wait
