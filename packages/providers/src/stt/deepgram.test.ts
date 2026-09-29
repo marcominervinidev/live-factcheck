@@ -128,6 +128,31 @@ describe('Deepgram adapter (ADR 0016)', () => {
     session.abort();
   });
 
+  it('makes every finished sentence final at once, without waiting for speech_final', async () => {
+    const out = collector();
+    const session = await createDeepgramProvider(deepgramConfig, server.origin).open(
+      { language: 'de', sampleRate: 16_000 },
+      out.handlers,
+    );
+    const connection = await server.nextConnection();
+    connection.sendJson(
+      results('Guten Abend und willkommen zur Diskussion.', { isFinal: true }, 0, 2.6, [0]),
+    );
+    connection.sendJson(results('Der Zweite Weltkrieg', { isFinal: true }, 2.6, 1.2, [0]));
+    connection.sendJson(results('endete 1965.', { isFinal: true }, 3.8, 1.1, [0]));
+    connection.sendJson(results('Das sehe ich anders!', { isFinal: true }, 6, 1.4, [1]));
+
+    await vi.waitFor(() => {
+      expect(out.segments.filter((s) => s.isFinal)).toHaveLength(3);
+    });
+    expect(out.segments.map((s) => [s.text, s.startMs, s.endMs, s.speaker])).toEqual([
+      ['Guten Abend und willkommen zur Diskussion.', 0, 2_600, 'A'],
+      ['Der Zweite Weltkrieg endete 1965.', 2_600, 4_900, 'A'],
+      ['Das sehe ich anders!', 6_000, 7_400, 'B'],
+    ]);
+    session.abort();
+  });
+
   it('labels speakers A, B, … in order of appearance', async () => {
     const out = collector();
     const session = await createDeepgramProvider(deepgramConfig, server.origin).open(

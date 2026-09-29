@@ -31,6 +31,9 @@ const Results = z.object({
 
 const UtteranceEnd = z.object({ type: z.literal('UtteranceEnd') });
 
+/** A finalized part that ends a sentence (German punctuation from `punctuate`). */
+const SENTENCE_END = /[.!?…]["»“”')]*$/;
+
 interface Part {
   readonly text: string;
   readonly startMs: number;
@@ -127,7 +130,9 @@ function deepgramSession(socket: WebSocket, handlers: SttHandlers): SttSession {
       const speakers = alternative?.words.map((w) => w.speaker) ?? [];
       if (results.data.is_final) {
         if (transcript !== '') parts.push({ text: transcript, startMs, endMs, speakers });
-        if (results.data.speech_final) emitFinal();
+        // A finished sentence is final at once: waiting for Deepgram's end of utterance merged
+        // several sentences and speakers into one segment in the real test (T2.5).
+        if (results.data.speech_final || SENTENCE_END.test(transcript)) emitFinal();
       } else if (transcript !== '') {
         const pending = parts.map((p) => p.text);
         handlers.onSegment({
