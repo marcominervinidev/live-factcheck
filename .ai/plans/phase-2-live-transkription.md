@@ -86,6 +86,7 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 
 - **T4.1** `services/gateway/src/ws.ts`: Nachrichten nach `auth` gemäß v2, Binärframes nur nach `audio.start`, Größenlimit pro Frame, Rate Limit (Frames pro Sekunde), Weiterleitung an `transcription`, Backpressure → `overloaded`, maximale Aufnahmedauer
 - **T4.2** Aufräumen: Client trennt oder schickt `audio.stop` → interne Verbindung wird geschlossen; `transcription` fällt aus → Client bekommt `audio.stopped { reason: "provider_error" }`
+- **Erinnerung (Review Gate 1, Marco/Antigravity 2026-09-29):** Für **jeden** der vier Audio-Fehlercodes aus TP1 (`audio_not_started`, `audio_already_started`, `frame_too_large`, `frame_rate_exceeded`) gibt es einen eigenen Integrationstest in `services/gateway/src/api.int.test.ts` (Stufe 2a); ohne diese vier Tests ist TP4 nicht fertig
 - Tests: Stufe 2a (Gateway mit Fake-`transcription`), Stufe 3 `tests/api/audio.spec.ts`: WAV-Fixture als Frames über `/ws/session` → Interim- und Final-Segmente kommen zurück (mock-STT); Fehlerfälle (Frame zu groß, Audio ohne Start, falsches Token)
 
 ## TP5 – `claim-extractor` und Erkennungs-Eval
@@ -132,5 +133,6 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 - [x] **Gate 0** freigegeben (Marco, 2026-09-29): ADR 0015–0017 angenommen; Deepgram als Standard, Anbieter per Konfiguration austauschbar (`STT_PROVIDER`); faster-whisper bleibt, Messung in TP3 vor jeder Engine-Entscheidung
 - [x] TP1 Verträge (PR `phase-2/tp1-contracts`): WebSocket v2 mit Audio, `audio.ts` (Frame-Budget, Stop-Gründe, internes Protokoll), `ClaimDetected` v3 mit `detectMs` (T1.4); Verbraucher im selben PR umgestellt; Nachweis `docs/evidence/phase-2/tp1-contracts.txt`
 - Aktuelles Gate: **Gate 1 – wartet auf Marcos Review der Vertragsänderung**
+- Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
 - Nächster Task nach Gate 1: T2.1 `SttProvider` in `packages/providers/src/stt/` (Branch `phase-2/tp2-transcription`); **vor T2.5 Marco an den Deepgram-Account erinnern**
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
