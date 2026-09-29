@@ -13,6 +13,15 @@ function newestText(state: unknown): string {
   return typeof text === 'string' ? text : '';
 }
 
+/** A character scan instead of a regex over transcript text (Semgrep regex_dos, TP5 review). */
+function hasDigit(text: string): boolean {
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code >= 48 && code <= 57) return true;
+  }
+  return false;
+}
+
 export const mockDetector: MockClassifierHandler = (state, questions) => {
   const answers: Record<string, RawAnswer> = {};
   if ('same' in questions && isRecord(state)) {
@@ -24,7 +33,7 @@ export const mockDetector: MockClassifierHandler = (state, questions) => {
     answers['same'] = same ? 0.97 : 0.03;
     return answers;
   }
-  const claim = /\d/.test(newestText(state));
+  const claim = hasDigit(newestText(state));
   answers['claim'] = claim ? 0.97 : 0.03;
   // Level 4 of 5 ("wichtig") for every claim.
   answers['checkworthiness'] = { '0': 0, '1': 0, '2': 0, '3': 1, '4': 0 };

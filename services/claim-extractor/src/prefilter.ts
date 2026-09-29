@@ -45,8 +45,15 @@ export interface PrefilterOptions {
   readonly minWords: number;
 }
 
+/**
+ * Longer segments are cut before any pattern runs: the patterns are linear, and a bound keeps
+ * the pre-filter's cost fixed whatever a speaker (or an attacker) produces.
+ */
+const MAX_CHARS = 2_000;
+
 export function prefilter(text: string, options: PrefilterOptions): PrefilterResult {
-  const trimmed = text.trim();
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- fixed alternations without nested or overlapping quantifiers (linear time), input bounded to MAX_CHARS
+  const trimmed = text.slice(0, MAX_CHARS).trim();
   const words = trimmed.split(/\s+/).filter((word) => word !== '');
   if (words.length < options.minWords) return { pass: false, reason: 'too_short' };
 
