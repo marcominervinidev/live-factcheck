@@ -5,8 +5,9 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 
+// Absolute path: the same on the CI runner, in the toolbox and on macOS.
 const files = execFileSync(
-  'git',
+  '/usr/bin/git',
   ['ls-files', 'services/*/Dockerfile', 'apps/*/Dockerfile', 'deploy/compose/*/Dockerfile'],
   { encoding: 'utf8' },
 )

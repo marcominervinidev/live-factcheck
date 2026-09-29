@@ -41,7 +41,7 @@ jobs:
         run: node scripts/ci/check-mcp-parity.mjs
       - name: gitleaks (full history)
         run: |
-          curl -fsSL -o /tmp/gitleaks.tgz \
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/gitleaks.tgz \
             "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tgz" | sha256sum -c -
           tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks

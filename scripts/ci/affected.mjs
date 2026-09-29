@@ -11,13 +11,20 @@ const list = (filter) => {
   if (filter) {
     args.push('--filter', filter);
   }
-  return JSON.parse(execFileSync('pnpm', args, { encoding: 'utf8' })).map(({ name, path }) => ({
+  // pnpm is found via PATH on purpose (hence NOSONAR) – its location differs between the CI runner
+  // (pnpm/action-setup) and the toolbox (npm global); both PATHs are set by us, not by input.
+  const output = execFileSync('pnpm', args, { encoding: 'utf8' }); // NOSONAR
+  return JSON.parse(output).map(({ name, path }) => ({
     name,
     dir: relative(root, path),
   }));
 };
 
 const ref = process.argv[2];
+// The ref becomes part of a pnpm argument: a plain git ref only, never an option.
+if (ref !== undefined && !/^[\w.][\w./-]*$/.test(ref)) {
+  throw new Error(`not a git ref: ${ref}`);
+}
 let selected = list(ref ? `...[${ref}]` : undefined);
 // A change to a root file (lockfile, tsconfig.base.json, eslint config, …) belongs to the root
 // project, which has no tests itself but affects every workspace: run everything.
