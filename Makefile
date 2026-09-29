@@ -29,8 +29,8 @@ dev: ## Dev mode: dev images with hot reload via docker compose watch
 	$(DEV) up -d --build --wait
 	$(DEV) watch --no-up
 
-down: ## Stop the stack (volumes are kept)
-	$(COMPOSE) down
+down: ## Stop the stack incl. profile services like stt-local (volumes are kept)
+	$(COMPOSE) --profile '*' down
 
 logs: ## Follow the logs of all services
 	$(COMPOSE) logs -f --tail=100
