@@ -154,7 +154,8 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - [x] TP2 T2.1–T2.4 (PR `phase-2/tp2-transcription`): STT-Adapter in `packages/providers/src/stt/` (Deepgram, AssemblyAI, local, mock), `publishToSession` in service-kit, Service `transcription` mit `/v1/audio`, Budget, Backpressure, Status; Compose und `.env.example`; Nachweis `docs/evidence/phase-2/tp2-transcription.txt`
 - [x] T2.5 echter Deepgram-Test (Marcos Key und Freigabe, 5 Läufe, ca. 1,25 Cent): Standard bestätigt; Befund „Deepgram finalisiert in langen Blöcken“ behoben (Sätze aus Wort-Zeitstempeln, eigene Stille-Erkennung → `Finalize`, Ordinalzahlen); offen: „Weltkrieg“ → „2. Welt“ bei synthetischer Stimme, mit echter Stimme in TP7 prüfen. Werkzeug `make stt-probe`
 - [x] Entschieden (Marco, 2026-09-29): Der Klassifikator bekommt in TP5 das ganze Segmentfenster als Kontext, **auch Jev**; Sprechernamen werden immer durch A, B, … ersetzt (ADR 0017, `packages/providers/AGENTS.md` angepasst)
-- Aktuelles Gate: Gate 2 erst nach TP3 (`stt-local`); TP2-PR kann vorher reviewt werden
+- [x] TP4 Audio-Pfad im Gateway (PR `phase-2/tp4-gateway-audio`): `src/audio.ts`, je ein Integrationstest pro Audio-Fehlercode, Stufe 3 `audio.spec.ts` über den echten Stack; neue depcruise-Regel gegen Dev-Abhängigkeiten im Produktionscode; Nachweis `docs/evidence/phase-2/tp4-gateway-audio.txt`
+- Aktuelles Gate: Gate 2 (PR #31 `stt-local`) offen; Gate 3 nach TP5
+- Nächster Task: TP5 `claim-extractor` (Branch `phase-2/tp5-claim-extractor`); vorher mit Marco: Bundestags-Protokolle für das Erkennungs-Set (T5.6)
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
-- Nächster Task: TP3 `stt-local` (Branch `phase-2/tp3-stt-local`); parallel T2.5, sobald der Deepgram-Key da ist
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
