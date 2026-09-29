@@ -207,6 +207,22 @@ describe('Deepgram adapter (ADR 0016)', () => {
     session.abort();
   });
 
+  it('does not end a sentence at a German ordinal (T2.5: "Der 2. Weltkrieg")', async () => {
+    const out = collector();
+    const session = await createDeepgramProvider(deepgramConfig, server.origin).open(
+      { language: 'de', sampleRate: 16_000 },
+      out.handlers,
+    );
+    const connection = await server.nextConnection();
+    connection.sendJson(
+      results('Der 2. Weltkrieg endete am 8. Mai 1945. Danach', { isFinal: true }, 0, 9),
+    );
+    await vi.waitFor(() => {
+      expect(out.segments.map((s) => s.text)).toEqual(['Der 2. Weltkrieg endete am 8. Mai 1945.']);
+    });
+    session.abort();
+  });
+
   it('forces Finalize after 500 ms of silence following speech, once per pause', async () => {
     const out = collector();
     const session = await createDeepgramProvider(deepgramConfig, server.origin).open(

@@ -42,6 +42,14 @@ const UtteranceEnd = z.object({ type: z.literal('UtteranceEnd') });
 
 /** A word that ends a sentence (German punctuation from `punctuate`). */
 const SENTENCE_END = /[.!?…]["»“”')]*$/;
+/**
+ * German ordinals like `2.` or `8.` ("der 2. Weltkrieg", "am 8. Mai" after `smart_format`) do not
+ * end a sentence. Four-digit numbers (years like "1965.") do. Heuristic: a sentence that really
+ * ends with a number below 1000 stays open until the next sentence end or pause.
+ */
+const ORDINAL = /^\d{1,3}\.$/;
+
+const endsSentence = (word: string) => SENTENCE_END.test(word) && !ORDINAL.test(word);
 
 /**
  * Own silence detection (T2.5): Deepgram finalized 13.6 s of speech with two speakers in one
@@ -153,7 +161,7 @@ function deepgramSession(socket: WebSocket, handlers: SttHandlers): SttSession {
   const flush = (all: boolean) => {
     let from = 0;
     pending.forEach((word, index) => {
-      if (SENTENCE_END.test(word.text)) {
+      if (endsSentence(word.text)) {
         emit(pending.slice(from, index + 1));
         from = index + 1;
       }
