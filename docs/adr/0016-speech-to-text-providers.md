@@ -25,6 +25,6 @@ Brief 10 asks for a streaming `SttProvider` with cloud adapters for Deepgram and
 ## Consequences
 
 - New secrets `deepgram_api_key` and `assemblyai_api_key` (created empty by `secrets-init`, mounted only into `transcription`); `transcription` joins the `egress` network.
-- The consent dialog lists the active STT provider (brief 15.6); the settings page shows it via `status:v1:transcription`.
+- The consent dialog lists the active STT provider (brief 15.6); the settings page shows it via `status:v1:transcription`. For that, `ProviderRole` gains `stt` (`ProviderStatus` v2, contract change in plan TP1).
 - Cost per audio minute enters the daily budget; the eval report gains STT latency (time to final segment).
 - If the real test shows poor German quality or slow finals, the default switches to AssemblyAI (config change only).

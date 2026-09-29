@@ -39,9 +39,9 @@ describe('CheckClaimAccepted v1', () => {
   });
 });
 
-describe('ProviderStatus v1', () => {
+describe('ProviderStatus v2', () => {
   const valid = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     privacyMode: 'cloud',
     providers: [
       {
@@ -52,6 +52,7 @@ describe('ProviderStatus v1', () => {
         cloud: true,
       },
       { service: 'fact-checker', role: 'search', provider: 'searxng', cloud: false },
+      { service: 'transcription', role: 'stt', provider: 'deepgram', model: 'nova-3', cloud: true },
     ],
   };
 
@@ -60,6 +61,7 @@ describe('ProviderStatus v1', () => {
   });
 
   it.each([
+    ['schemaVersion', { schemaVersion: 1 }],
     ['privacyMode', { privacyMode: 'offline' }],
     ['providers.0.role', { providers: [{ ...valid.providers[0], role: 'stt-secret' }] }],
     ['providers.0.cloud', { providers: [{ ...valid.providers[0], cloud: 'yes' }] }],
