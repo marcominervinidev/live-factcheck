@@ -48,7 +48,7 @@ async function openSession(): Promise<{
   const sessionId = await new Promise<string>((resolve, reject) => {
     socket.once('error', reject);
     socket.once('open', () => {
-      socket.send(JSON.stringify({ type: 'auth', schemaVersion: 1, token: TOKEN }));
+      socket.send(JSON.stringify({ type: 'auth', schemaVersion: 2, token: TOKEN }));
     });
     socket.on('message', (data: Buffer) => {
       const parsed = WsServerMessage.safeParse(JSON.parse(data.toString('utf8')));
@@ -56,7 +56,7 @@ async function openSession(): Promise<{
       const message = parsed.data;
       if (message.type === 'session.ready') resolve(message.sessionId);
       else if (message.type === 'error') reject(new Error(`gateway: ${message.code}`));
-      else if (message.event.type === 'claim.checked')
+      else if (message.type === 'event' && message.event.type === 'claim.checked')
         verdicts.get(message.event.payload.claimId)?.(message.event.payload);
     });
   });

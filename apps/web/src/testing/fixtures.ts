@@ -6,7 +6,7 @@ export const CLAIM_ID = '0e9d8c7b-6a5f-4e3d-8c1b-0a9f8e7d6c5b';
 export const EVIDENCE_ID = '5c4b3a29-1807-4f6e-9d5c-4b3a29180716';
 
 export const detected = (overrides: Partial<ClaimDetected> = {}): ClaimDetected => ({
-  schemaVersion: 2,
+  schemaVersion: 3,
   sessionId: SESSION_ID,
   claimId: CLAIM_ID,
   speaker: 'A',
@@ -16,6 +16,7 @@ export const detected = (overrides: Partial<ClaimDetected> = {}): ClaimDetected 
   checkworthiness: 1,
   sourceSegmentIds: [],
   detectedAt: '2026-09-26T10:00:00.000Z',
+  detectMs: 0,
   provider: { classifier: 'text-mode', model: 'none' },
   ...overrides,
 });

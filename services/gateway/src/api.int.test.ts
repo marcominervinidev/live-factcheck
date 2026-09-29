@@ -56,7 +56,7 @@ describe('gateway API and WebSocket against a real Redis', () => {
   const session = async () => {
     const client = connect();
     await client.opened;
-    client.socket.send(JSON.stringify({ type: 'auth', schemaVersion: 1, token: TOKEN }));
+    client.socket.send(JSON.stringify({ type: 'auth', schemaVersion: 2, token: TOKEN }));
     await expect.poll(() => client.messages.length).toBe(1);
     const ready = client.messages[0] as { type: string; sessionId: string };
     expect(ready.type).toBe('session.ready');
@@ -216,7 +216,7 @@ describe('gateway API and WebSocket against a real Redis', () => {
       expect(client.messages).toEqual([
         {
           type: 'error',
-          schemaVersion: 1,
+          schemaVersion: 2,
           code: 'auth_timeout',
           message: 'No auth message in time',
         },
@@ -226,7 +226,7 @@ describe('gateway API and WebSocket against a real Redis', () => {
     it('closes on a wrong token and on a first message that is not auth', async () => {
       const wrong = connect();
       await wrong.opened;
-      wrong.socket.send(JSON.stringify({ type: 'auth', schemaVersion: 1, token: 'nope' }));
+      wrong.socket.send(JSON.stringify({ type: 'auth', schemaVersion: 2, token: 'nope' }));
       await expect.poll(() => wrong.closeCode()).toBe(4401);
 
       const other = connect();
@@ -237,7 +237,7 @@ describe('gateway API and WebSocket against a real Redis', () => {
       const binary = connect();
       await binary.opened;
       binary.socket.send(
-        Buffer.from(JSON.stringify({ type: 'auth', schemaVersion: 1, token: TOKEN })),
+        Buffer.from(JSON.stringify({ type: 'auth', schemaVersion: 2, token: TOKEN })),
       );
       await expect.poll(() => binary.closeCode()).toBe(4400);
 
@@ -245,13 +245,34 @@ describe('gateway API and WebSocket against a real Redis', () => {
       await garbage.opened;
       garbage.socket.send('{not json');
       await expect.poll(() => garbage.closeCode()).toBe(4400);
+
+      // A valid v2 message that is not auth (audio before authentication, ADR 0015).
+      const audio = connect();
+      await audio.opened;
+      audio.socket.send(
+        JSON.stringify({
+          type: 'audio.start',
+          schemaVersion: 2,
+          sampleRate: 16_000,
+          encoding: 'pcm16',
+          channels: 1,
+          language: 'de',
+        }),
+      );
+      await expect.poll(() => audio.closeCode()).toBe(4400);
+
+      // The v1 auth message is no longer accepted.
+      const v1 = connect();
+      await v1.opened;
+      v1.socket.send(JSON.stringify({ type: 'auth', schemaVersion: 1, token: TOKEN }));
+      await expect.poll(() => v1.closeCode()).toBe(4400);
     });
 
     it('treats a second auth message sent while the session is created as invalid', async () => {
       const before = (await redis.keys('session:v1:*')).length;
       const client = connect();
       await client.opened;
-      const auth = JSON.stringify({ type: 'auth', schemaVersion: 1, token: TOKEN });
+      const auth = JSON.stringify({ type: 'auth', schemaVersion: 2, token: TOKEN });
       client.socket.send(auth);
       client.socket.send(auth);
       await expect.poll(() => client.closeCode()).toBe(4400);
@@ -259,9 +280,9 @@ describe('gateway API and WebSocket against a real Redis', () => {
       await expect.poll(async () => (await redis.keys('session:v1:*')).length).toBe(before);
     });
 
-    it('closes an authenticated session on any further client message (phase 1 has none)', async () => {
+    it('closes an authenticated session on any further client message (audio follows in TP4)', async () => {
       const client = await session();
-      client.socket.send(JSON.stringify({ type: 'auth', schemaVersion: 1, token: TOKEN }));
+      client.socket.send(JSON.stringify({ type: 'auth', schemaVersion: 2, token: TOKEN }));
       await expect.poll(() => client.closeCode()).toBe(4400);
       await expect.poll(async () => redis.exists(`session:v1:${client.sessionId}`)).toBe(0);
     });
@@ -315,7 +336,7 @@ describe('gateway API and WebSocket against a real Redis', () => {
       };
       await redis.publish(sessionEventsChannel(client.sessionId), JSON.stringify(verdictEvent));
       await expect.poll(() => client.messages.length).toBe(3);
-      expect(client.messages[2]).toEqual({ type: 'event', schemaVersion: 1, event: verdictEvent });
+      expect(client.messages[2]).toEqual({ type: 'event', schemaVersion: 2, event: verdictEvent });
 
       // Invalid channel payloads are not forwarded.
       await redis.publish(sessionEventsChannel(client.sessionId), '{"type":"claim.deleted"}');

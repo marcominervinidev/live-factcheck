@@ -18,7 +18,7 @@ const detected = (sessionId = randomUUID()): EventEnvelope => ({
   type: 'claim.detected',
   schemaVersion: 2,
   payload: {
-    schemaVersion: 2,
+    schemaVersion: 3,
     sessionId,
     claimId: randomUUID(),
     speaker: 'A',
@@ -28,6 +28,7 @@ const detected = (sessionId = randomUUID()): EventEnvelope => ({
     checkworthiness: 1,
     sourceSegmentIds: [],
     detectedAt: '2026-09-26T10:00:00.000Z',
+    detectMs: 0,
     provider: { classifier: 'text-mode', model: 'none' },
   },
 });

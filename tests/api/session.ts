@@ -31,7 +31,7 @@ export async function openSession(baseURL: string) {
     });
     socket.once('error', reject);
   });
-  socket.send(JSON.stringify({ type: 'auth', schemaVersion: 1, token: TOKEN }));
+  socket.send(JSON.stringify({ type: 'auth', schemaVersion: 2, token: TOKEN }));
   await expect.poll(() => messages[0]?.type).toBe('session.ready');
   return { socket, messages, sessionId: messages[0]?.sessionId ?? '' };
 }
