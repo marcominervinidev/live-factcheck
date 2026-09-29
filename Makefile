@@ -46,7 +46,7 @@ lint: ## Stage 0: typecheck, lint, format check, boundaries, MCP config parity
 	$(TB) pnpm lint
 	$(TB) pnpm format:check
 	$(TB) pnpm depcruise
-	$(TB) node scripts/ci/check-mcp-parity.mjs
+	$(TB) node scripts/ci/check-mcp-parity.ts
 
 test-unit: ## Stage 1: unit tests of all workspaces
 	$(TB) pnpm test:unit

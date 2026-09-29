@@ -9,7 +9,7 @@ Brief 13.3 and 14.2 split the pipeline by trigger: fast stages on every push, ex
 
 ## Decision
 
-- **`ci.yml` runs on `push` only** (all branches) and contains stage 0 plus unit and integration tests, split into backend and frontend jobs that run in parallel with one matrix entry per affected workspace (`scripts/ci/affected.mjs`).
+- **`ci.yml` runs on `push` only** (all branches) and contains stage 0 plus unit and integration tests, split into backend and frontend jobs that run in parallel with one matrix entry per affected workspace (`scripts/ci/affected.ts`).
 - **`pr.yml` runs on `pull_request` only** and contains nothing that `ci.yml` already does: image build (amd64), Trivy, SAST, hadolint, the contract check, system/API and E2E tests.
 - **`main.yml`** runs after the merge (multi-arch build, push to GHCR, stages 3 and 4 against the pushed images). **`nightly.yml`** runs stage 5.
 - **One aggregate check per workflow** (`ci passed`, later `pr passed`) is the required status check in the branch ruleset. Matrix job names change with the affected workspaces, so requiring them individually would break.
@@ -40,6 +40,6 @@ Brief 13.3 and 14.2 split the pipeline by trigger: fast stages on every push, ex
 | `nightly.yml` | daily, manual | Stryker (contracts), full browser matrix incl. Firefox + Lighthouse via `stack-tests.yml`, Trivy HIGH/CRITICAL incl. unfixed (report only) |
 | `stack-tests.yml` | `workflow_call` | reusable: start the Compose stack (built locally or pulled from GHCR), API tests, sharded E2E, optional Lighthouse, merged HTML report |
 
-- The image list for all matrices comes from `scripts/ci/images.mjs` (every workspace with a Dockerfile plus `deploy/compose/*` infrastructure images such as Caddy).
+- The image list for all matrices comes from `scripts/ci/images.ts` (every workspace with a Dockerfile plus `deploy/compose/*` infrastructure images such as Caddy).
 - Stack tests reuse one workflow instead of copying steps: YAML anchors cannot cross files, and a composite action could not hold the shard matrix.
 - Compose image names are parameterised (`LFC_REGISTRY`, `LFC_TAG`), so `main.yml` tests exactly the images it pushed.

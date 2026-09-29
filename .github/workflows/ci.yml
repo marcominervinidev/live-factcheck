@@ -42,7 +42,7 @@ jobs:
       - name: red-team checks (unit tests; the project is outside the workspace matrix)
         run: pnpm --dir tests/redteam test:unit
       - name: MCP configs in sync (Claude Code / Antigravity)
-        run: node scripts/ci/check-mcp-parity.mjs
+        run: node scripts/ci/check-mcp-parity.ts
       - name: gitleaks (full history)
         run: |
           curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/gitleaks.tgz \
@@ -72,7 +72,7 @@ jobs:
         # On main everything runs; on branches only what changed since main, plus dependents.
         env:
           BASE: ${{ github.ref != 'refs/heads/main' && 'origin/main' || '' }}
-        run: node scripts/ci/affected.mjs ${BASE:+"$BASE"}
+        run: node scripts/ci/affected.ts ${BASE:+"$BASE"}
 
   backend-unit:
     name: backend unit · ${{ matrix.workspace.name }}
@@ -99,7 +99,7 @@ jobs:
           WORKSPACE: ${{ matrix.workspace.name }}
       - name: test
         working-directory: ${{ matrix.workspace.dir }}
-        # Coverage with the 80 % thresholds runs once per workspace (see scripts/ci/affected.mjs).
+        # Coverage with the 80 % thresholds runs once per workspace (see scripts/ci/affected.ts).
         run: |
           coverage=()
           if [ "$COVERAGE" = true ]; then
