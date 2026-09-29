@@ -9,7 +9,7 @@ import { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { StreamConsumer, StreamMessage } from './streams.js';
-import { processedMarker, publishEvent, startStreamConsumer } from './streams.js';
+import { processedMarker, publishEvent, publishToSession, startStreamConsumer } from './streams.js';
 import { silentLogger } from './testing/silent-logger.js';
 
 const PASSWORD = randomBytes(12).toString('hex');
@@ -105,6 +105,39 @@ describe('Redis Streams helpers against a real Redis', () => {
     await expect.poll(() => channelMessages.length).toBe(1);
     expect(JSON.parse(channelMessages[0] ?? '{}')).toEqual(event);
     await expect.poll(async () => ((await redis.xpending(stream, group)) as [number])[0]).toBe(0);
+  });
+
+  it('publishes a client-only event to the session channel and never to a stream', async () => {
+    const redis = connect();
+    const subscriber = connect();
+    const sessionId = randomUUID();
+    const received: string[] = [];
+    subscriber.on('message', (_channel: string, message: string) => received.push(message));
+    await subscriber.subscribe(sessionEventsChannel(sessionId));
+    const interim: EventEnvelope = {
+      type: 'transcript.segment',
+      schemaVersion: 2,
+      payload: {
+        schemaVersion: 1,
+        sessionId,
+        segmentId: randomUUID(),
+        speaker: 'A',
+        text: 'Der Zweite',
+        startMs: 0,
+        endMs: 600,
+        isFinal: false,
+        language: 'de',
+      },
+    };
+    const keysBefore = await redis.keys('*');
+
+    await publishToSession(redis, interim);
+
+    await expect.poll(() => received.map((m) => JSON.parse(m) as unknown)).toEqual([interim]);
+    expect(await redis.keys('*')).toEqual(keysBefore);
+    await expect(
+      publishToSession(redis, { ...interim, schemaVersion: 1 } as unknown as EventEnvelope),
+    ).rejects.toThrow();
   });
 
   it('refuses to publish an invalid envelope (producer-side validation)', async () => {
