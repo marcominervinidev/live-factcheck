@@ -141,4 +141,5 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 - Aktuelles Gate: **Gate 2 – wartet auf Marcos Review von PR #29 (TP2) und TP3**
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
 - Nächster Task nach Gate 2: TP4 Audio-Pfad im Gateway (Branch `phase-2/tp4-gateway-audio`)
-- Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
+- Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Labels des Erkennungs-Sets (Marco) in T5.6
+- **Beim Phasenwechsel nach Phase 2 (Marco erinnern, 2026-09-29):** Umstieg von Docker Desktop auf **OrbStack** prüfen. Grund: Die Docker-VM (8 GB RAM, 58 GB Platte) ist auf dem 16-GB-Mac knapp – starkes Swapping bei lokalen Modellen, die Platte lief dreimal voll (zuletzt `stt-local` konnte sein Modell nicht laden). Vorher: Volumes sichern, die für den Umzug zählen (Caddy-CA → iPhone-Zertifikat, Redis-Daten), und `make up`, `make test`, `make up-local` danach einmal komplett prüfen
