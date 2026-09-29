@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import type { TokenUsage } from './llm/types.js';
-import { estimateCostUsd } from './pricing.js';
+import { estimateCostUsd, estimateSttCostUsd } from './pricing.js';
 
 /**
  * USD per million tokens for cloud models missing from the price table: above every known
@@ -15,6 +15,17 @@ export function budgetCostUsd(model: string, usage: TokenUsage): number {
     estimateCostUsd(model, usage) ??
     (usage.inputTokens * FALLBACK_PRICE.input + usage.outputTokens * FALLBACK_PRICE.output) /
       1_000_000
+  );
+}
+
+/** USD per audio minute for cloud STT models missing from the price table: above every known price. */
+const FALLBACK_STT_PRICE_PER_MINUTE = 0.05;
+
+/** The STT cost counted against the budget: the known price, else the conservative fallback. */
+export function sttBudgetCostUsd(provider: string, model: string, audioMs: number): number {
+  return (
+    estimateSttCostUsd(provider, model, audioMs) ??
+    (FALLBACK_STT_PRICE_PER_MINUTE * audioMs) / 60_000
   );
 }
 
@@ -53,6 +64,8 @@ export interface DailyBudget {
    * conservative fallback rate, so the budget fails closed (security review finding 3).
    */
   record(model: string, usage: TokenUsage): Promise<void>;
+  /** Adds an amount already priced by the caller, e.g. streamed audio (`sttBudgetCostUsd`). */
+  recordUsd(costUsd: number): Promise<void>;
 }
 
 export function createDailyBudget(
@@ -70,8 +83,10 @@ export function createDailyBudget(
       }
     },
     async record(model, usage) {
-      const costUsd = budgetCostUsd(model, usage);
-      if (costUsd <= 0) return;
+      await this.recordUsd(budgetCostUsd(model, usage));
+    },
+    async recordUsd(costUsd) {
+      if (!(costUsd > 0)) return;
       const k = key();
       await store.incrbyfloat(k, costUsd);
       await store.expire(k, TWO_DAYS_S);

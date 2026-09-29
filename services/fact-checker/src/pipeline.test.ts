@@ -289,6 +289,7 @@ describe('checkClaim (brief 9.6)', () => {
   it('stops before any model call when the daily budget is exhausted', async () => {
     const budget: DailyBudget = {
       ensureAvailable: () => Promise.reject(new BudgetExceededError(2, 2)),
+      recordUsd: () => Promise.resolve(),
       record: () => Promise.resolve(),
     };
     const d = deps({ budget });
@@ -340,6 +341,7 @@ describe('checkClaim (brief 9.6)', () => {
     const recorded: string[] = [];
     const budget: DailyBudget = {
       ensureAvailable: () => Promise.resolve(),
+      recordUsd: () => Promise.resolve(),
       record: (model) => {
         recorded.push(model);
         return Promise.resolve();
@@ -416,6 +418,7 @@ describe('checkClaim (brief 9.6)', () => {
     const text = claim('Der Zweite Weltkrieg endete 1945.');
     const budget: DailyBudget = {
       ensureAvailable: () => Promise.reject(new Error('redis down')),
+      recordUsd: () => Promise.resolve(),
       record: () => Promise.resolve(),
     };
     await expect(checkClaim(text, deps({ budget }))).rejects.toThrow('redis down');

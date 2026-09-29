@@ -115,6 +115,7 @@ describe('explain (brief 6a, ADR 0009)', () => {
   it('publishes nothing when the budget is exhausted or the provider fails', async () => {
     const budget: DailyBudget = {
       ensureAvailable: () => Promise.reject(new BudgetExceededError(2, 2)),
+      recordUsd: () => Promise.resolve(),
       record: () => Promise.resolve(),
     };
     const llm = createMockLlmProvider('mock', mockExplanation);
@@ -137,6 +138,7 @@ describe('explain (brief 6a, ADR 0009)', () => {
     const recorded: string[] = [];
     const budget: DailyBudget = {
       ensureAvailable: () => Promise.resolve(),
+      recordUsd: () => Promise.resolve(),
       record: (model) => {
         recorded.push(model);
         return Promise.resolve();
@@ -175,6 +177,7 @@ describe('explain (brief 6a, ADR 0009)', () => {
     const llm = createMockLlmProvider('mock', mockExplanation);
     const brokenBudget: DailyBudget = {
       ensureAvailable: () => Promise.reject(new Error('redis down')),
+      recordUsd: () => Promise.resolve(),
       record: () => Promise.resolve(),
     };
     await expect(explain(checked(), { llm, prompt, budget: brokenBudget })).rejects.toThrow(
