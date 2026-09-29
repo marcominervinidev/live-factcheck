@@ -46,7 +46,7 @@ lint: ## Stage 0: typecheck, lint, format check, boundaries, MCP config parity
 	$(TB) pnpm lint
 	$(TB) pnpm format:check
 	$(TB) pnpm depcruise
-	$(TB) node scripts/ci/check-mcp-parity.mjs
+	$(TB) node scripts/ci/check-mcp-parity.ts
 
 test-unit: ## Stage 1: unit tests of all workspaces
 	$(TB) pnpm test:unit
@@ -111,8 +111,9 @@ toolbox: ## Build and start the dev toolbox container
 toolbox-down: ## Stop the dev toolbox container
 	$(COMPOSE) -f compose.toolbox.yaml down
 
-install: ## Install workspace dependencies (frozen lockfile)
+install: ## Install workspace dependencies and the red-team project (frozen lockfiles)
 	$(TB) pnpm install --frozen-lockfile
+	$(TB) pnpm --dir tests/redteam install --frozen-lockfile
 
 secrets-init: ## Create SECRETS_DIR outside the repo (internal secrets random, API keys empty)
 	@scripts/secrets-init.sh "$(SECRETS_DIR)"

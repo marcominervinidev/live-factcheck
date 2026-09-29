@@ -1,0 +1,15 @@
+# tests/redteam is its own pnpm project (not part of the root workspace), so promptfoo's
+# dependency tree stays out of the lockfile the service images are built from.
+# Install: `make install` (or `pnpm --dir tests/redteam install --frozen-lockfile`).
+packages:
+  - .
+
+# Dependency install scripts are denied unless explicitly allowed here.
+allowBuilds:
+  # Pulled in by promptfoo for features we do not use: a bundled Chromium, swc's binary check
+  # (the binary comes as an optional platform package), ONNX runtime downloads.
+  '@playwright/browser-chromium': false
+  '@swc/core': false
+  onnxruntime-node: false
+  esbuild: false
+  protobufjs: false

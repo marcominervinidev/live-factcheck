@@ -18,7 +18,7 @@ Brief 1.1 and 1.4 require that Claude Code (primary) and Google Antigravity (fal
 | Skills | `.agents/skills/<name>/SKILL.md` | `.claude/skills` → symlink | read directly, `/<name>` |
 | MCP | same servers and launch commands | `.mcp.json` | `.agents/mcp_config.json` (workspace file, committed) |
 
-Wrappers only say "read `.ai/prompts/<role>.md` and follow it", because Antigravity subagent bodies cannot include files. A CI step (`scripts/ci/check-mcp-parity.mjs`) fails if the two MCP files drift apart.
+Wrappers only say "read `.ai/prompts/<role>.md` and follow it", because Antigravity subagent bodies cannot include files. A CI step (`scripts/ci/check-mcp-parity.ts`) fails if the two MCP files drift apart.
 
 **MCP servers:** GitHub (official image, toolsets `repos,issues,pull_requests,actions`, token from `GITHUB_MCP_TOKEN` or `gh auth token` at launch), Context7 (remote), Redis (official `mcp/redis`, pinned by digest, dedicated read-only ACL user `mcp` with its own secret `redis_mcp_password`). Servers start through `/bin/zsh -lc` so the GUI app Antigravity gets the user's PATH and env, and no token is ever written to a file.
 

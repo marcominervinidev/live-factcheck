@@ -96,18 +96,19 @@ Heute laufen bereits: ESLint strict, Semgrep, CodeQL, Trivy, gitleaks, dependenc
 
 - [x] Plan freigegeben (Marco, 2026-09-27); Entscheidungen 1–4 wie vorgeschlagen, sofern Marco nichts anderes sagt
 - [x] TP1 ADR 0014 und Dokumentation (PR #20, gemergt)
-- [x] TP2 SonarQube Cloud (PR #22, offen): erster Scan `ANALYSIS SUCCESSFUL`, Quality Gate OK
+- [x] TP2 SonarQube Cloud (PR #22, gemergt): erster Scan `ANALYSIS SUCCESSFUL`, Quality Gate OK; Baseline von main (17 Bugs/Schwachstellen) behoben in PR #23/#25
 - [x] TP3 OWASP ZAP (PR #21, gemergt): FAIL 0 / WARN 0 / PASS 64
-- [x] TP4 Red-Team (PR #23, offen): Qwen 7B 12/13 abgewehrt, Befund F1 offen (in `docs/SECURITY.md` als bekanntes Risiko)
-- [x] TP5 lokaler LLM-Code-Scanner (PR #23): 11 Funde, alle als Fehlalarm eingeschätzt; Vergleich Semgrep/CodeQL im Nachweis
-- [x] TP6 Skill `security-scan` (PR #24, offen; nach #23 mergen)
-- [x] Review-Befunde PR #23 erledigt: frische Läufe, isolierter Container, robuster Client, llm-scan nur lokal, Diff-Parser, Doku (README, `tests/AGENTS.md`, ADR-0014-Nachtrag, SECURITY.md), depcruise für `scripts/llm-scan`, Semgrep-Fund `node_secret` eng unterdrückt (Marco entscheidet)
-- Offen, für Marco:
-  - CodeQL `js/file-access-to-http` #7–#11 (Token aus der Secret-Datei als Auth-Header) wegklicken oder anders entscheiden
-  - `SONAR_TOKEN` aus `~/.zprofile` entfernen (Security-Review-Befund 1), danach Doku/Skill anpassen
-  - **Abhängigkeiten in den Images:** seit promptfoo im Lockfile ist, bekommen fact-checker, claim-extractor und explainer über die optionalen Peers von `openai@7` rund 75 ungenutzte AWS-SDK-/smithy-Pakete. `dedupePeerDependents: false`, `autoInstallPeers: false` und Overrides mit `-` helfen unter pnpm 12 nicht. Vorschlag: `tests/redteam` aus dem pnpm-Workspace nehmen (eigenes Lockfile, eigenes Install im Red-Team-Container), braucht Marcos OK
-- Offen in PR #22: Sonar-PR-Erkennung über `.head.ref`, `sonar.tests` inkl. `scripts`, Widerspruch in `docs/ai-tooling.md`, `.vscode/settings.json`, TP2-Nachweis; PR #24: Semgrep-Version 1.178.0 im Skill
-- Nächster Task: Reste PR #22/#24, dann **Opus-5-Red-Team-Lauf (Marco erinnern, Key, ca. 0,60–1,20 $)**, dann Gate 6
+- [x] TP4 Red-Team (PR #23, gemergt): Qwen 7B 12/13 abgewehrt, Befund F1 offen (in `docs/SECURITY.md` als bekanntes Risiko)
+- [x] TP5 lokaler LLM-Code-Scanner (PR #23, gemergt): 11 Funde, alle als Fehlalarm eingeschätzt; Vergleich Semgrep/CodeQL im Nachweis
+- [x] TP6 Skill `security-scan` (PR #24, gemergt)
+- [x] Review-Befunde aller PRs erledigt; Antigravity-Review (2026-09-29): zwei Punkte, siehe unten
+- [x] Entscheidungen Marco (2026-09-29): die drei Unterdrückungen (`nosemgrep` im Red-Team-Client, `NOSONAR` für pnpm im PATH und HTTP in `ready.sh`) bleiben; CodeQL-Alerts #7–#11 klickt Marco weg
+- [x] Folge-PR `phase-1b/tooling-followups`: `tests/redteam` als eigenes pnpm-Projekt (keine AWS-SDK-Pakete mehr in den Images), CI-Skripte in TypeScript (Antigravity-Review)
+- [x] **Gate 6:** Marco hat #22–#25 gemergt und die Feature-Entwicklung (Phase 2) freigegeben (2026-09-29)
+- **Verschoben auf den nächsten Meilenstein (Ende Phase 2), Marco erinnern:** Red-Team-Vergleichslauf mit Claude Opus 5. Braucht Guthaben und Key in der Secret-Datei `anthropic_api_key` (Workspace mit Ausgabenlimit empfohlen), Kosten ca. 0,60–1,20 $, erst nach Marcos ausdrücklichem OK
+- Später (Antigravity-Review, Faktor III): feste Fallbacks in der Test-Infrastruktur entfernen – `REDTEAM_BASE_URL` in `tests/redteam/src/gateway-provider.ts` (`?? 'https://lfc.local:8443'`) und die Standardpfade der Token-Datei in `tests/`. Ohne gesetzte Variable mit klarer Meldung abbrechen; Werte nur in `compose.test.yaml` setzen und in der jeweiligen README dokumentieren
+- Offen, für Marco: `SONAR_TOKEN` aus `~/.zprofile` in den Schlüsselbund verschieben (Anleitung in `docs/ai-tooling.md`)
+- Nächster Task: Phase-2-Plan nach Brief Abschnitt 17 schreiben und Marco zur Freigabe vorlegen
 
 ### 2026-09-28T11:53Z – compaction (auto)
 

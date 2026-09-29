@@ -7,7 +7,7 @@
     "node": ">=24.21.0 <25"
   },
   "scripts": {
-    "typecheck": "tsc -b --pretty && pnpm -r --if-present typecheck",
+    "typecheck": "tsc -b --pretty && tsc -p scripts/ci --pretty && pnpm -r --if-present typecheck && pnpm --dir tests/redteam typecheck",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
