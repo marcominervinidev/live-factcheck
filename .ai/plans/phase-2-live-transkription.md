@@ -136,7 +136,9 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 - [x] TP2 T2.1–T2.4 (PR `phase-2/tp2-transcription`): STT-Adapter in `packages/providers/src/stt/` (Deepgram, AssemblyAI, local, mock), `publishToSession` in service-kit, Service `transcription` mit `/v1/audio`, Budget, Backpressure, Status; Compose und `.env.example`; Nachweis `docs/evidence/phase-2/tp2-transcription.txt`
 - [x] T2.5 echter Deepgram-Test (Marcos Key und Freigabe, 5 Läufe, ca. 1,25 Cent): Standard bestätigt; Befund „Deepgram finalisiert in langen Blöcken“ behoben (Sätze aus Wort-Zeitstempeln, eigene Stille-Erkennung → `Finalize`, Ordinalzahlen); offen: „Weltkrieg“ → „2. Welt“ bei synthetischer Stimme, mit echter Stimme in TP7 prüfen. Werkzeug `make stt-probe`
 - [x] Entschieden (Marco, 2026-09-29): Der Klassifikator bekommt in TP5 das ganze Segmentfenster als Kontext, **auch Jev**; Sprechernamen werden immer durch A, B, … ersetzt (ADR 0017, `packages/providers/AGENTS.md` angepasst)
-- Aktuelles Gate: Gate 2 erst nach TP3 (`stt-local`); TP2-PR kann vorher reviewt werden
+- [x] TP3 `stt-local` (Branch `phase-2/tp3-stt-local`, PR nach dem Merge von #29): Python-Service mit faster-whisper, ruff/mypy/pytest (16 Tests), Image und Compose-Profil `local-stt`, `make up-local`, CI-Job, native Anleitung; echter Lauf mit `small`: drei korrekte Segmente, 1,7–2,2 s nach jeder Pause; Nachweis `docs/evidence/phase-2/tp3-stt-local.txt`
+- Vorschlag (nach Phase 2): distroless-Python-Runtime für `stt-local` (44 HIGH-Befunde im Debian-Basisimage, 0 kritisch)
+- Aktuelles Gate: **Gate 2 – wartet auf Marcos Review von PR #29 (TP2) und TP3**
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
-- Nächster Task: TP3 `stt-local` (Branch `phase-2/tp3-stt-local`); parallel T2.5, sobald der Deepgram-Key da ist
+- Nächster Task nach Gate 2: TP4 Audio-Pfad im Gateway (Branch `phase-2/tp4-gateway-audio`)
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
