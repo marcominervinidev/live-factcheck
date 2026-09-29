@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { FakeWsServer } from '../testing/fake-ws-server.js';
 import { startFakeWsServer } from '../testing/fake-ws-server.js';
 import { sttConfigShape } from './config.js';
-import { DEEPGRAM_HOSTS, createDeepgramProvider } from './deepgram.js';
+import { DEEPGRAM_HOSTS, createDeepgramProvider, rms } from './deepgram.js';
 import type { SttError, SttSegment } from './types.js';
 
 const KEY = 'dg-test-key-never-logged';
@@ -16,22 +16,39 @@ const config = z.object(sttConfigShape).parse({
 });
 const deepgramConfig = { ...config, DEEPGRAM_API_KEY: KEY };
 
+/** A Deepgram `Results` message; words spread evenly over the time range. */
 const results = (
   transcript: string,
-  flags: { isFinal: boolean; speechFinal?: boolean },
+  flags: { isFinal: boolean; speechFinal?: boolean; fromFinalize?: boolean },
   start: number,
   duration: number,
   speakers: number[] = [],
-) => ({
-  type: 'Results',
-  is_final: flags.isFinal,
-  speech_final: flags.speechFinal ?? false,
-  start,
-  duration,
-  channel: {
-    alternatives: [{ transcript, words: speakers.map((speaker) => ({ word: 'w', speaker })) }],
-  },
-});
+) => {
+  const tokens = transcript === '' ? [] : transcript.split(' ');
+  const step = tokens.length === 0 ? 0 : duration / tokens.length;
+  return {
+    type: 'Results',
+    is_final: flags.isFinal,
+    speech_final: flags.speechFinal ?? false,
+    ...(flags.fromFinalize === undefined ? {} : { from_finalize: flags.fromFinalize }),
+    start,
+    duration,
+    channel: {
+      alternatives: [
+        {
+          transcript,
+          words: tokens.map((token, i) => ({
+            word: token.toLowerCase().replace(/[.,!?]/g, ''),
+            punctuated_word: token,
+            start: start + i * step,
+            end: start + (i + 1) * step,
+            ...(speakers.length === 0 ? {} : { speaker: speakers[i] ?? speakers.at(-1) }),
+          })),
+        },
+      ],
+    },
+  };
+};
 
 function collector() {
   const segments: SttSegment[] = [];
@@ -153,6 +170,86 @@ describe('Deepgram adapter (ADR 0016)', () => {
     session.abort();
   });
 
+  it('splits one long finalized block into sentences with their own speakers (T2.5)', async () => {
+    const out = collector();
+    const session = await createDeepgramProvider(deepgramConfig, server.origin).open(
+      { language: 'de', sampleRate: 16_000 },
+      out.handlers,
+    );
+    const connection = await server.nextConnection();
+    // What Deepgram sent in the real test: two speakers and three sentences in one block.
+    connection.sendJson(
+      results(
+        'Der Krieg endete 1965. Das sehe ich anders. Berlin hat',
+        { isFinal: true },
+        0,
+        10,
+        [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+      ),
+    );
+    await vi.waitFor(() => {
+      expect(out.segments).toHaveLength(2);
+    });
+    expect(out.segments.map((s) => [s.text, s.startMs, s.endMs, s.speaker])).toEqual([
+      ['Der Krieg endete 1965.', 0, 4_000, 'A'],
+      ['Das sehe ich anders.', 4_000, 8_000, 'B'],
+    ]);
+    // The unfinished rest waits for the next block.
+    connection.sendJson(results('3,9 Millionen Einwohner.', { isFinal: true }, 10, 3, [1]));
+    await vi.waitFor(() => {
+      expect(out.segments.at(-1)).toMatchObject({
+        text: 'Berlin hat 3,9 Millionen Einwohner.',
+        startMs: 8_000,
+        endMs: 13_000,
+        speaker: 'B',
+      });
+    });
+    session.abort();
+  });
+
+  it('forces Finalize after 500 ms of silence following speech, once per pause', async () => {
+    const out = collector();
+    const session = await createDeepgramProvider(deepgramConfig, server.origin).open(
+      { language: 'de', sampleRate: 16_000 },
+      out.handlers,
+    );
+    const connection = await server.nextConnection();
+    const loud = new Uint8Array(3_200);
+    const view = new DataView(loud.buffer);
+    for (let i = 0; i < 1_600; i++) view.setInt16(i * 2, i % 2 === 0 ? 8_000 : -8_000, true);
+    const quiet = new Uint8Array(3_200);
+
+    for (let i = 0; i < 4; i++) session.send(quiet); // silence before speech: no Finalize
+    for (let i = 0; i < 3; i++) session.send(loud);
+    for (let i = 0; i < 12; i++) session.send(quiet); // 1.2 s pause: one Finalize after 0.5 s
+    session.send(loud);
+    for (let i = 0; i < 5; i++) session.send(quiet); // next pause: the second one
+    await vi.waitFor(() => {
+      expect(connection.binaryBytes).toBe(25 * 3_200);
+    });
+    expect(connection.json).toEqual([{ type: 'Finalize' }, { type: 'Finalize' }]);
+
+    // The answer to Finalize makes the unfinished rest final.
+    connection.sendJson(results('und dann', { isFinal: true, fromFinalize: true }, 0, 1));
+    await vi.waitFor(() => {
+      expect(out.segments).toEqual([
+        { text: 'und dann', isFinal: true, startMs: 0, endMs: 1_000, speaker: 'A' },
+      ]);
+    });
+    session.abort();
+  });
+
+  it('computes the RMS of PCM16 frames', () => {
+    const frame = new Uint8Array(8);
+    const view = new DataView(frame.buffer);
+    [300, -300, 300, -300].forEach((v, i) => {
+      view.setInt16(i * 2, v, true);
+    });
+    expect(rms(frame)).toBe(300);
+    expect(rms(new Uint8Array(0))).toBe(0);
+    expect(rms(new Uint8Array(1))).toBe(0);
+  });
+
   it('labels speakers A, B, … in order of appearance', async () => {
     const out = collector();
     const session = await createDeepgramProvider(deepgramConfig, server.origin).open(
@@ -178,14 +275,14 @@ describe('Deepgram adapter (ADR 0016)', () => {
     const connection = await server.nextConnection();
     connection.socket.send('{not json');
     connection.sendJson({ type: 'Metadata', request_id: 'x' });
-    connection.sendJson(results('Berlin hat vier Millionen Einwohner.', { isFinal: true }, 0, 2));
+    connection.sendJson(results('Berlin hat vier Millionen Einwohner', { isFinal: true }, 0, 2));
     connection.sendJson(results('', { isFinal: true }, 2, 1));
     expect(out.segments).toHaveLength(0);
     connection.sendJson({ type: 'UtteranceEnd', last_word_end: 2 });
     await vi.waitFor(() => {
       expect(out.segments).toEqual([
         {
-          text: 'Berlin hat vier Millionen Einwohner.',
+          text: 'Berlin hat vier Millionen Einwohner',
           isFinal: true,
           startMs: 0,
           endMs: 2_000,

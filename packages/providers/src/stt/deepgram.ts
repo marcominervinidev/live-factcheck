@@ -14,12 +14,21 @@ export const DEEPGRAM_HOSTS = {
   us: 'wss://api.deepgram.com',
 } as const;
 
-const Word = z.object({ speaker: z.number().int().nonnegative().optional() });
+const Word = z.object({
+  word: z.string(),
+  /** With `punctuate`/`smart_format`: the word with punctuation and capitalisation. */
+  punctuated_word: z.string().optional(),
+  start: z.number().nonnegative(),
+  end: z.number().nonnegative(),
+  speaker: z.number().int().nonnegative().optional(),
+});
 
 const Results = z.object({
   type: z.literal('Results'),
   is_final: z.boolean(),
   speech_final: z.boolean(),
+  /** The answer to our `Finalize`: the speaker paused, so the unfinished rest is final too. */
+  from_finalize: z.boolean().default(false),
   start: z.number().nonnegative(),
   duration: z.number().nonnegative(),
   channel: z.object({
@@ -31,14 +40,36 @@ const Results = z.object({
 
 const UtteranceEnd = z.object({ type: z.literal('UtteranceEnd') });
 
-/** A finalized part that ends a sentence (German punctuation from `punctuate`). */
+/** A word that ends a sentence (German punctuation from `punctuate`). */
 const SENTENCE_END = /[.!?…]["»“”')]*$/;
 
-interface Part {
+/**
+ * Own silence detection (T2.5): Deepgram finalized 13.6 s of speech with two speakers in one
+ * block although the audio had 1 s pauses. After this much quiet audio following speech, the
+ * adapter sends `Finalize`, so the words so far become final at once.
+ */
+export const FINALIZE_AFTER_SILENCE_MS = 500;
+/** RMS of a 16-bit frame below which it counts as silence (about −40 dBFS). */
+export const SILENCE_RMS = 330;
+
+interface TimedWord {
   readonly text: string;
   readonly startMs: number;
   readonly endMs: number;
-  readonly speakers: readonly (number | undefined)[];
+  readonly speaker: number | undefined;
+}
+
+/** Root mean square of PCM16 LE samples. */
+export function rms(frame: Uint8Array): number {
+  const samples = Math.floor(frame.byteLength / 2);
+  if (samples === 0) return 0;
+  const view = new DataView(frame.buffer, frame.byteOffset, samples * 2);
+  let sum = 0;
+  for (let i = 0; i < samples; i++) {
+    const sample = view.getInt16(i * 2, true);
+    sum += sample * sample;
+  }
+  return Math.sqrt(sum / samples);
 }
 
 /** The most frequent speaker id of the words, `undefined` without diarization. */
@@ -96,56 +127,82 @@ export function createDeepgramProvider(
 
 function deepgramSession(socket: WebSocket, handlers: SttHandlers): SttSession {
   const label = speakerLabels();
-  let parts: Part[] = [];
+  // Finalized words not yet delivered as a final segment (the tail of an unfinished sentence).
+  let pending: TimedWord[] = [];
   let lastSentAt = Date.now();
+  let silentMs = 0;
+  let speechSinceFinalize = false;
   let ending = false;
   let aborted = false;
   let done = false;
 
-  const emitFinal = () => {
-    if (parts.length === 0) return;
-    const text = parts.map((p) => p.text).join(' ');
-    const first = parts[0];
-    const last = parts.at(-1);
-    const speaker = label(majority(parts.flatMap((p) => p.speakers)));
-    parts = [];
+  const emit = (words: readonly TimedWord[]) => {
+    const first = words[0];
+    const last = words.at(-1);
     if (first === undefined || last === undefined) return;
     handlers.onSegment({
-      text,
+      text: words.map((w) => w.text).join(' '),
       isFinal: true,
       startMs: first.startMs,
       endMs: last.endMs,
-      speaker,
+      speaker: label(majority(words.map((w) => w.speaker))),
     });
   };
 
+  /** Delivers every complete sentence in `pending`; with `all`, the unfinished rest as well. */
+  const flush = (all: boolean) => {
+    let from = 0;
+    pending.forEach((word, index) => {
+      if (SENTENCE_END.test(word.text)) {
+        emit(pending.slice(from, index + 1));
+        from = index + 1;
+      }
+    });
+    pending = pending.slice(from);
+    if (all) {
+      emit(pending);
+      pending = [];
+    }
+  };
+
   socket.on('message', (data, isBinary) => {
+    if (aborted) return;
     const json = parseJson(data, isBinary);
     const results = Results.safeParse(json);
     if (results.success) {
       const alternative = results.data.channel.alternatives[0];
       const transcript = alternative?.transcript.trim() ?? '';
+      if (transcript === '' && !results.data.speech_final) return;
       const startMs = Math.round(results.data.start * 1_000);
       const endMs = Math.round((results.data.start + results.data.duration) * 1_000);
-      const speakers = alternative?.words.map((w) => w.speaker) ?? [];
+      const words: TimedWord[] =
+        alternative === undefined || alternative.words.length === 0
+          ? transcript === ''
+            ? []
+            : [{ text: transcript, startMs, endMs, speaker: undefined }]
+          : alternative.words.map((w) => ({
+              text: w.punctuated_word ?? w.word,
+              startMs: Math.round(w.start * 1_000),
+              endMs: Math.round(w.end * 1_000),
+              speaker: w.speaker,
+            }));
       if (results.data.is_final) {
-        if (transcript !== '') parts.push({ text: transcript, startMs, endMs, speakers });
-        // A finished sentence is final at once: waiting for Deepgram's end of utterance merged
-        // several sentences and speakers into one segment in the real test (T2.5).
-        if (results.data.speech_final || SENTENCE_END.test(transcript)) emitFinal();
-      } else if (transcript !== '') {
-        const pending = parts.map((p) => p.text);
+        pending.push(...words);
+        // Every finished sentence is a segment of its own, with its own speaker.
+        flush(results.data.speech_final || results.data.from_finalize);
+      } else if (words.length > 0) {
+        const all = [...pending, ...words];
         handlers.onSegment({
-          text: [...pending, transcript].join(' '),
+          text: all.map((w) => w.text).join(' '),
           isFinal: false,
-          startMs: parts[0]?.startMs ?? startMs,
+          startMs: all[0]?.startMs ?? startMs,
           endMs,
-          speaker: label(majority([...parts.flatMap((p) => p.speakers), ...speakers])),
+          speaker: label(majority(all.map((w) => w.speaker))),
         });
       }
       return;
     }
-    if (UtteranceEnd.safeParse(json).success) emitFinal();
+    if (UtteranceEnd.safeParse(json).success) flush(true);
   });
 
   const stopKeepAlive = keepAlive(socket, JSON.stringify({ type: 'KeepAlive' }), () => lastSentAt);
@@ -153,7 +210,7 @@ function deepgramSession(socket: WebSocket, handlers: SttHandlers): SttSession {
   socket.on('close', () => {
     stopKeepAlive();
     // After abort nothing is delivered any more; after finish the last words still count.
-    if (!aborted) emitFinal();
+    if (!aborted) flush(true);
     if (!ending && !done) {
       done = true;
       handlers.onError(new SttError('closed', 'Deepgram closed the stream'));
@@ -172,6 +229,16 @@ function deepgramSession(socket: WebSocket, handlers: SttHandlers): SttSession {
       if (ending || done) return;
       socket.send(frame);
       lastSentAt = Date.now();
+      if (rms(frame) < SILENCE_RMS) {
+        silentMs += (frame.byteLength / 32_000) * 1_000;
+        if (speechSinceFinalize && silentMs >= FINALIZE_AFTER_SILENCE_MS) {
+          speechSinceFinalize = false;
+          socket.send(JSON.stringify({ type: 'Finalize' }));
+        }
+      } else {
+        silentMs = 0;
+        speechSinceFinalize = true;
+      }
     },
     get bufferedBytes() {
       return socket.bufferedAmount;
