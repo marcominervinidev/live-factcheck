@@ -45,7 +45,7 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
   - `.ai/research/stt-providers.md`: Deepgram und AssemblyAI – Streaming-API, Deutsch, Diarization, Interim-Ergebnisse, Audioformat, Preise, Startguthaben, Limits, offizielle SDKs
   - `.ai/research/faster-whisper.md`: Modellgrößen für Deutsch, VAD-Chunking, Geschwindigkeit auf CPU (Docker) und Apple Silicon (nativ), Speicherbedarf bei 16 GB
   - `.ai/research/browser-audio.md`: AudioWorklet, Resampling auf 16 kHz, Safari/iOS-Eigenheiten (Secure Context, Displaysperre, App-Wechsel, AudioContext-Start nur nach Nutzeraktion), Playwright-Fake-Audio
-- **T0.2 Zusammenfassungen:** `.ai/summaries/gateway-ws.md` (Session, Auth, Pub/Sub) und `.ai/summaries/pipeline-streams.md` (Streams, Consumer Groups, Dead Letter)
+- **T0.2 Zusammenfassungen:** `.ai/summaries/gateway.md` auf den Stand nach Phase 1b gebracht (Session, Auth, Pub/Sub, geplanter Audio-Pfad) und neu `.ai/summaries/pipeline-streams.md` (Streams, Consumer Groups, Dead Letter)
 - **T0.3 ADRs 0015–0017** als Entwurf
 - Verifikation: Dateien vorhanden, Quellen verlinkt; `make lint`
 
@@ -56,6 +56,7 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 - **T1.1** `packages/contracts/src/ws.ts` → v2: `WsAudioStart`, `WsAudioStop` (Client), `WsAudioStarted`, `WsAudioStopped { reason }` (Server), neue Fehlercodes (`audio_not_started`, `frame_too_large`, `recording_limit`, `overloaded`, `budget_exceeded`); Konstanten für Frame-Größen
 - **T1.2** internes Protokoll Gateway ↔ `transcription` in `packages/contracts/src/internal-audio.ts` (Start-Nachricht mit `sessionId`, Sprache, Format; Stop; Fehler)
 - **T1.3** Contract-Tests (gültige und ungültige Fixtures, alte v1-Nachrichten werden abgelehnt), `schemaVersion` erhöht, ADR 0015 referenziert
+- **T1.4** `ClaimDetected` v3 mit Pflichtfeld `detectMs` (Textmodus: 0), damit der fact-checker `timings.detectMs` nicht mehr fest auf 0 setzt (ADR 0017); Gateway und fact-checker im selben PR angepasst
 - Verifikation: `scripts/tb pnpm --filter @lfc/contracts test:unit`; Vertrags-Check in CI grün
 
 **🛑 Gate 1:** Vertragsänderung (eigener Commit mit ADR, Brief 4.2).
@@ -126,7 +127,10 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 
 ## Status
 
-- [ ] Plan freigegeben
-- Aktuelles Gate: –
-- Nächster Task nach Freigabe: T0.1 Recherche (Branch `phase-2/tp0-research`)
+- [x] Plan freigegeben (Marco, 2026-09-29: „einfach jetzt mal weitermachen“)
+- [x] TP0 erledigt (im PR des Plans, `phase-2/plan`): Recherche `.ai/research/stt-providers.md`, `faster-whisper.md`, `browser-audio.md`; Zusammenfassungen `gateway.md` (aktualisiert), `pipeline-streams.md` (neu); ADR 0015–0017 als Entwurf
+- Aktuelles Gate: **Gate 0 – wartet auf Marcos Freigabe von Recherche und ADRs**
+- Offene Frage an Marco (Gate 0): faster-whisper hat **keine Metal-Unterstützung** und läuft auch nativ auf dem Mac nur auf der CPU. Beim Brief bleiben (faster-whisper überall) oder später für den nativen Modus eine Metal-Engine (whisper.cpp/mlx-whisper) ergänzen? Vorschlag: vorerst beim Brief bleiben, messen, dann entscheiden
+- Nebenbefund: `timings.detectMs` ist im fact-checker fest 0 → T1.4
+- Nächster Task nach Gate 0: T1.1 Verträge (Branch `phase-2/tp1-contracts`)
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
