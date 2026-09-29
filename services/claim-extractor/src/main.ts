@@ -57,7 +57,7 @@ await runService({
       store: redisSessionStore(redis.client, {
         windowSize: config.DETECTOR_WINDOW_SEGMENTS,
         candidates: config.DETECTOR_DEDUP_CANDIDATES,
-        ttlMs: config.SESSION_TTL_MS,
+        ttlMs: config.EXTRACTOR_MEMORY_TTL_MS,
       }),
       ...(llmCloud || classifierCloud
         ? { budget: createDailyBudget(redis.client, config.CLOUD_DAILY_BUDGET_USD) }

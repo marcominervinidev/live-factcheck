@@ -74,4 +74,19 @@ describe('redisSessionStore against a real Redis', () => {
     expect(await s.recentClaims(sessionId)).toEqual(['Satz C.', 'Satz B.']);
     expect(await redis.pttl(`extractor:v1:claims:${sessionId}`)).toBeGreaterThan(0);
   });
+
+  it('keeps the claim memory alive while segments arrive and lets it expire when idle (ADR 0018)', async () => {
+    const sessionId = randomUUID();
+    const s = redisSessionStore(redis, { windowSize: 3, candidates: 2, ttlMs: 60_000 });
+    await s.addClaim(sessionId, 'a', 'Satz A.');
+    // Simulate an idle stretch: the claim memory is about to expire.
+    await redis.pexpire(`extractor:v1:claims:${sessionId}`, 1_000);
+    await redis.pexpire(`extractor:v1:recent:${sessionId}`, 1_000);
+
+    await s.addToWindow(segment(sessionId, 'weiter', 0));
+
+    for (const key of ['window', 'claims', 'recent']) {
+      expect(await redis.pttl(`extractor:v1:${key}:${sessionId}`)).toBeGreaterThan(50_000);
+    }
+  });
 });

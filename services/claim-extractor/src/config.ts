@@ -36,12 +36,12 @@ export const configSchema = baseConfigSchema
     DETECTOR_DEDUP_CANDIDATES: z.coerce.number().int().min(0).max(50).default(10),
     /** Time budget per segment (classifier, formulation and duplicate check together). */
     EXTRACTOR_TIMEOUT_MS: z.coerce.number().int().min(5_000).max(600_000).default(30_000),
-    /** Window and claim memory live as long as a session (gateway MAX_SESSION_MS). */
-    SESSION_TTL_MS: z.coerce
+    /** Window and claim memory of a session expire this long after its last segment (ADR 0018). */
+    EXTRACTOR_MEMORY_TTL_MS: z.coerce
       .number()
       .int()
       .positive()
-      .default(2 * 60 * 60 * 1_000),
+      .default(15 * 60 * 1_000),
   })
   .superRefine(checkLlmConfig('EXTRACTOR'))
   .superRefine(checkClassifierConfig('DETECTOR'))

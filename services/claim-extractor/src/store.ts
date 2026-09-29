@@ -19,7 +19,8 @@ const WindowSegmentSchema = z.strictObject({
 
 /**
  * Per-session state of the extractor in Redis, so any replica can handle any segment and a
- * restart loses nothing (factor VI). Keys expire with the session.
+ * restart loses nothing (factor VI). Keys expire `ttlMs` after the session's last segment
+ * (ADR 0018).
  */
 export interface SessionStore {
   /** Adds the segment (idempotent by id) and returns the window, oldest first, including it. */
@@ -66,11 +67,14 @@ export function redisSessionStore(redis: Redis, options: SessionStoreOptions): S
           text: segment.text,
           startMs: segment.startMs,
         };
+        // Every segment keeps the whole session memory alive; it expires ttlMs after the last one.
         await redis
           .multi()
           .rpush(key, JSON.stringify(entry))
           .ltrim(key, -options.windowSize, -1)
           .pexpire(key, options.ttlMs)
+          .pexpire(claimsKey(segment.sessionId), options.ttlMs)
+          .pexpire(recentKey(segment.sessionId), options.ttlMs)
           .exec();
         current.push(entry);
       }

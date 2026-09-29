@@ -244,7 +244,6 @@ services:
     entrypoint: ['/bin/sh', '/opt/lfc/start.sh']
     volumes:
       - ./deploy/compose/redis/start.sh:/opt/lfc/start.sh:ro
-      - redis-data:/data
     secrets: [redis_password, redis_mcp_password]
     networks: [internal]
     healthcheck:
@@ -304,7 +303,6 @@ networks:
 volumes:
   caddy-data: {}
   caddy-config: {}
-  redis-data: {}
 
 secrets:
   redis_password:
