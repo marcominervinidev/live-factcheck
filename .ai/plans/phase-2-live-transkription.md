@@ -133,7 +133,7 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 | Live-Transkript: interim grau, final schwarz, Markierungen, Sprung zur Karte | 1 + 2b | Komponenten- und Store-Tests; 2b mit `mock-backend.ts` (T6.3) | geplant |
 | Audio-Weg Browser → Gateway → `transcription` → Transkript-Events | 3 | `tests/api/audio.spec.ts` (T4) | vorhanden |
 | Audio-Fehlercodes, Budget, Backpressure, Aufnahmelimit | 1 + 2a | `services/gateway/src/audio.test.ts`, `api.int.test.ts`, `services/transcription/src/recording.test.ts` (T2, T4) | vorhanden |
-| Segmente → `claims.detected` → Karte | 2a + 3 | `claim-extractor` mit Testcontainers-Redis; Stufe 3 Durchstich (T5) | geplant |
+| Segmente → `claims.detected` → Karte | 2a + 3 | `claim-extractor/src/main.int.test.ts`; Stufe 3 `tests/api/live-claims.spec.ts` (T5) | vorhanden |
 | Erkennungsqualität (Precision, Recall, F1) | 5 | `pnpm eval --set detection` (T5.6) | geplant |
 | Echte STT-Anbieter (Deutsch, Latenz, Sprecher) | manuell | `make stt-probe` (Deepgram, `stt-local`), Nachweise TP2/TP3 | vorhanden |
 | Kein Audio gespeichert, kein Transkripttext und kein Key in Logs | 1 + 2a | `recording.test.ts`, `main.test.ts` (transcription), `test_app.py` (stt-local) | vorhanden |
@@ -155,7 +155,9 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - [x] T2.5 echter Deepgram-Test (Marcos Key und Freigabe, 5 Läufe, ca. 1,25 Cent): Standard bestätigt; Befund „Deepgram finalisiert in langen Blöcken“ behoben (Sätze aus Wort-Zeitstempeln, eigene Stille-Erkennung → `Finalize`, Ordinalzahlen); offen: „Weltkrieg“ → „2. Welt“ bei synthetischer Stimme, mit echter Stimme in TP7 prüfen. Werkzeug `make stt-probe`
 - [x] Entschieden (Marco, 2026-09-29): Der Klassifikator bekommt in TP5 das ganze Segmentfenster als Kontext, **auch Jev**; Sprechernamen werden immer durch A, B, … ersetzt (ADR 0017, `packages/providers/AGENTS.md` angepasst)
 - [x] TP4 Audio-Pfad im Gateway (PR `phase-2/tp4-gateway-audio`): `src/audio.ts`, je ein Integrationstest pro Audio-Fehlercode, Stufe 3 `audio.spec.ts` über den echten Stack; neue depcruise-Regel gegen Dev-Abhängigkeiten im Produktionscode; Nachweis `docs/evidence/phase-2/tp4-gateway-audio.txt`
-- Aktuelles Gate: Gate 2 (PR #31 `stt-local`) offen; Gate 3 nach TP5
-- Nächster Task: TP5 `claim-extractor` (Branch `phase-2/tp5-claim-extractor`); vorher mit Marco: Bundestags-Protokolle für das Erkennungs-Set (T5.6)
+- [x] TP5 T5.1–T5.5 `claim-extractor` (PR `phase-2/tp5-claim-extractor`): Vorfilter, Fenster in Redis, DETECTOR-Klassifikator, eigenständige Formulierung, Deduplizierung, `ClaimDetected` v3; Stufe 3 Audio → Behauptung → Urteil „falsch“; Nachweis `docs/evidence/phase-2/tp5-claim-extractor.txt`
+- [ ] T5.6 Erkennungs-Eval-Set (~150 Segmente, **Marco prüft die Labels**) und `pnpm eval --set detection`; Stryker für die Deduplizierung
+- Aktuelles Gate: **Gate 3 – Backend-Pfad komplett** (PRs #32 TP4 gemergt, TP5 offen); Gate 2 (PR #31) offen
+- Nächster Task: T5.6 vorbereiten (Quellen, Vorlabels), dann TP6 Frontend (Branch `phase-2/tp6-web-live`)
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
