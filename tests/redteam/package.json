@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
-    "@lfc/contracts": "workspace:*",
+    "@lfc/contracts": "link:../../packages/contracts",
     "@types/node": "24.13.6",
     "@types/ws": "8.18.1",
     "@vitest/coverage-v8": "5.0.1",

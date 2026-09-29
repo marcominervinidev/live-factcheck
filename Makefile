@@ -111,8 +111,9 @@ toolbox: ## Build and start the dev toolbox container
 toolbox-down: ## Stop the dev toolbox container
 	$(COMPOSE) -f compose.toolbox.yaml down
 
-install: ## Install workspace dependencies (frozen lockfile)
+install: ## Install workspace dependencies and the red-team project (frozen lockfiles)
 	$(TB) pnpm install --frozen-lockfile
+	$(TB) pnpm --dir tests/redteam install --frozen-lockfile
 
 secrets-init: ## Create SECRETS_DIR outside the repo (internal secrets random, API keys empty)
 	@scripts/secrets-init.sh "$(SECRETS_DIR)"

@@ -3,6 +3,9 @@ packages:
   - services/*
   - packages/*
   - tests/*
+  # Own pnpm project with its own lockfile: promptfoo's ~600 packages must not change how the
+  # services' dependencies resolve (they would get openai's optional AWS peers in their images).
+  - '!tests/redteam'
   - evals
   - scripts/llm-scan
 
@@ -17,8 +20,3 @@ allowBuilds:
   cpu-features: false
   ssh2: false
   protobufjs: false
-  # Pulled in by promptfoo (tests/redteam) for features we do not use: a bundled Chromium,
-  # swc's binary check (the binary comes as an optional platform package), ONNX runtime downloads.
-  '@playwright/browser-chromium': false
-  '@swc/core': false
-  onnxruntime-node: false

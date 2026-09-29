@@ -33,10 +33,14 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # tests/redteam is its own pnpm project (own lockfile, see its pnpm-workspace.yaml).
+      - run: pnpm --dir tests/redteam install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm depcruise
+      - name: red-team checks (unit tests; the project is outside the workspace matrix)
+        run: pnpm --dir tests/redteam test:unit
       - name: MCP configs in sync (Claude Code / Antigravity)
         run: node scripts/ci/check-mcp-parity.mjs
       - name: gitleaks (full history)
