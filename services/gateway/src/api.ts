@@ -10,12 +10,11 @@ import {
 } from '@lfc/contracts';
 import rateLimit from '@fastify/rate-limit';
 import type { HttpServer, Logger } from '@lfc/service-kit';
-import { publishEvent } from '@lfc/service-kit';
+import { normalizeClaimText, publishEvent } from '@lfc/service-kit';
 import type { Redis } from 'ioredis';
 
 import { bearerToken, tokenMatches } from './auth.js';
 import type { Config } from './config.js';
-import { normalizeClaimText } from './normalize.js';
 import type { SessionStore } from './sessions.js';
 
 const MESSAGES: Readonly<Record<ApiErrorCode, string>> = {

@@ -10,3 +10,4 @@ export { runService } from './lifecycle.js';
 export type { ServiceContext, ServiceDefinition, StartedService } from './lifecycle.js';
 export { processedMarker, publishEvent, publishToSession, startStreamConsumer } from './streams.js';
 export type { StreamConsumer, StreamConsumerOptions, StreamMessage } from './streams.js';
+export { normalizeClaimText } from './claims.js';
