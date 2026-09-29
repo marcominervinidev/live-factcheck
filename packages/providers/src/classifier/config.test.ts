@@ -16,6 +16,23 @@ const failures = (env: Record<string, string>) =>
   [];
 
 describe('classifier config per task', () => {
+  it('gives claim detection its own variables (DETECTOR, ADR 0017)', () => {
+    const detector = z
+      .object(classifierConfigShape('DETECTOR'))
+      .superRefine(checkClassifierConfig('DETECTOR'));
+    const config = detector.parse({
+      DETECTOR_CLASSIFIER_PROVIDER: 'llm',
+      DETECTOR_CONFIDENCE_HIGH: '0.8',
+      DETECTOR_CONFIDENCE_LOW: '0.5',
+    });
+    expect(describeClassifierConfig('DETECTOR', config)).toEqual({
+      provider: 'llm',
+      high: 0.8,
+      low: 0.5,
+    });
+    expect(detector.safeParse({ CHECKER_CLASSIFIER_PROVIDER: 'llm' }).success).toBe(false);
+  });
+
   it('accepts the llm classifier without model or key and applies the ADR thresholds', () => {
     const config = schema.parse({ CHECKER_CLASSIFIER_PROVIDER: 'llm' });
     expect(config.CHECKER_CONFIDENCE_HIGH).toBe(0.75);

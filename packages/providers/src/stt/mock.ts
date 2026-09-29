@@ -8,7 +8,7 @@ import type { SttProvider, SttSession } from './types.js';
  */
 export const MOCK_STT_SCRIPT = [
   'Guten Abend und willkommen zur Diskussion.',
-  'Der Zweite Weltkrieg endete im Jahr 1965.',
+  'Der Zweite Weltkrieg endete 1965.',
   'Das sehe ich anders, ich finde das Thema wichtig.',
   'Berlin hat ungefähr 3,9 Millionen Einwohner.',
   'Die Mondlandung fand 1975 statt.',

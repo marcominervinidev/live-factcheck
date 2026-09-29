@@ -4,8 +4,8 @@ import { z } from 'zod';
 export const CLASSIFIER_PROVIDERS = ['llm', 'typesafe', 'mock'] as const;
 export type ClassifierProviderName = (typeof CLASSIFIER_PROVIDERS)[number];
 
-/** Tasks with their own classifier config. `DETECTOR` (claim-extractor) follows in phase 2. */
-export type ClassifierTask = 'CHECKER';
+/** Tasks with their own classifier config: the verdict (fact-checker) and claim detection (claim-extractor, ADR 0017). */
+export type ClassifierTask = 'CHECKER' | 'DETECTOR';
 
 /** Name of the env variable with Jev's API key, shared by every task that uses `typesafe`. */
 // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a variable name, not a key
