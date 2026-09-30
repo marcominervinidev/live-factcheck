@@ -16,11 +16,17 @@ interface Props {
   fetchImpl?: typeof fetch;
 }
 
-const STATUS_ICON: Readonly<Record<Exclude<RecordingStatus, 'idle'>, string>> = {
-  starting: '◌',
-  recording: '●',
-  stopping: '◌',
-};
+/** Red dot while the microphone is live, a pulsing ring while it starts or stops. */
+function StatusDot({ status }: Readonly<{ status: Exclude<RecordingStatus, 'idle'> }>) {
+  return status === 'recording' ? (
+    <span aria-hidden="true" className="h-3 w-3 shrink-0 rounded-full bg-live" />
+  ) : (
+    <span
+      aria-hidden="true"
+      className="h-3 w-3 shrink-0 rounded-full ring-2 ring-faint motion-safe:animate-pulse"
+    />
+  );
+}
 
 /** Start/stop of a live recording with consent first (T6.1, T6.2). */
 export function RecordPanel({
@@ -63,19 +69,19 @@ export function RecordPanel({
           onClick={() => {
             setAsking(true);
           }}
-          className="rounded-full bg-action px-5 py-3 font-medium text-on-action disabled:opacity-50"
+          className="flex min-h-15 items-center justify-center gap-3 rounded-xl bg-action px-5 text-lg font-bold text-on-action hover:bg-action-strong disabled:opacity-50"
         >
-          <span aria-hidden="true">● </span>
+          <span aria-hidden="true" className="h-3.5 w-3.5 rounded-full bg-live" />
           {t('recording.start')}
         </button>
       ) : (
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3">
           <output
             data-testid="recording-status"
             data-status={status}
-            className={status === 'recording' ? 'font-medium text-verdict-false' : 'text-muted'}
+            className={`flex items-center gap-2.5 font-bold ${status === 'recording' ? 'text-ink' : 'text-muted'}`}
           >
-            <span aria-hidden="true">{STATUS_ICON[status]} </span>
+            <StatusDot status={status} />
             {t(`recording.status.${status}`)}
           </output>
           <button
@@ -85,9 +91,9 @@ export function RecordPanel({
             onClick={() => {
               useRecording.getState().stop();
             }}
-            className="rounded-full bg-action px-5 py-3 font-medium text-on-action disabled:opacity-50"
+            className="flex min-h-14 items-center justify-center gap-2.5 rounded-xl border-2 border-ink text-lg font-bold text-ink disabled:opacity-50"
           >
-            <span aria-hidden="true">■ </span>
+            <span aria-hidden="true" className="h-3 w-3 rounded-sm bg-ink" />
             {t('recording.stop')}
           </button>
         </div>
