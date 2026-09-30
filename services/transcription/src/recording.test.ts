@@ -180,6 +180,35 @@ describe('handleRecording (ADR 0015)', () => {
     ...overrides,
   });
 
+  it('publishes German number words as digits (numbers.ts)', async () => {
+    let handlers: SttHandlers | undefined;
+    deps = {
+      stt: provider({
+        open: (_options, h) => {
+          handlers = h;
+          return Promise.resolve({
+            send: () => undefined,
+            bufferedBytes: 0,
+            finish: () => Promise.resolve(),
+            abort: () => undefined,
+          });
+        },
+      }),
+    };
+    const client = await connect();
+    client.socket.send(JSON.stringify(start()));
+    await expect.poll(() => client.messages.length).toBe(1);
+    handlers?.onSegment({
+      text: 'Der 2. Weltkrieg endete neunzehnhundertfünfundvierzig.',
+      isFinal: true,
+      startMs: 0,
+      endMs: 2_000,
+      speaker: 'A',
+    });
+    await expect.poll(() => harness.finals.length).toBe(1);
+    expect(harness.finals[0]?.text).toBe('Der 2. Weltkrieg endete 1945.');
+  });
+
   it('stops with provider_error when the provider cannot connect or fails later', async () => {
     deps = {
       stt: provider({ open: () => Promise.reject(new SttError('auth', 'rejected')) }),

@@ -6,6 +6,7 @@ import type { DailyBudget, SttProvider, SttSegment, SttSession } from '@lfc/prov
 import { BudgetExceededError, sttBudgetCostUsd } from '@lfc/providers';
 import type { Logger } from '@lfc/service-kit';
 import type WebSocket from 'ws';
+import { germanNumberWordsToDigits } from './numbers.js';
 
 /** Bytes of PCM16 mono audio per second at 16 kHz. */
 const BYTES_PER_SECOND = 16_000 * 2;
@@ -97,7 +98,11 @@ export function handleRecording(socket: WebSocket, deps: RecordingDeps): void {
     sessionId: current.sessionId,
     segmentId: pendingId,
     speaker: segment.speaker,
-    text: segment.text.slice(0, 10_000),
+    // German number words become digits for the whole pipeline (numbers.ts).
+    text: (current.language.startsWith('de')
+      ? germanNumberWordsToDigits(segment.text)
+      : segment.text
+    ).slice(0, 10_000),
     startMs: segment.startMs,
     endMs: Math.max(segment.startMs, segment.endMs),
     isFinal: segment.isFinal,
