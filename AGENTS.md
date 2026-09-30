@@ -40,6 +40,7 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 - Every non-trivial architecture decision gets an ADR in `docs/adr/NNNN-title.md` (template `0000-template.md`).
 - A task is done only with evidence (brief 1.3): real command output, requests/responses, screenshots. Store it compactly in `docs/evidence/phase-N/`.
 - Scripts that change git state (checkout, reset, commit, branch) run only in a throwaway clone, start with `set -euo pipefail` and verify their working directory before the first write. Never run such experiments against the real working tree.
+- Every commit, merge commits and `wip:` commits included, runs the pre-commit hook; never bypass it (`core.hooksPath`, `--no-verify`). If the hook blocks unfinished work, park it with `git stash` or fix the finding.
 - Pull requests are sized for the owner's review (owner decision 2026-09-30):
   - One task of the plan per PR (e.g. T6.2), at most about 400 changed lines of production code; tests, evidence and lockfiles do not count. Split larger tasks.
   - Commits tell the story in review order (contract → logic → wiring → tests → docs), so the owner can review commit by commit.
@@ -51,6 +52,7 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 
 ## Code conventions
 
+- **Every message to the owner is in German** (owner decision 2026-09-30, after several corrections): chat replies, short status lines between tool calls, questions, summaries and the review guide at the top of a PR. Use German words where they exist (Stufe, Zweig, Prüfung). Only artefacts in the repository stay English: code, identifiers, comments, commit messages and the technical part of PR descriptions.
 - Code, identifiers and comments in English. UI texts in German, stored i18n-ready (never inline in components).
 - TypeScript strict. `any` and `@ts-ignore` are forbidden; an exception needs an ESLint disable or `@ts-expect-error` with a written reason.
 - Configuration only via environment variables, validated with zod at startup (fail fast). Secrets also via `<NAME>_FILE`.

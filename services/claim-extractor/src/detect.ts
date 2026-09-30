@@ -19,6 +19,7 @@ import { prefilter } from './prefilter.js';
 import type { SessionStore, WindowSegment } from './store.js';
 
 /** The two questions of ADR 0017, asked together in one classifier call. */
+// LANG-EN: the classifier questions are German, like prompts/standalone.md; per language or answer in the conversation language (ADR 0020)
 export const DETECTION_QUESTIONS = {
   claim: {
     type: 'bool',

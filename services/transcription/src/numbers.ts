@@ -6,6 +6,7 @@
  * every "eine Frage" would become "1 Frage".
  */
 
+// LANG-EN: German number words only; English needs none (STT writes digits), the call site already limits this to `de` (ADR 0020)
 const UNITS: Readonly<Record<string, number>> = {
   ein: 1,
   eins: 1,

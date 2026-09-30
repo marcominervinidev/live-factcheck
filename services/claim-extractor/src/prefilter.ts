@@ -10,6 +10,7 @@ export type PrefilterReason = 'too_short' | 'question' | 'greeting_or_filler' | 
 export type PrefilterResult =
   { readonly pass: true } | { readonly pass: false; readonly reason: PrefilterReason };
 
+// LANG-EN: all word lists below are German; English needs its own lists, including rhetorical questions like "Wasn't it you who …?" (ADR 0020)
 const INTERROGATIVES = new Set([
   'wer',
   'wen',
