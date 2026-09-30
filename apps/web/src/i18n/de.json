@@ -100,5 +100,7 @@
   "consent.accept": "Alle sind einverstanden – Aufnahme starten",
   "consent.cancel": "Abbrechen",
   "transcript.label": "Live-Transkript",
-  "transcript.checking": "wird geprüft"
+  "transcript.checking": "wird geprüft",
+  "theme.toDark": "Dunkles Design",
+  "theme.toLight": "Helles Design"
 }

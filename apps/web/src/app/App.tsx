@@ -5,6 +5,7 @@ import { LiveTranscript } from '../components/LiveTranscript';
 import { RecordPanel } from '../components/RecordPanel';
 import { SettingsPage } from '../components/SettingsPage';
 import { TextModeForm } from '../components/TextModeForm';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { Timeline } from '../components/Timeline';
 import { t } from '../i18n';
 import { useClaims } from '../state/claims';
@@ -16,11 +17,11 @@ import { useRuntimeConfig } from './runtime-config';
 type View = 'check' | 'settings';
 
 const STATUS_STYLE: Readonly<Record<ConnectionStatus, { icon: string; className: string }>> = {
-  idle: { icon: '○', className: 'text-slate-500' },
-  connecting: { icon: '◌', className: 'text-slate-600' },
-  open: { icon: '●', className: 'text-emerald-800' },
-  reconnecting: { icon: '◌', className: 'text-amber-800' },
-  unauthorized: { icon: '⊘', className: 'text-red-800' },
+  idle: { icon: '○', className: 'text-faint' },
+  connecting: { icon: '◌', className: 'text-muted' },
+  open: { icon: '●', className: 'text-verdict-true' },
+  reconnecting: { icon: '◌', className: 'text-muted' },
+  unauthorized: { icon: '⊘', className: 'text-verdict-false' },
 };
 
 function ConnectionBadge() {
@@ -48,7 +49,7 @@ function CheckView({ gatewayUrl }: { gatewayUrl: string }) {
     <>
       <Timeline claims={list} />
       {token === null ? (
-        <p data-testid="no-token" className="rounded-md bg-amber-50 p-3 text-amber-900">
+        <p data-testid="no-token" className="rounded-md bg-lilac-soft p-3 text-muted">
           {t('connection.noToken')}
         </p>
       ) : (
@@ -57,7 +58,7 @@ function CheckView({ gatewayUrl }: { gatewayUrl: string }) {
       <LiveTranscript />
       <TextModeForm gatewayUrl={gatewayUrl} />
       {list.length === 0 ? (
-        <p data-testid="claims-empty" className="text-slate-500">
+        <p data-testid="claims-empty" className="text-faint">
           {t('app.empty')}
         </p>
       ) : (
@@ -98,12 +99,12 @@ export function App() {
       className="mx-auto flex min-h-dvh max-w-xl flex-col gap-5 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-6"
     >
       <header className="flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">{t('app.title')}</h1>
-            <p className="text-slate-600">{t('app.tagline')}</p>
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold text-ink">{t('app.title')}</h1>
+            <p className="text-muted">{t('app.tagline')}</p>
           </div>
-          <nav className="flex gap-1 text-sm" aria-label={t('app.title')}>
+          <nav className="flex items-center gap-1 text-sm" aria-label={t('app.title')}>
             {(['check', 'settings'] as const).map((item) => (
               <button
                 key={item}
@@ -113,11 +114,12 @@ export function App() {
                 onClick={() => {
                   setView(item);
                 }}
-                className={`rounded-md px-3 py-1.5 ${view === item ? 'bg-slate-900 text-white' : 'text-slate-700 ring-1 ring-slate-300'}`}
+                className={`rounded-md px-3 py-1.5 ${view === item ? 'bg-action text-on-action' : 'text-muted ring-1 ring-line'}`}
               >
                 {t(item === 'check' ? 'nav.check' : 'nav.settings')}
               </button>
             ))}
+            <ThemeToggle />
           </nav>
         </div>
         <ConnectionBadge />
@@ -127,12 +129,12 @@ export function App() {
         <p
           role="alert"
           data-testid="config-error"
-          className="rounded-md bg-red-50 p-3 text-red-800"
+          className="rounded-md bg-verdict-false-soft p-3 text-verdict-false"
         >
           {t('config.error')}
         </p>
       ) : gatewayUrl === null ? (
-        <p data-testid="config-loading" className="text-slate-500">
+        <p data-testid="config-loading" className="text-faint">
           {t('config.loading')}
         </p>
       ) : view === 'settings' ? (

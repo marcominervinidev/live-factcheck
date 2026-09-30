@@ -49,7 +49,7 @@ export function TextModeForm({ gatewayUrl }: { gatewayUrl: string }) {
       className="flex flex-col gap-2"
       data-testid="textmode-form"
     >
-      <label htmlFor="claim-input" className="text-sm font-medium text-slate-700">
+      <label htmlFor="claim-input" className="text-sm font-medium text-muted">
         {t('textmode.label')}
       </label>
       <textarea
@@ -62,13 +62,13 @@ export function TextModeForm({ gatewayUrl }: { gatewayUrl: string }) {
         onChange={(event) => {
           setText(event.target.value);
         }}
-        className="rounded-lg border border-slate-300 bg-white p-3 text-base text-slate-900 focus:border-sky-600 focus:ring-2 focus:ring-sky-200 focus:outline-none"
+        className="rounded-lg border border-line bg-surface p-3 text-base text-ink placeholder:text-faint focus:border-action focus:ring-2 focus:ring-line focus:outline-none"
       />
       <button
         type="submit"
         data-testid="claim-submit"
         disabled={disabled}
-        className="self-end rounded-lg bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="self-end rounded-lg bg-action px-5 py-2.5 font-semibold text-on-action disabled:cursor-not-allowed disabled:bg-faint"
       >
         {t('textmode.submit')}
       </button>
@@ -76,7 +76,7 @@ export function TextModeForm({ gatewayUrl }: { gatewayUrl: string }) {
         <p
           role="alert"
           data-testid="claim-error"
-          className="rounded-md bg-amber-50 p-2 text-sm text-amber-900"
+          className="rounded-md bg-lilac-soft p-2 text-sm text-muted"
         >
           {t(error)}
         </p>

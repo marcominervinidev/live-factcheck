@@ -1,9 +1,90 @@
 @import 'tailwindcss';
+/* Self-hosted (CSP: font-src 'self'); DocuSign's own DSIndigo is proprietary, this is the free stand-in. */
+@import '@fontsource-variable/plus-jakarta-sans';
+
+/*
+ * Design tokens (ADR 0019, owner decision 2026-09-30): DocuSign's palette – violet for controls,
+ * plum for text, lilac tints – with our own verdict colours, so a verdict never looks like a
+ * button. Every utility below references these variables, so the dark theme only redefines them.
+ */
+@theme {
+  --font-sans: 'Plus Jakarta Sans Variable', system-ui, sans-serif;
+
+  --color-ground: #f8f3f0;
+  --color-surface: #ffffff;
+  --color-ink: #130032;
+  --color-muted: #5a4e77;
+  --color-faint: #6b5f86;
+  --color-line: #cbc2ff;
+  --color-lilac-soft: #ede5ff;
+  --color-action: #4c00ff;
+  --color-action-strong: #4000cc;
+  --color-on-action: #ffffff;
+  --color-live: #ff5252;
+
+  --color-verdict-true: #0a7a54;
+  --color-verdict-true-soft: #d4f3e5;
+  --color-verdict-false: #c8102e;
+  --color-verdict-false-soft: #ffdcd8;
+  --color-verdict-open: #5a4e77;
+  --color-verdict-open-soft: #ede5ff;
+}
+
+/* `dark:` utilities follow the stored choice, not only the system (state/theme.ts sets the attribute). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 :root {
   color-scheme: light;
 }
 
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-ground: #130032;
+  --color-surface: #26065d;
+  --color-ink: #f3eeff;
+  --color-muted: #b8add9;
+  --color-faint: #8f82b8;
+  --color-line: #4a2a8a;
+  --color-lilac-soft: #2f1466;
+  --color-action: #cbc2ff;
+  --color-action-strong: #e3ddff;
+  --color-on-action: #130032;
+
+  --color-verdict-true: #5fcfa8;
+  --color-verdict-true-soft: #123f33;
+  --color-verdict-false: #ffb3b3;
+  --color-verdict-false-soft: #4a1230;
+  --color-verdict-open: #b8add9;
+  --color-verdict-open-soft: #2f1466;
+}
+
 body {
-  background-color: #f8fafc;
+  background-color: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* UX baseline (ADR 0019, ui-ux-pro-max checklist): visible focus, no tap delay, reduced motion. */
+:focus-visible {
+  outline: 3px solid var(--color-action);
+  outline-offset: 2px;
+}
+
+a,
+button,
+summary,
+[role='button'] {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

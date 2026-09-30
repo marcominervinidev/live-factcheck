@@ -23,16 +23,16 @@ function Providers({ gatewayUrl, token }: { gatewayUrl: string; token: string })
   }, [gatewayUrl, token]);
 
   if (status.state === 'loading')
-    return <p className="text-slate-500">{t('settings.providers.loading')}</p>;
+    return <p className="text-faint">{t('settings.providers.loading')}</p>;
   if (status.state === 'error') return <p role="alert">{t('settings.providers.error')}</p>;
   const { privacyMode, providers } = status.status;
   const jev = providers.some((p) => p.provider === 'typesafe');
   return (
     <div className="flex flex-col gap-3" data-testid="providers">
-      <p data-testid="privacy-mode" className="text-slate-700">
+      <p data-testid="privacy-mode" className="text-muted">
         {t(privacyMode === 'local' ? 'settings.privacy.local' : 'settings.privacy.cloud')}
       </p>
-      <ul className="divide-y divide-slate-200 rounded-lg bg-white ring-1 ring-slate-200">
+      <ul className="divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
         {providers.map((p) => (
           <li
             key={`${p.service}-${p.role}`}
@@ -43,7 +43,7 @@ function Providers({ gatewayUrl, token }: { gatewayUrl: string; token: string })
               <strong>{t(`role.${p.role}`)}</strong> ({p.service}): {p.provider}
               {p.model === undefined ? '' : ` · ${p.model}`}
             </span>
-            <span className={p.cloud ? 'text-amber-800' : 'text-emerald-800'}>
+            <span className={p.cloud ? 'text-muted' : 'text-verdict-true'}>
               <span aria-hidden="true">{p.cloud ? '☁ ' : '⌂ '}</span>
               {t(p.cloud ? 'settings.providers.cloud' : 'settings.providers.local')}
             </span>
@@ -51,11 +51,11 @@ function Providers({ gatewayUrl, token }: { gatewayUrl: string; token: string })
         ))}
       </ul>
       {jev && (
-        <p data-testid="jev-notice" className="text-sm text-slate-600">
+        <p data-testid="jev-notice" className="text-sm text-muted">
           {t('settings.privacy.jev')}
         </p>
       )}
-      <p className="text-sm text-slate-500">{t('settings.providers.help')}</p>
+      <p className="text-sm text-faint">{t('settings.providers.help')}</p>
     </div>
   );
 }
@@ -78,9 +78,9 @@ export function SettingsPage({ gatewayUrl }: { gatewayUrl: string }) {
 
   return (
     <section className="flex flex-col gap-6" data-testid="settings">
-      <h2 className="text-xl font-semibold text-slate-900">{t('settings.title')}</h2>
+      <h2 className="text-xl font-semibold text-ink">{t('settings.title')}</h2>
       <form onSubmit={save} className="flex flex-col gap-2">
-        <label htmlFor="token-input" className="text-sm font-medium text-slate-700">
+        <label htmlFor="token-input" className="text-sm font-medium text-muted">
           {t('settings.token.label')}
         </label>
         <input
@@ -93,14 +93,14 @@ export function SettingsPage({ gatewayUrl }: { gatewayUrl: string }) {
             setDraft(event.target.value);
             setSaved(false);
           }}
-          className="rounded-lg border border-slate-300 bg-white p-3 text-base"
+          className="rounded-lg border border-line bg-surface p-3 text-base"
         />
-        <p className="text-sm text-slate-500">{t('settings.token.help')}</p>
+        <p className="text-sm text-faint">{t('settings.token.help')}</p>
         <div className="flex gap-2">
           <button
             type="submit"
             data-testid="token-save"
-            className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white"
+            className="rounded-lg bg-action px-4 py-2 font-semibold text-on-action"
           >
             {t('settings.token.save')}
           </button>
@@ -109,22 +109,22 @@ export function SettingsPage({ gatewayUrl }: { gatewayUrl: string }) {
               type="button"
               data-testid="token-clear"
               onClick={clearToken}
-              className="rounded-lg px-4 py-2 text-slate-700 ring-1 ring-slate-300"
+              className="rounded-lg px-4 py-2 text-muted ring-1 ring-line"
             >
               {t('settings.token.clear')}
             </button>
           )}
         </div>
         {saved && (
-          <p role="status" className="text-sm text-emerald-800">
+          <p role="status" className="text-sm text-verdict-true">
             {t('settings.token.saved')}
           </p>
         )}
       </form>
       <section className="flex flex-col gap-2">
-        <h3 className="font-semibold text-slate-900">{t('settings.providers.title')}</h3>
+        <h3 className="font-semibold text-ink">{t('settings.providers.title')}</h3>
         {token === null ? (
-          <p className="text-slate-500">{t('connection.noToken')}</p>
+          <p className="text-faint">{t('connection.noToken')}</p>
         ) : (
           <Providers gatewayUrl={gatewayUrl} token={token} />
         )}

@@ -25,7 +25,7 @@ function ClaimMark({
       data-claim-id={claim.claimId}
       data-state={display === undefined ? 'checking' : 'checked'}
       aria-label={`${text} – ${label}`}
-      className={`rounded px-0.5 underline decoration-2 underline-offset-4 ${display === undefined ? 'animate-pulse decoration-dotted decoration-slate-400' : display.className}`}
+      className={`rounded px-0.5 underline decoration-2 underline-offset-4 ${display === undefined ? 'animate-pulse decoration-dotted decoration-faint' : display.className}`}
     >
       {withText && text}
       <span aria-hidden="true" className="ml-1 text-xs no-underline">
@@ -64,7 +64,7 @@ export function LiveTranscript() {
     <section aria-label={t('transcript.label')} data-testid="transcript">
       <ol
         ref={list}
-        className="flex max-h-80 flex-col gap-2 overflow-y-auto rounded-lg bg-white p-3 ring-1 ring-slate-200"
+        className="flex max-h-80 flex-col gap-2 overflow-y-auto rounded-lg bg-surface p-3 ring-1 ring-line"
       >
         {order.map((id) => {
           const segment = segments[id];
@@ -77,10 +77,10 @@ export function LiveTranscript() {
               data-final={String(segment.isFinal)}
               className="flex gap-2"
             >
-              <span className="shrink-0 text-xs font-semibold text-slate-500">
+              <span className="shrink-0 text-xs font-semibold text-faint">
                 {t('card.speaker', { speaker: segment.speaker })}
               </span>
-              <span className={segment.isFinal ? 'text-slate-900' : 'text-slate-400 italic'}>
+              <span className={segment.isFinal ? 'text-ink' : 'text-faint italic'}>
                 {marked.length === 0
                   ? segment.text
                   : marked.map((claim, index) => (
