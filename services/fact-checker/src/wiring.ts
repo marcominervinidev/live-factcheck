@@ -76,7 +76,8 @@ export function createPipelineDeps(config: Config, redis: Redis): PipelineDeps {
     const sources = {
       ...(apiKey === undefined
         ? {}
-        : { factCheck: createFactCheckSource({ fetcher, apiKey, languageCode: 'de' }) }),
+        : // LANG-EN: Google Fact Check limited to German fact checks; pass the conversation language (ADR 0020)
+          { factCheck: createFactCheckSource({ fetcher, apiKey, languageCode: 'de' }) }),
       wikipedia: createWikipediaSource({ fetcher, tiers, maxChars, now }),
       wikidata: createWikidataSource({ fetcher, tiers, now }),
       web: createWebSource({ search, fetcher, robots, tiers, maxChars, now }),

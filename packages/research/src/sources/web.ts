@@ -28,6 +28,7 @@ export function createWebSource(options: {
       const resultLists = await Promise.allSettled(
         queries.map((query) =>
           options.search.search(query, {
+            // LANG-EN: search results in German only; pass the conversation language (ADR 0020)
             language: 'de',
             limit: callOptions.resultsPerQuery,
             ...signal,

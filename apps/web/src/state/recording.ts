@@ -90,6 +90,7 @@ export const useRecording = create<RecordingStore>((set, get) => {
           sampleRate: AUDIO_SAMPLE_RATE,
           encoding: 'pcm16',
           channels: 1,
+          // LANG-EN: conversations are German only; send the chosen conversation language here (ADR 0020)
           language: 'de',
         }),
       );
