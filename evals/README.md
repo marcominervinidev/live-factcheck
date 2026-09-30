@@ -45,6 +45,15 @@ Every paid run needs the owner's go-ahead with a cost estimate first.
 
 `make eval EVAL_SET=detection EVAL_LABEL=<name>` replays every conversation of `detection.de.jsonl` as final transcript segments into `transcript.segments` (one session per conversation, segments in file order, so the classifier sees the same window as live) and waits until the claim-extractor has handled each segment. A segment counts as detected when a new claim with its id reaches `claims.detected`; duplicates dropped by the extractor count as not detected. Timeouts are reported separately and never count as correct.
 
+**Label rule** (owner, 2026-09-30): `expected: true` means "this segment should appear in the app as a claim to check". All of these must hold:
+
+1. **Checkable:** it states facts, figures, events or states that sources can confirm or refute. Opinions, judgements, forecasts, promises and appeals are not claims.
+2. **Worth checking:** a listener could reasonably want it checked (checkworthiness ≥ 3 of 5). Asides such as the speaker's biography or remarks about the ongoing debate are `false`.
+3. **Rhetorical questions count** when they insinuate a checkable fact ("Waren es nicht Sie, der … vorgeworfen hat?"). Genuine questions do not.
+4. **Context decides:** a segment that is only checkable with the previous ones is judged with them; if it then repeats an earlier claim of the same conversation, it is `false` (deduplication).
+
+Labels proposed or corrected by an LLM keep `reviewed: false`; only the owner sets `true`.
+
 Live mode takes only audio through the gateway, so this runner (`eval-detection` in `compose.test.yaml`) runs in the internal network with the services' Redis user instead of acting as a client. Reports: `docs/evidence/phase-2/evals/eval-detection-<label>-<time>.md` and `.json`. With the mock classifier (every segment with a digit is a claim) a dry run checks only the mechanics.
 
 ### In GitHub Actions
