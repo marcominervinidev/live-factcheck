@@ -29,7 +29,11 @@ export interface SessionStore {
   hasClaim(sessionId: string, normalizedText: string): Promise<boolean>;
   /** The standalone texts of the session's most recent claims, newest first. */
   recentClaims(sessionId: string): Promise<readonly string[]>;
-  addClaim(sessionId: string, normalizedText: string, standaloneText: string): Promise<void>;
+  /**
+   * Registers the claim; true only for the first registration of this normalised text in the
+   * session. Atomic in Redis, so of two consumers racing on the same claim only one may publish.
+   */
+  addClaim(sessionId: string, normalizedText: string, standaloneText: string): Promise<boolean>;
 }
 
 export interface SessionStoreOptions {
@@ -88,14 +92,15 @@ export function redisSessionStore(redis: Redis, options: SessionStoreOptions): S
       return redis.lrange(recentKey(sessionId), 0, options.candidates - 1);
     },
     async addClaim(sessionId, normalizedText, standaloneText) {
+      if ((await redis.sadd(claimsKey(sessionId), normalizedText)) === 0) return false;
       await redis
         .multi()
-        .sadd(claimsKey(sessionId), normalizedText)
         .pexpire(claimsKey(sessionId), options.ttlMs)
         .lpush(recentKey(sessionId), standaloneText)
         .ltrim(recentKey(sessionId), 0, options.candidates - 1)
         .pexpire(recentKey(sessionId), options.ttlMs)
         .exec();
+      return true;
     },
   };
 }

@@ -165,7 +165,10 @@ export async function detectClaim(
     if (await isDuplicate(segment.sessionId, standaloneText, normalizedText, deps)) {
       return { kind: 'dropped', reason: 'duplicate' };
     }
-    await deps.store.addClaim(segment.sessionId, normalizedText, standaloneText);
+    // Another consumer may have published the same claim since the check above.
+    if (!(await deps.store.addClaim(segment.sessionId, normalizedText, standaloneText))) {
+      return { kind: 'dropped', reason: 'duplicate' };
+    }
 
     const claimDetected = ClaimDetectedSchema.parse({
       schemaVersion: 3,

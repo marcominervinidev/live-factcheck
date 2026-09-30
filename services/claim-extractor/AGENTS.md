@@ -6,6 +6,7 @@ Rules for this service only. Repo-wide rules: `/AGENTS.md`. Structure copied fro
 - Precision first: a "yes" below `DETECTOR_CONFIDENCE_HIGH` is dropped, never shown. Every drop is counted by reason (`segments_dropped_total`), no transcript text in logs.
 - Window and claim memory expire `EXTRACTOR_MEMORY_TTL_MS` (15 min) after a session's last segment; every segment refreshes all three keys (ADR 0018).
 - The classifier state contains the window as context; speakers are letters (A, B, …), never names (brief 15.6, owner decision 2026-09-29).
+- Only the consumer whose `addClaim` registers the normalised text first (atomic `SADD`) publishes a claim, so parallel extractor replicas cannot publish the same exact claim twice. The "similar wording" check is not atomic across replicas; with one replica today that is accepted; with several, the worst case is the same claim shown twice in slightly different words.
 - `normalizedText` comes from `normalizeClaimText` in `@lfc/service-kit`, the same function as the gateway's text mode, so spoken and typed claims share the verdict cache.
 - `prompts/` must stay in `files` of `package.json`: the runtime image contains only what `pnpm deploy` packs.
 - Mock mode (`DETECTOR_CLASSIFIER_PROVIDER=mock`, `EXTRACTOR_LLM_PROVIDER=mock`, `src/mocks.ts`): a segment with a number is a claim, the standalone wording is the segment itself.
