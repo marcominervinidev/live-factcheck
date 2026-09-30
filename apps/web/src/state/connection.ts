@@ -2,6 +2,9 @@ import { WsServerMessage } from '@lfc/contracts';
 import { create } from 'zustand';
 
 import { useClaims } from './claims';
+import type { SessionSender } from './recording';
+import { useRecording } from './recording';
+import { useTranscript } from './transcript';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'unauthorized';
 
@@ -10,7 +13,7 @@ export interface SocketLike {
   onopen: ((this: SocketLike, event: unknown) => void) | null;
   onmessage: ((this: SocketLike, event: { data: unknown }) => void) | null;
   onclose: ((this: SocketLike, event: { code: number }) => void) | null;
-  send(data: string): void;
+  send(data: string | ArrayBuffer): void;
   close(code?: number): void;
 }
 
@@ -42,6 +45,8 @@ interface ConnectionStore {
   sessionId: string | null;
   connect: (url: string, token: string, factory?: SocketFactory) => void;
   disconnect: () => void;
+  /** Sends on the open session socket (audio control and frames); false when not open. */
+  send: SessionSender;
 }
 
 /** Adapts the browser WebSocket to SocketLike without a type cast. */
@@ -98,12 +103,17 @@ export const useConnection = create<ConnectionStore>((set, get) => {
       if (message.type === 'session.ready') {
         attempt = 0;
         set({ status: 'open', sessionId: message.sessionId });
+      } else if (message.type === 'audio.started' || message.type === 'audio.stopped') {
+        useRecording.getState().handleServerMessage(message);
       } else if (message.type === 'error') {
+        useRecording.getState().handleServerMessage(message);
         if (message.code === 'unauthorized') {
           stopped = true;
           set({ status: 'unauthorized', sessionId: null });
         }
-      } else if (message.type === 'event') {
+      } else {
+        if (message.event.type === 'transcript.segment')
+          useTranscript.getState().apply(message.event.payload);
         useClaims.getState().applyEvent(message.event);
         if (message.event.type === 'claim.checked') {
           const { claimId } = message.event.payload;
@@ -126,6 +136,7 @@ export const useConnection = create<ConnectionStore>((set, get) => {
     current.onclose = () => {
       if (socket !== current) return;
       socket = null;
+      useRecording.getState().connectionLost();
       if (stopped || get().status === 'unauthorized') {
         if (get().status !== 'unauthorized') set({ status: 'idle', sessionId: null });
         return;
@@ -157,7 +168,13 @@ export const useConnection = create<ConnectionStore>((set, get) => {
       const current = socket;
       socket = null;
       current?.close(1000);
+      useRecording.getState().connectionLost();
       set({ status: 'idle', sessionId: null });
+    },
+    send: (data) => {
+      if (socket === null || get().status !== 'open') return false;
+      socket.send(data);
+      return true;
     },
   };
 });
