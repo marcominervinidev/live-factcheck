@@ -237,6 +237,42 @@ services:
     depends_on:
       redis: { condition: service_healthy }
 
+  # Local speech-to-text (brief 10, ADR 0016): only with `--profile local-stt` (`make up-local`).
+  stt-local:
+    <<: *hardening
+    profiles: [local-stt]
+    build:
+      context: .
+      dockerfile: services/stt-local/Dockerfile
+      target: runtime
+    image: ${LFC_REGISTRY:-lfc}/stt-local:${LFC_TAG:-local}
+    environment:
+      PORT: '8000'
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOCAL_STT_MODEL: ${LOCAL_STT_MODEL:-small}
+      LOCAL_STT_COMPUTE_TYPE: ${LOCAL_STT_COMPUTE_TYPE:-int8}
+      LOCAL_STT_CPU_THREADS: ${LOCAL_STT_CPU_THREADS:-}
+      LOCAL_STT_SILENCE_MS: ${LOCAL_STT_SILENCE_MS:-}
+      LOCAL_STT_MAX_CHUNK_MS: ${LOCAL_STT_MAX_CHUNK_MS:-}
+    # The model is downloaded once (Hugging Face) into this volume; everything else is read-only.
+    volumes:
+      - stt-models:/models
+    networks: [internal, egress]
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      # The first start downloads the model (several hundred MB).
+      start_period: 300s
+    deploy:
+      resources:
+        limits: { cpus: '4.00', memory: 3G }
+
   redis:
     <<: *hardening
     image: redis:8.10.2-alpine
@@ -303,6 +339,7 @@ networks:
 volumes:
   caddy-data: {}
   caddy-config: {}
+  stt-models: {}
 
 secrets:
   redis_password:

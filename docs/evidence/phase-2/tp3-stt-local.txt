@@ -1,0 +1,33 @@
+Phase 2 · TP3 – stt-local (2026-09-29, branch phase-2/tp3-stt-local)
+=====================================================================
+
+Service (brief 10, ADR 0016)
+  Python 3.12.14, FastAPI 0.141.1, uvicorn 0.54.0 + websockets 17.1, faster-whisper 1.2.1
+  (uv 0.12.20, frozen uv.lock, direct dependencies pinned). WebSocket /v1/stream with the
+  protocol of the `local` adapter; /healthz, /readyz (503 until the model is loaded).
+  Chunks at pauses (RMS < 330 for 500 ms) or after 15 s; one final segment per chunk, speaker A.
+
+Stage 0/1 (dev image, the same command as the CI job `stt-local`)
+  ruff check: ok · ruff format --check: 9 files already formatted · mypy strict: no issues in 9
+  source files · pytest: 16 passed (chunker, config, WebSocket protocol with a fake transcriber,
+  PCM conversion; no transcript text in logs)
+
+Real run (make stt-probe with STT_PROVIDER=local, model small, int8, CPU in the Docker VM)
+  Model download on first start: ~20 s (Systran/faster-whisper-small into the volume)
+  Guten Abend und willkommen zur Diskussion, der Zweite Weltkrieg endete im Jahr 1965.  2183 ms
+  Das sehe ich anders. Berlin hat ungefähr 3,9 Millionen Einwohner.                      1743 ms
+  und die Mondlandung fand 1975 statt.                                                     1662 ms
+  service log: chunk 7700 ms audio took 2272 ms, 5500 ms took 1835 ms, 4200 ms took 1757 ms
+  (~3.4× real time); stream finished, 615256 audio bytes, 3 chunks
+  Found on the way: uvicorn serves WebSockets only with `websockets` installed (the unit tests
+  use Starlette's test client and could not show it) → added.
+
+Image (lfc/stt-local:local, runtime stage, 496 MB)
+  hadolint: clean · Trivy: CRITICAL 0 (PR gate passes), HIGH 44 – all in Debian base packages
+  (util-linux libraries, no fix available yet); Python dependencies: 0.
+  Follow-up proposal: a distroless Python runtime like the Node services (needs a different
+  way to ship the virtualenv).
+
+Compose
+  profile local-stt: networks internal + egress (model download only), volume stt-models,
+  limits 4 CPUs / 3 GB, health check on /readyz with a 300 s start period; `make up-local`.
