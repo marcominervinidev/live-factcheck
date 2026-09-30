@@ -11,6 +11,7 @@ import {
   verdictDisplay,
 } from '../lib/format';
 import type { ClaimView } from '../state/claims';
+import { VerdictIcon } from './VerdictIcon';
 
 function VerdictChip({ checked }: { checked: ClaimChecked }) {
   const display = verdictDisplay(checked);
@@ -19,9 +20,9 @@ function VerdictChip({ checked }: { checked: ClaimChecked }) {
       data-testid="verdict-chip"
       data-verdict={checked.verdict}
       data-uncertain={display.uncertain}
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-semibold ring-1 ${display.className}`}
+      className={`inline-flex items-center gap-2 rounded-full py-1.5 pr-3.5 pl-2.5 font-bold ${display.className}`}
     >
-      <span aria-hidden="true">{display.icon}</span>
+      <VerdictIcon name={display.icon} />
       {display.label}
     </span>
   );
@@ -32,11 +33,11 @@ function Evidence({ checked }: { checked: ClaimChecked }) {
   return (
     <>
       {best !== undefined && (
-        <figure data-testid="best-evidence" className="border-l-4 border-line pl-3">
-          <figcaption className="text-xs font-medium tracking-wide text-faint uppercase">
+        <figure data-testid="best-evidence" className="rounded-xl bg-lilac-soft p-3.5">
+          <figcaption className="text-sm font-semibold text-muted">
             {t('card.bestEvidence')}
           </figcaption>
-          <blockquote className="mt-1 text-ink">„{best.snippet}“</blockquote>
+          <blockquote className="mt-1 leading-relaxed text-ink">„{best.snippet}“</blockquote>
           <p className="mt-1 text-sm text-muted">
             {best.publisher}
             {best.publishedAt === undefined ? '' : ` · ${formatDate(best.publishedAt)}`} ·{' '}
@@ -46,17 +47,15 @@ function Evidence({ checked }: { checked: ClaimChecked }) {
       )}
       {checked.evidence.length > 0 && (
         <div>
-          <h3 className="text-xs font-medium tracking-wide text-faint uppercase">
-            {t('card.sources')}
-          </h3>
-          <ul data-testid="sources" className="mt-1 space-y-1 text-sm">
+          <h3 className="text-sm font-semibold text-muted">{t('card.sources')}</h3>
+          <ul data-testid="sources" className="mt-1 space-y-1.5 text-sm">
             {checked.evidence.map((e) => (
               <li key={e.evidenceId}>
                 <a
                   href={e.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-ink underline underline-offset-2 hover:text-ink"
+                  className="font-semibold text-action underline underline-offset-2 hover:text-action-strong"
                 >
                   {e.title}
                 </a>{' '}
@@ -82,27 +81,30 @@ export function ClaimCard({ claim }: { claim: ClaimView }) {
       id={`claim-${claim.claimId}`}
       data-testid="claim-card"
       data-claim-id={claim.claimId}
-      className="flex flex-col gap-3 rounded-xl bg-surface p-4 shadow-sm ring-1 ring-line"
+      className="flex scroll-mt-24 flex-col gap-3.5 rounded-2xl bg-surface p-5 shadow-[0_6px_20px_rgb(19_0_50/0.06)] ring-1 ring-line"
     >
-      <header className="flex flex-wrap items-center gap-2 text-sm text-muted">
+      <header className="flex flex-wrap items-center justify-between gap-2">
         {checked === undefined ? (
           <span
             data-testid="verdict-pending"
-            className="inline-flex items-center gap-1.5 rounded-full bg-lilac-soft px-2.5 py-1 font-semibold text-muted"
+            className="inline-flex items-center gap-2 rounded-full bg-lilac-soft py-1.5 pr-3.5 pl-2.5 font-bold text-muted"
           >
-            <span aria-hidden="true" className="animate-pulse">
-              ⋯
-            </span>
+            <VerdictIcon name="pending" className="h-5 w-5 motion-safe:animate-pulse" />
             {t('verdict.pending')}
           </span>
         ) : (
           <VerdictChip checked={checked} />
         )}
-        {speaker !== undefined && <span>{t('card.speaker', { speaker })}</span>}
-        <time dateTime={claim.submittedAt}>{formatTime(claim.submittedAt)}</time>
+        <p className="text-sm text-faint">
+          {speaker !== undefined && `${t('card.speaker', { speaker })}, `}
+          <time dateTime={claim.submittedAt}>{formatTime(claim.submittedAt)}</time>
+        </p>
       </header>
 
-      <p data-testid="claim-text" className="text-lg leading-snug text-ink">
+      <p
+        data-testid="claim-text"
+        className="text-xl leading-snug font-bold tracking-tight text-balance text-ink"
+      >
         {checked?.claim ?? claim.detected?.standaloneText ?? claim.text}
       </p>
 
@@ -116,6 +118,13 @@ export function ClaimCard({ claim }: { claim: ClaimView }) {
 
       {checked !== undefined && (
         <>
+          <p data-testid="explanation" className="leading-relaxed text-ink">
+            {claim.explained?.explanation ??
+              (claim.explanationMissing
+                ? t('card.explanationMissing')
+                : t('card.explanationPending'))}
+          </p>
+
           <div className="flex flex-wrap gap-2" data-testid="badges">
             {checked.existingFactCheck !== undefined && (
               <span
@@ -158,7 +167,7 @@ export function ClaimCard({ claim }: { claim: ClaimView }) {
                 aria-valuetext={confidenceLabel(checked.confidenceLevel)}
               >
                 <div
-                  className="h-full rounded-full bg-faint"
+                  className="h-full rounded-full bg-action"
                   style={{ width: confidenceWidth(checked.confidence) }}
                 />
               </div>
@@ -178,13 +187,6 @@ export function ClaimCard({ claim }: { claim: ClaimView }) {
           </details>
 
           <Evidence checked={checked} />
-
-          <p data-testid="explanation" className="text-ink">
-            {claim.explained?.explanation ??
-              (claim.explanationMissing
-                ? t('card.explanationMissing')
-                : t('card.explanationPending'))}
-          </p>
         </>
       )}
 

@@ -2,34 +2,49 @@ import type { ClaimChecked, ConfidenceLevel, SourceTier, Verdict } from '@lfc/co
 
 import { t } from '../i18n';
 
+/** Names of the icons in `components/VerdictIcon.tsx`; one per verdict, plus uncertain. */
+export type VerdictIconName = 'true' | 'mostly' | 'exaggerated' | 'false' | 'open' | 'uncertain';
+
+interface VerdictStyle {
+  readonly icon: VerdictIconName;
+  /** Soft background, strong text and ring: chips and transcript marks. */
+  readonly className: string;
+  /** Full colour: the timeline bars. */
+  readonly solidClassName: string;
+  /** Underline and label colour: claims marked in the live transcript. */
+  readonly markClassName: string;
+}
+
+const TRUE_STYLE = {
+  className: 'bg-verdict-true-soft text-verdict-true ring-verdict-true',
+  solidClassName: 'bg-verdict-true text-surface',
+  markClassName: 'decoration-verdict-true text-verdict-true',
+} as const;
+const FALSE_STYLE = {
+  className: 'bg-verdict-false-soft text-verdict-false ring-verdict-false',
+  solidClassName: 'bg-verdict-false text-surface',
+  markClassName: 'decoration-verdict-false text-verdict-false',
+} as const;
+const OPEN_STYLE = {
+  className: 'bg-verdict-open-soft text-verdict-open ring-verdict-open',
+  solidClassName: 'bg-line text-ink',
+  markClassName: 'decoration-verdict-open text-verdict-open',
+} as const;
+
 /** Icon and colour per verdict. Colour is never the only signal (brief 11): icon and text too. */
-const VERDICT_STYLE: Readonly<Record<Verdict, { icon: string; className: string }>> = {
-  stimmt: { icon: '✓', className: 'bg-verdict-true-soft text-verdict-true ring-verdict-true' },
-  groesstenteils_richtig: {
-    icon: '◐',
-    className: 'bg-verdict-true-soft text-verdict-true ring-verdict-true',
-  },
-  uebertrieben: {
-    icon: '!',
-    className: 'bg-verdict-false-soft text-verdict-false ring-verdict-false',
-  },
-  falsch: { icon: '✗', className: 'bg-verdict-false-soft text-verdict-false ring-verdict-false' },
-  nicht_pruefbar: {
-    icon: '?',
-    className: 'bg-verdict-open-soft text-verdict-open ring-verdict-open',
-  },
+const VERDICT_STYLE: Readonly<Record<Verdict, VerdictStyle>> = {
+  stimmt: { icon: 'true', ...TRUE_STYLE },
+  groesstenteils_richtig: { icon: 'mostly', ...TRUE_STYLE },
+  uebertrieben: { icon: 'exaggerated', ...FALSE_STYLE },
+  falsch: { icon: 'false', ...FALSE_STYLE },
+  nicht_pruefbar: { icon: 'open', ...OPEN_STYLE },
 };
 
 /** Medium confidence is shown as "unsicher" in a neutral colour, never red or green (brief 11). */
-const UNCERTAIN_STYLE = {
-  icon: '~',
-  className: 'bg-verdict-open-soft text-verdict-open ring-verdict-open',
-};
+const UNCERTAIN_STYLE: VerdictStyle = { icon: 'uncertain', ...OPEN_STYLE };
 
-export interface VerdictDisplay {
+export interface VerdictDisplay extends VerdictStyle {
   readonly label: string;
-  readonly icon: string;
-  readonly className: string;
   /** True when the level is `mittel`: the UI must not suggest certainty. */
   readonly uncertain: boolean;
 }

@@ -5,6 +5,7 @@ import { verdictDisplay } from '../lib/format';
 import type { ClaimView } from '../state/claims';
 import { useClaims } from '../state/claims';
 import { useTranscript } from '../state/transcript';
+import { VerdictIcon } from './VerdictIcon';
 
 /**
  * A detected claim marked in its segment: pending while checked, then in its verdict's colour.
@@ -25,11 +26,15 @@ function ClaimMark({
       data-claim-id={claim.claimId}
       data-state={display === undefined ? 'checking' : 'checked'}
       aria-label={`${text} – ${label}`}
-      className={`rounded px-0.5 underline decoration-2 underline-offset-4 ${display === undefined ? 'animate-pulse decoration-dotted decoration-faint' : display.className}`}
+      className={`underline decoration-2 underline-offset-[5px] ${display === undefined ? 'decoration-faint decoration-dotted' : display.markClassName}`}
     >
-      {withText && text}
-      <span aria-hidden="true" className="ml-1 text-xs no-underline">
-        {display?.icon ?? '⋯'} {label}
+      {withText && <span className="text-ink">{text}</span>}
+      <span
+        aria-hidden="true"
+        className={`ml-1.5 inline-flex items-center gap-1 align-middle text-sm font-semibold ${display === undefined ? 'text-faint motion-safe:animate-pulse' : ''}`}
+      >
+        <VerdictIcon name={display?.icon ?? 'pending'} className="h-4 w-4" />
+        {label}
       </span>
     </a>
   );
@@ -64,7 +69,7 @@ export function LiveTranscript() {
     <section aria-label={t('transcript.label')} data-testid="transcript">
       <ol
         ref={list}
-        className="flex max-h-80 flex-col gap-2 overflow-y-auto rounded-lg bg-surface p-3 ring-1 ring-line"
+        className="flex max-h-80 flex-col gap-3 overflow-y-auto text-[17px] leading-relaxed"
       >
         {order.map((id) => {
           const segment = segments[id];
@@ -77,7 +82,7 @@ export function LiveTranscript() {
               data-final={String(segment.isFinal)}
               className="flex gap-2"
             >
-              <span className="shrink-0 text-xs font-semibold text-faint">
+              <span className="shrink-0 pt-0.5 text-sm font-semibold text-faint">
                 {t('card.speaker', { speaker: segment.speaker })}
               </span>
               <span className={segment.isFinal ? 'text-ink' : 'text-faint italic'}>
