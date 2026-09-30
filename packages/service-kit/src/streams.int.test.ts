@@ -9,7 +9,13 @@ import { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { StreamConsumer, StreamMessage } from './streams.js';
-import { processedMarker, publishEvent, publishToSession, startStreamConsumer } from './streams.js';
+import {
+  STREAM_RETENTION_MS,
+  processedMarker,
+  publishEvent,
+  publishToSession,
+  startStreamConsumer,
+} from './streams.js';
 import { silentLogger } from './testing/silent-logger.js';
 
 const PASSWORD = randomBytes(12).toString('hex');
@@ -105,6 +111,21 @@ describe('Redis Streams helpers against a real Redis', () => {
     await expect.poll(() => channelMessages.length).toBe(1);
     expect(JSON.parse(channelMessages[0] ?? '{}')).toEqual(event);
     await expect.poll(async () => ((await redis.xpending(stream, group)) as [number])[0]).toBe(0);
+  });
+
+  it('trims entries older than the retention on every publish (ADR 0018)', async () => {
+    const redis = connect();
+    const { stream } = names();
+    const minutesAgo = (minutes: number) => `${String(Date.now() - minutes * 60_000)}-0`;
+    const old = await redis.xadd(stream, minutesAgo(16), 'data', '{}');
+    const recent = await redis.xadd(stream, minutesAgo(14), 'data', '{}');
+
+    const published = await publishEvent(redis, stream, detected());
+
+    const ids = (await redis.xrange(stream, '-', '+')).map(([id]) => id);
+    expect(ids).toEqual([recent, published]);
+    expect(ids).not.toContain(old);
+    expect(STREAM_RETENTION_MS).toBe(15 * 60_000);
   });
 
   it('publishes a client-only event to the session channel and never to a stream', async () => {

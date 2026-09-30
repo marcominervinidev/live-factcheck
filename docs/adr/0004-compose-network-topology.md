@@ -32,7 +32,7 @@ The brief names `edge` and `internal`. `frontend` was split off after the phase 
   - `default`: off.
   - `app` (services): everything except `@admin` and `@dangerous`.
   - `mcp` (Redis MCP server): `@read`, `@connection`, `@pubsub` subscribe, `XINFO` and `XPENDING`; all writes are denied by Redis itself.
-- AOF persistence on a named volume.
+- AOF persistence on a named volume. *Replaced by ADR 0018 (2026-09-29): no persistence, no volume.*
 
 **SearXNG** runs as its own user (977) with the settings file mounted read-only and its cache on tmpfs. Its secret key comes from the Compose secret via `SEARXNG_SECRET`, and it refuses to start without one.
 

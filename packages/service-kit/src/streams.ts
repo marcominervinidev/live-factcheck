@@ -7,8 +7,16 @@ import type { Logger } from './logger.js';
 const DATA_FIELD = 'data';
 
 /**
+ * How long stream entries are kept (ADR 0018). Transcripts and claims are personal data; the
+ * pipeline handles an entry within seconds, so nothing needs them after that.
+ */
+export const STREAM_RETENTION_MS = 15 * 60 * 1_000;
+
+/**
  * Publishes an event to its stream and, for client-relevant events, to the session channel
  * (brief 6, 6.7). The envelope is validated before it leaves the producer (contract-first).
+ * Every publish trims the stream to entries younger than `STREAM_RETENTION_MS` (exact `MINID`,
+ * so small streams are trimmed too; the threshold uses this host's clock).
  */
 export async function publishEvent(
   redis: Redis,
@@ -18,7 +26,8 @@ export async function publishEvent(
 ): Promise<string> {
   const envelope = EventEnvelope.parse(event);
   const json = JSON.stringify(envelope);
-  const multi = redis.multi().xadd(stream, '*', DATA_FIELD, json);
+  const minId = `${String(Date.now() - STREAM_RETENTION_MS)}-0`;
+  const multi = redis.multi().xadd(stream, 'MINID', minId, '*', DATA_FIELD, json);
   if (options.toSession === true) {
     multi.publish(sessionEventsChannel(envelope.payload.sessionId), json);
   }

@@ -1,0 +1,48 @@
+Phase 2 · TP5 – claim-extractor (2026-09-29, branch phase-2/tp5-claim-extractor)
+================================================================================
+
+Detection (ADR 0017)
+  transcript.segments (final only) → window in Redis → pre-filter → DETECTOR classifier
+  (Bool claim + Score checkworthiness 1–5) → standalone sentence (EXTRACTOR_LLM, random data
+  tag) → dedup (exact normalizeClaimText, similar wording confirmed by the classifier) →
+  ClaimDetected v3 (detectMs) to claims.detected + session channel.
+  Precision first: claim probability ≥ 0.5 and confidence ≥ 0.75 (DETECTOR_CONFIDENCE_HIGH),
+  checkworthiness ≥ 3. Drops counted by reason; no transcript text in logs.
+
+Tests
+  unit 39: pre-filter (16 German cases), detection paths (claim, 4 pre-filter drops, not a
+    claim / uncertain / low checkworthiness without an LLM call, window as context with speaker
+    letters, injected closing tag stays inside the random data tag, exact and confirmed similar
+    duplicates vs. another number, model failures and budget → reasons, programming errors are
+    rethrown), similarity, config (privacy mode refuses Jev as detector in local mode)
+  integration 7: store against a real Redis (window order, idempotency, trim, TTL, corrupt
+    entries, claim memory); whole service process: greeting and opinion dropped, interim
+    ignored, repeated claim deduplicated, provider status
+  coverage 97 % lines / 88 % branches
+  stage 3 tests/api/live-claims.spec.ts: audio through Caddy → gateway → transcription (mock
+    STT) → claim-extractor → fact-checker: greeting dropped, "Der Zweite Weltkrieg endete 1965."
+    detected (speaker B) and checked as "falsch"
+  stage 3: 40 passed · stage 4: 6 passed (isolated stack lfc-verify)
+
+Found on the way
+  - normalizeClaimText moved to @lfc/service-kit: text mode and live mode now produce the same
+    verdict cache key (the ADR's stop-word-free hash would have merged "ist" and "ist nicht")
+  - the extractor had no egress network, so a cloud LLM or Jev could not have been reached
+  - the prompts were missing in the runtime image (package `files`); caught by stage 3 in the
+    isolated stack, the same check runs in CI on every PR
+
+Open
+  T5.6 detection eval set (~150 segments from Bundestag protocols, labels checked by Marco)
+  and `pnpm eval --set detection`; Stryker for the deduplication (nightly)
+
+Security review fixes (owner-approved 2026-09-29, ADR 0018)
+  - transcription fails closed: a budget that cannot be booked or checked stops the recording
+    with budget_exceeded (2 new unit tests; the start test fails against the old code)
+  - publishEvent trims every stream with XADD MINID to 15 minutes (integration test: entry
+    16 min old removed, 14 min old kept)
+  - claim-extractor memory: EXTRACTOR_MEMORY_TTL_MS 15 min, refreshed on every segment
+    (integration test)
+  - Redis: --appendonly no --save '' --dir /tmp, redis-data volume removed
+  - make lint: exit 0 · unit: service-kit 27, transcription 19, claim-extractor 40 passed
+  - integration: service-kit 12, transcription 3, claim-extractor 7 passed
+  - stage 3: 40 passed · stage 4: 6 passed (isolated stack lfc-verify, Redis without persistence)

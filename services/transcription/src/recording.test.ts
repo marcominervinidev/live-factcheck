@@ -283,6 +283,48 @@ describe('handleRecording (ADR 0015)', () => {
     expect(booked[0]).toBeCloseTo((0.0077 * 10) / 60, 8);
   });
 
+  it('refuses to start when the budget cannot be checked (fails closed)', async () => {
+    deps = {
+      budget: {
+        ...budget(10).daily,
+        ensureAvailable: () => Promise.reject(new Error('redis unavailable')),
+      },
+      stt: provider({ open: () => Promise.reject(new Error('must not be called')) }),
+    };
+    const client = await connect();
+    client.socket.send(JSON.stringify(start()));
+    await expect
+      .poll(() => client.messages.at(-1))
+      .toMatchObject({ type: 'stopped', reason: 'budget_exceeded' });
+  });
+
+  it('stops the recording when audio cannot be booked (fails closed)', async () => {
+    const aborted = vi.fn();
+    deps = {
+      budget: {
+        ...budget(10).daily,
+        recordUsd: () => Promise.reject(new Error('redis unavailable')),
+      },
+      stt: provider({
+        open: () =>
+          Promise.resolve({
+            send: () => undefined,
+            bufferedBytes: 0,
+            finish: () => Promise.resolve(),
+            abort: aborted,
+          }),
+      }),
+    };
+    const client = await connect();
+    client.socket.send(JSON.stringify(start()));
+    await expect.poll(() => client.messages.length).toBe(1);
+    for (let i = 0; i < 100; i++) client.socket.send(FRAME);
+    await expect
+      .poll(() => client.messages.at(-1))
+      .toMatchObject({ type: 'stopped', reason: 'budget_exceeded' });
+    expect(aborted).toHaveBeenCalled();
+  });
+
   it('aborts the provider and books the audio when the gateway goes away', async () => {
     const { daily, booked } = budget(10);
     const aborted = vi.fn();

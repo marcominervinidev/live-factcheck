@@ -33,4 +33,6 @@ user app on #${APP_HASH} ~* &* +@all -@admin -@dangerous
 user mcp on #${MCP_HASH} ~* &* -@all +@read +@connection +@pubsub -publish -spublish +xinfo +xpending +info +client|setinfo +client|setname -@admin -@dangerous
 ACL
 
-exec redis-server --aclfile /tmp/users.acl --appendonly yes --dir /data --protected-mode yes
+# No persistence (ADR 0018): streams, windows and caches hold personal data only for minutes, so
+# nothing is written to disk and a restart starts empty.
+exec redis-server --aclfile /tmp/users.acl --appendonly no --save '' --dir /tmp --protected-mode yes

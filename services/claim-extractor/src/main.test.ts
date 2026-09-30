@@ -26,6 +26,7 @@ describe('claim-extractor startup', () => {
       'REDIS_PASSWORD',
       'EXTRACTOR_LLM_PROVIDER',
       'EXTRACTOR_LLM_MODEL',
+      'DETECTOR_CLASSIFIER_PROVIDER',
     ]);
   });
 
@@ -36,6 +37,7 @@ describe('claim-extractor startup', () => {
       REDIS_PASSWORD: 'x'.repeat(16),
       EXTRACTOR_LLM_PROVIDER: 'mock',
       EXTRACTOR_LLM_MODEL: 'mock',
+      DETECTOR_CLASSIFIER_PROVIDER: 'mock',
     });
     expect(await run.exitCode).toBe(1);
     expect(run.output()).toContain('REDIS_URL');
@@ -48,6 +50,7 @@ describe('claim-extractor startup', () => {
       REDIS_PASSWORD: 'x'.repeat(16),
       EXTRACTOR_LLM_PROVIDER: 'anthropic',
       EXTRACTOR_LLM_MODEL: 'some-model',
+      DETECTOR_CLASSIFIER_PROVIDER: 'llm',
     });
     expect(await run.exitCode).toBe(1);
     expect(fatalIssues(run.output())).toContain(
@@ -64,6 +67,7 @@ describe('claim-extractor startup', () => {
       EXTRACTOR_LLM_PROVIDER: 'anthropic',
       EXTRACTOR_LLM_MODEL: 'some-model',
       EXTRACTOR_LLM_API_KEY: apiKey,
+      DETECTOR_CLASSIFIER_PROVIDER: 'llm',
     });
     await run.waitFor('service started');
     run.kill('SIGTERM');

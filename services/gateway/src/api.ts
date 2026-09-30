@@ -10,12 +10,11 @@ import {
 } from '@lfc/contracts';
 import rateLimit from '@fastify/rate-limit';
 import type { HttpServer, Logger } from '@lfc/service-kit';
-import { publishEvent } from '@lfc/service-kit';
+import { normalizeClaimText, publishEvent } from '@lfc/service-kit';
 import type { Redis } from 'ioredis';
 
 import { bearerToken, tokenMatches } from './auth.js';
 import type { Config } from './config.js';
-import { normalizeClaimText } from './normalize.js';
 import type { SessionStore } from './sessions.js';
 
 const MESSAGES: Readonly<Record<ApiErrorCode, string>> = {
@@ -49,9 +48,10 @@ const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   '/ws/session',
 ]);
 
-/** Workers publish what they use at startup (transcription, fact-checker, explainer); never keys or URLs. */
+/** Workers publish what they use at startup (transcription, claim-extractor, fact-checker, explainer); never keys or URLs. */
 const WORKER_STATUS_KEYS = [
   'status:v1:transcription',
+  'status:v1:claim-extractor',
   'status:v1:fact-checker',
   'status:v1:explainer',
 ] as const;

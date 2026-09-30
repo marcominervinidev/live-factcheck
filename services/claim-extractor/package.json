@@ -6,6 +6,7 @@
   "description": "Extracts checkable factual claims from final transcript segments via an LLM, deduplicates them and publishes them (brief 5).",
   "files": [
     "dist",
+    "prompts",
     "!dist/**/*.test.*"
   ],
   "scripts": {
@@ -17,8 +18,11 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@lfc/contracts": "workspace:*",
     "@lfc/providers": "workspace:*",
     "@lfc/service-kit": "workspace:*",
+    "ioredis": "6.0.0",
+    "prom-client": "15.1.3",
     "zod": "4.6.5"
   },
   "devDependencies": {

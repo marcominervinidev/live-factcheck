@@ -50,19 +50,21 @@ export function handleRecording(socket: WebSocket, deps: RecordingDeps): void {
     }
   };
 
+  // Fails closed: audio that cannot be booked or checked counts as a used-up budget.
   const book = async (force: boolean): Promise<boolean> => {
     if (deps.budget === undefined) return true;
     const unbooked = audioBytes - bookedBytes;
     if (unbooked <= 0 || (!force && unbooked < BOOKING_STEP_BYTES)) return true;
     bookedBytes = audioBytes;
     const audioMs = (unbooked / BYTES_PER_SECOND) * 1_000;
-    await deps.budget.recordUsd(sttBudgetCostUsd(deps.stt.name, deps.stt.model, audioMs));
     try {
+      await deps.budget.recordUsd(sttBudgetCostUsd(deps.stt.name, deps.stt.model, audioMs));
       await deps.budget.ensureAvailable();
       return true;
     } catch (error) {
-      if (error instanceof BudgetExceededError) return false;
-      throw error;
+      if (!(error instanceof BudgetExceededError))
+        logger.warn({ sessionId: start?.sessionId, err: error }, 'could not book audio');
+      return false;
     }
   };
 
@@ -126,11 +128,11 @@ export function handleRecording(socket: WebSocket, deps: RecordingDeps): void {
     try {
       await deps.budget?.ensureAvailable();
     } catch (error) {
-      if (error instanceof BudgetExceededError) {
-        stop('budget_exceeded');
-        return;
-      }
-      throw error;
+      // Fails closed like `book`: an unknown budget never opens a paid stream.
+      if (!(error instanceof BudgetExceededError))
+        logger.warn({ ...context, err: error }, 'could not check the budget');
+      stop('budget_exceeded');
+      return;
     }
     try {
       session = await deps.stt.open(
@@ -177,16 +179,12 @@ export function handleRecording(socket: WebSocket, deps: RecordingDeps): void {
         stop('overloaded');
         return;
       }
-      void book(false)
-        .then((available) => {
-          if (!available) {
-            session?.abort();
-            stop('budget_exceeded');
-          }
-        })
-        .catch((error: unknown) => {
-          logger.warn({ sessionId: start?.sessionId, err: error }, 'could not book audio');
-        });
+      void book(false).then((available) => {
+        if (!available) {
+          session?.abort();
+          stop('budget_exceeded');
+        }
+      });
       return;
     }
     let parsed: ReturnType<typeof TranscriptionClientMessage.safeParse> | undefined;
