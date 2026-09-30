@@ -63,7 +63,7 @@ export function RecordPanel({
           onClick={() => {
             setAsking(true);
           }}
-          className="rounded-full bg-red-700 px-5 py-3 font-medium text-white disabled:opacity-50"
+          className="rounded-full bg-action px-5 py-3 font-medium text-on-action disabled:opacity-50"
         >
           <span aria-hidden="true">● </span>
           {t('recording.start')}
@@ -73,7 +73,7 @@ export function RecordPanel({
           <output
             data-testid="recording-status"
             data-status={status}
-            className={status === 'recording' ? 'font-medium text-red-800' : 'text-slate-600'}
+            className={status === 'recording' ? 'font-medium text-verdict-false' : 'text-muted'}
           >
             <span aria-hidden="true">{STATUS_ICON[status]} </span>
             {t(`recording.status.${status}`)}
@@ -85,7 +85,7 @@ export function RecordPanel({
             onClick={() => {
               useRecording.getState().stop();
             }}
-            className="rounded-full bg-slate-900 px-5 py-3 font-medium text-white disabled:opacity-50"
+            className="rounded-full bg-action px-5 py-3 font-medium text-on-action disabled:opacity-50"
           >
             <span aria-hidden="true">■ </span>
             {t('recording.stop')}
@@ -93,15 +93,10 @@ export function RecordPanel({
         </div>
       )}
       {!connected && status === 'idle' && (
-        <p className="text-sm text-slate-500">{t('recording.needsConnection')}</p>
+        <p className="text-sm text-faint">{t('recording.needsConnection')}</p>
       )}
       {status === 'idle' && lastEnd !== null && lastEnd !== 'client' && (
-        <p
-          role="alert"
-          data-testid="recording-end"
-          data-reason={lastEnd}
-          className="text-amber-900"
-        >
+        <p role="alert" data-testid="recording-end" data-reason={lastEnd} className="text-muted">
           {t(`recording.end.${lastEnd}`)}
         </p>
       )}

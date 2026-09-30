@@ -49,28 +49,28 @@ export function ConsentDialog({
       open
       aria-labelledby="consent-title"
       data-testid="consent-dialog"
-      className="static m-0 flex w-full flex-col gap-3 rounded-lg bg-white p-4 text-slate-900 shadow-lg ring-1 ring-slate-300"
+      className="static m-0 flex w-full flex-col gap-3 rounded-lg bg-surface p-4 text-ink shadow-lg ring-1 ring-line"
     >
-      <h2 id="consent-title" className="text-lg font-semibold text-slate-900">
+      <h2 id="consent-title" className="text-lg font-semibold text-ink">
         {t('consent.title')}
       </h2>
-      <p className="text-slate-700">{t('consent.intro')}</p>
-      {status.state === 'loading' && <p className="text-slate-500">{t('consent.loading')}</p>}
+      <p className="text-muted">{t('consent.intro')}</p>
+      {status.state === 'loading' && <p className="text-faint">{t('consent.loading')}</p>}
       {status.state === 'error' && (
-        <p role="alert" data-testid="consent-error" className="text-red-800">
+        <p role="alert" data-testid="consent-error" className="text-verdict-false">
           {t('consent.error')}
         </p>
       )}
       {status.state === 'ready' &&
         (cloud.length === 0 ? (
-          <p data-testid="consent-local" className="text-emerald-800">
+          <p data-testid="consent-local" className="text-verdict-true">
             <span aria-hidden="true">⌂ </span>
             {t('consent.local')}
           </p>
         ) : (
           <div className="flex flex-col gap-1">
-            <p className="text-slate-700">{t('consent.cloud')}</p>
-            <ul className="list-disc pl-5 text-slate-800" data-testid="consent-providers">
+            <p className="text-muted">{t('consent.cloud')}</p>
+            <ul className="list-disc pl-5 text-ink" data-testid="consent-providers">
               {cloud.map((p) => (
                 <li key={`${p.service}-${p.role}`} data-testid="consent-provider">
                   {t('consent.provider', {
@@ -80,7 +80,7 @@ export function ConsentDialog({
                 </li>
               ))}
             </ul>
-            {jev && <p className="text-sm text-slate-600">{t('settings.privacy.jev')}</p>}
+            {jev && <p className="text-sm text-muted">{t('settings.privacy.jev')}</p>}
           </div>
         ))}
       <div className="flex flex-wrap gap-2">
@@ -89,7 +89,7 @@ export function ConsentDialog({
           data-testid="consent-accept"
           disabled={status.state !== 'ready'}
           onClick={onAccept}
-          className="rounded-md bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
+          className="rounded-md bg-action px-4 py-2 text-on-action disabled:opacity-50"
         >
           {t('consent.accept')}
         </button>
@@ -98,7 +98,7 @@ export function ConsentDialog({
           type="button"
           data-testid="consent-cancel"
           onClick={onCancel}
-          className="rounded-md px-4 py-2 text-slate-700 ring-1 ring-slate-300"
+          className="rounded-md px-4 py-2 text-muted ring-1 ring-line"
         >
           {t('consent.cancel')}
         </button>

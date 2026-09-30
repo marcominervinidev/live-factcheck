@@ -4,15 +4,27 @@ import { t } from '../i18n';
 
 /** Icon and colour per verdict. Colour is never the only signal (brief 11): icon and text too. */
 const VERDICT_STYLE: Readonly<Record<Verdict, { icon: string; className: string }>> = {
-  stimmt: { icon: '✓', className: 'bg-emerald-100 text-emerald-900 ring-emerald-600' },
-  groesstenteils_richtig: { icon: '◐', className: 'bg-lime-100 text-lime-900 ring-lime-700' },
-  uebertrieben: { icon: '!', className: 'bg-amber-100 text-amber-900 ring-amber-600' },
-  falsch: { icon: '✗', className: 'bg-red-100 text-red-900 ring-red-600' },
-  nicht_pruefbar: { icon: '?', className: 'bg-slate-100 text-slate-800 ring-slate-500' },
+  stimmt: { icon: '✓', className: 'bg-verdict-true-soft text-verdict-true ring-verdict-true' },
+  groesstenteils_richtig: {
+    icon: '◐',
+    className: 'bg-verdict-true-soft text-verdict-true ring-verdict-true',
+  },
+  uebertrieben: {
+    icon: '!',
+    className: 'bg-verdict-false-soft text-verdict-false ring-verdict-false',
+  },
+  falsch: { icon: '✗', className: 'bg-verdict-false-soft text-verdict-false ring-verdict-false' },
+  nicht_pruefbar: {
+    icon: '?',
+    className: 'bg-verdict-open-soft text-verdict-open ring-verdict-open',
+  },
 };
 
 /** Medium confidence is shown as "unsicher" in a neutral colour, never red or green (brief 11). */
-const UNCERTAIN_STYLE = { icon: '~', className: 'bg-slate-100 text-slate-800 ring-slate-500' };
+const UNCERTAIN_STYLE = {
+  icon: '~',
+  className: 'bg-verdict-open-soft text-verdict-open ring-verdict-open',
+};
 
 export interface VerdictDisplay {
   readonly label: string;

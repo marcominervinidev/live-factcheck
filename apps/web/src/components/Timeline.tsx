@@ -12,7 +12,7 @@ export function Timeline({ claims }: { claims: readonly ClaimView[] }) {
     <nav
       aria-label={t('timeline.label')}
       data-testid="timeline"
-      className="sticky top-0 z-10 -mx-4 bg-slate-50/95 px-4 py-2 backdrop-blur"
+      className="sticky top-0 z-10 -mx-4 bg-ground/95 px-4 py-2 backdrop-blur"
     >
       <ol className="flex flex-wrap gap-1.5">
         {[...claims].reverse().map((claim) => {
@@ -28,7 +28,7 @@ export function Timeline({ claims }: { claims: readonly ClaimView[] }) {
                 data-testid="timeline-dot"
                 title={label}
                 aria-label={label}
-                className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ring-1 ${display?.className ?? 'animate-pulse bg-slate-100 text-slate-500 ring-slate-300'}`}
+                className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ring-1 ${display?.className ?? 'animate-pulse bg-lilac-soft text-faint ring-line'}`}
               >
                 <span aria-hidden="true">{display?.icon ?? '⋯'}</span>
               </a>

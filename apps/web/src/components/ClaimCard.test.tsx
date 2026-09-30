@@ -70,8 +70,8 @@ describe('ClaimCard (brief 11)', () => {
     const chip = screen.getByTestId('verdict-chip');
     expect(text(chip)).toContain('Unsicher: Stimmt');
     expect(chip.getAttribute('data-uncertain')).toBe('true');
-    expect(chip.className).toContain('bg-slate-100');
-    expect(chip.className).not.toMatch(/emerald|red/);
+    expect(chip.className).toContain('bg-verdict-open-soft');
+    expect(chip.className).not.toMatch(/verdict-true|verdict-false/);
   });
 
   it('explains nicht_pruefbar with its reason instead of a confidence bar', () => {
