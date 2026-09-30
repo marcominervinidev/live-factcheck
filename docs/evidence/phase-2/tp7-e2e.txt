@@ -1,0 +1,32 @@
+TP7 – E2E, iPhone checklist, reviews (T7.1–T7.4), 2026-09-30
+Branch phase-2/tp7-e2e, stacked on phase-2/tp6-web-live (#36)
+
+T7.1 Stage 4 (isolated stack lfc-verify, mock providers, synthetic microphone)
+  tests/e2e/live.spec.ts "live mode @dod": consent (cancel records nothing), recording starts,
+  live transcript, the mock STT's "Der Zweite Weltkrieg endete 1965." marked and shown as
+  "Falsch", tap scrolls its card into view, stop; no console errors, token never in a URL
+  chromium-desktop, chromium-mobile, webkit-iphone: stage 4 total 9 passed; stage 3 40 passed
+  Reconnect during a recording: stage 2b apps/web/tests/recording.spec.ts "reconnect @dod"
+  (the mocked backend drops the socket; a stage 4 test cannot restart the gateway):
+  recording ends with connection_lost, the session comes back, a new recording starts;
+  stage 2b whole suite 3 × 39 = 117 passed (--repeat-each=3)
+
+T7.2 docs/testing/iphone-smoke.md: nine steps (certificate, home screen, consent, microphone
+  permission, live transcript and timing, stop, screen lock, app switch, connection loss);
+  the owner's run on the real iPhone is open (DoD)
+
+T7.3 README "Trying live mode" and speech-to-text providers; apps/web/AGENTS.md live-mode rules;
+  .ai/lessons.md first occurrences of 2026-09-29/30
+
+T7.4 Reviews and scans
+  OWASP ZAP baseline (isolated stack): FAIL 0, WARN 0, PASS 64, IGNORE 3 (configured)
+  /security-review of the branch: no high- or medium-confidence findings
+  SonarQube PR #36: 8 findings fixed (worklet lifecycle, cognitive complexity, native dialog
+  and output elements, read-only props), no security hotspots
+  Found on the way: text typed while a claim was being sent was cleared (flaky 2b test under
+  load); reproduced by a unit test, fixed in #36
+  Open: make llm-scan (needs LM Studio running on the Mac)
+
+Open for the owner
+  T6.5 design pass (target groups), iPhone smoke run (T7.2), T7.5 red team with Claude Opus 5
+  (needs Console credit) or a local model (needs LM Studio)

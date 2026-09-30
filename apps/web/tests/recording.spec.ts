@@ -69,4 +69,19 @@ test.describe('live mode', () => {
     await expect(recording.end).toContainText('Tagesbudget');
     await expect(recording.start).toBeVisible();
   });
+
+  test('reconnect @dod: a dropped connection ends the recording, the session comes back', async ({
+    backend,
+    claims,
+  }) => {
+    await recording.startRecording();
+    await expect(recording.status).toHaveAttribute('data-status', 'recording');
+    await backend.dropConnection();
+    await expect(recording.end).toHaveAttribute('data-reason', 'connection_lost');
+    await expect(claims.connection).toHaveAttribute('data-status', 'open');
+    expect(backend.sessions).toBe(2);
+    await expect(recording.start).toBeEnabled();
+    await recording.startRecording();
+    await expect(recording.status).toHaveAttribute('data-status', 'recording');
+  });
 });
