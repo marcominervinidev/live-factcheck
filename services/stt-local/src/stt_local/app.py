@@ -25,6 +25,10 @@ from stt_local.transcriber import Transcriber
 log = logging.getLogger("stt_local")
 
 MAX_FRAME_BYTES = 8 * 1024
+# Audio queued for or in transcription. Whisper on a slow CPU falls behind the speaker; beyond
+# this the stream ends with "overloaded" instead of holding ever more audio in memory. The
+# caller's socket buffer limit (STT_MAX_BUFFERED_BYTES) cannot see this queue.
+MAX_BACKLOG_MS = 60_000
 # WebSocket close codes: policy violation, try again later.
 CLOSE_POLICY = 1008
 CLOSE_NOT_READY = 1013
@@ -51,7 +55,9 @@ class State:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
-def create_app(state: State, silence_ms: int, max_chunk_ms: int) -> FastAPI:
+def create_app(
+    state: State, silence_ms: int, max_chunk_ms: int, max_backlog_ms: int = MAX_BACKLOG_MS
+) -> FastAPI:
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
     @app.get("/healthz")
@@ -67,7 +73,7 @@ def create_app(state: State, silence_ms: int, max_chunk_ms: int) -> FastAPI:
     @app.websocket("/v1/stream")
     async def stream(socket: WebSocket) -> None:
         await socket.accept()
-        await _stream(socket, state, Chunker(silence_ms, max_chunk_ms))
+        await _stream(socket, state, Chunker(silence_ms, max_chunk_ms), max_backlog_ms)
 
     return app
 
@@ -77,7 +83,7 @@ async def _send_error(socket: WebSocket, message: str, code: int) -> None:
     await socket.close(code)
 
 
-async def _stream(socket: WebSocket, state: State, chunker: Chunker) -> None:
+async def _stream(socket: WebSocket, state: State, chunker: Chunker, max_backlog_ms: int) -> None:
     transcriber = state.transcriber
     if transcriber is None:
         await _send_error(socket, "model not loaded", CLOSE_NOT_READY)
@@ -88,9 +94,9 @@ async def _stream(socket: WebSocket, state: State, chunker: Chunker) -> None:
         await _send_error(socket, "first message must be start", CLOSE_POLICY)
         return
 
-    chunks: asyncio.Queue[Chunk | None] = asyncio.Queue()
-    worker = asyncio.create_task(_transcribe_chunks(socket, state, transcriber, start, chunks))
-    pipe = _Pipeline(chunker, chunks, worker)
+    queue = _ChunkQueue(max_backlog_ms)
+    worker = asyncio.create_task(_transcribe_chunks(socket, state, transcriber, start, queue))
+    pipe = _Pipeline(chunker, queue, worker)
     try:
         while True:
             message = await socket.receive()
@@ -109,28 +115,58 @@ async def _stream(socket: WebSocket, state: State, chunker: Chunker) -> None:
 
 
 @dataclass
+class _ChunkQueue:
+    """Chunks waiting for the worker; `backlog_ms` counts their audio until it is transcribed."""
+
+    limit_ms: int
+    chunks: asyncio.Queue[Chunk | None] = field(default_factory=asyncio.Queue)
+    backlog_ms: int = 0
+
+    async def put(self, chunk: Chunk) -> bool:
+        """Queues a chunk; False when the backlog would exceed its limit."""
+        duration = chunk.end_ms - chunk.start_ms
+        if self.backlog_ms + duration > self.limit_ms:
+            return False
+        self.backlog_ms += duration
+        await self.chunks.put(chunk)
+        return True
+
+    def done(self, chunk: Chunk) -> None:
+        self.backlog_ms -= chunk.end_ms - chunk.start_ms
+
+
+@dataclass
 class _Pipeline:
     """One stream's way from frames to the transcription worker, with counters for the log."""
 
     chunker: Chunker
-    chunks: asyncio.Queue[Chunk | None]
+    queue: _ChunkQueue
     worker: asyncio.Task[None]
     audio_bytes: int = 0
     chunk_count: int = 0
 
-    async def put(self, chunk: Chunk) -> None:
+    async def put(self, chunk: Chunk) -> bool:
+        """Queues a chunk; False when transcription has fallen too far behind."""
+        if not await self.queue.put(chunk):
+            return False
         self.chunk_count += 1
-        await self.chunks.put(chunk)
+        return True
 
 
 async def _accept_frame(socket: WebSocket, data: bytes, pipe: _Pipeline) -> bool:
-    """Queues the chunks a frame completes; False (socket closed) for an oversized frame."""
+    """Queues the chunks a frame completes; False (socket closed) when it cannot."""
     if len(data) > MAX_FRAME_BYTES:
         await _send_error(socket, "frame too large", CLOSE_POLICY)
         return False
     pipe.audio_bytes += len(data)
     for chunk in pipe.chunker.feed(data):
-        await pipe.put(chunk)
+        if not await pipe.put(chunk):
+            log.warning(
+                "transcription fell behind, stream ended",
+                extra={"backlog_ms": pipe.queue.backlog_ms},
+            )
+            await _send_error(socket, "overloaded", CLOSE_NOT_READY)
+            return False
     return True
 
 
@@ -143,9 +179,12 @@ async def _finish(socket: WebSocket, text: str | None, pipe: _Pipeline) -> None:
         await _send_error(socket, "invalid message", CLOSE_POLICY)
         return
     rest = pipe.chunker.flush()
-    if rest is not None:
-        await pipe.put(rest)
-    await pipe.chunks.put(None)
+    if rest is not None and not await pipe.put(rest):
+        log.warning(
+            "transcription fell behind, last chunk dropped",
+            extra={"backlog_ms": pipe.queue.backlog_ms},
+        )
+    await pipe.queue.chunks.put(None)
     await pipe.worker
     log.info("stream finished", extra={"audio_bytes": pipe.audio_bytes, "chunks": pipe.chunk_count})
     await socket.close(1000)
@@ -156,12 +195,13 @@ async def _transcribe_chunks(
     state: State,
     transcriber: Transcriber,
     start: StartMessage,
-    chunks: asyncio.Queue[Chunk | None],
+    queue: _ChunkQueue,
 ) -> None:
-    while (chunk := await chunks.get()) is not None:
+    while (chunk := await queue.chunks.get()) is not None:
         started = time.monotonic()
         async with state.lock:
             text = await asyncio.to_thread(transcriber.transcribe, chunk.pcm, start.language)
+        queue.done(chunk)
         log.info(
             "chunk transcribed",
             extra={

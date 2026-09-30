@@ -1,6 +1,7 @@
 import json
 import logging
 import struct
+import threading
 
 import numpy as np
 import pytest
@@ -107,6 +108,38 @@ def test_rejects_oversized_frames_and_unknown_messages() -> None:
         ws.send_text(json.dumps(START))
         ws.send_text('{"type":"rename"}')
         assert ws.receive_json() == {"type": "error", "message": "invalid message"}
+
+
+class SlowTranscriber(FakeTranscriber):
+    """Whisper on a slow CPU: blocks until the test releases it."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.release = threading.Event()
+
+    def transcribe(self, pcm: bytes, language: str) -> str:
+        self.release.wait(timeout=5)
+        return super().transcribe(pcm, language)
+
+
+def test_ends_the_stream_instead_of_piling_up_audio_when_transcription_falls_behind() -> None:
+    slow = SlowTranscriber()
+    app = create_app(
+        State(transcriber=slow), silence_ms=500, max_chunk_ms=15000, max_backlog_ms=2000
+    )
+    try:
+        with TestClient(app).websocket_connect("/v1/stream") as ws:
+            ws.send_text(json.dumps(START))
+            # Two utterances of 1.3 s each: together more than the 2 s the backlog may hold.
+            for frame in ([SPEECH] * 8 + [QUIET] * 5) * 2:
+                ws.send_bytes(frame)
+            assert ws.receive_json() == {"type": "error", "message": "overloaded"}
+            slow.release.set()
+            with pytest.raises(WebSocketDisconnect) as closed:
+                ws.receive_json()
+        assert closed.value.code == 1013
+    finally:
+        slow.release.set()
 
 
 def test_refuses_streams_until_the_model_is_loaded() -> None:

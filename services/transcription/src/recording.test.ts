@@ -241,6 +241,31 @@ describe('handleRecording (ADR 0015)', () => {
     await expect
       .poll(() => second.messages.at(-1))
       .toMatchObject({ type: 'stopped', reason: 'provider_error' });
+    // The provider session is ended from our side too, whatever state the provider is in.
+    expect(aborted).toHaveBeenCalled();
+  });
+
+  it('opens no provider stream when the gateway goes away during the budget check', async () => {
+    let answer: (() => void) | undefined;
+    const open = vi.fn(() => Promise.reject(new Error('must not be called')));
+    deps = {
+      budget: {
+        ...budget(10).daily,
+        ensureAvailable: () =>
+          new Promise<void>((resolve) => {
+            answer = resolve;
+          }),
+      },
+      stt: provider({ open }),
+    };
+    const client = await connect();
+    client.socket.send(JSON.stringify(start()));
+    await expect.poll(() => answer).toBeDefined();
+    client.socket.close();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    answer?.();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(open).not.toHaveBeenCalled();
   });
 
   it('stops with overloaded instead of piling up audio when the provider falls behind', async () => {
