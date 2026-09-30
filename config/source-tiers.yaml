@@ -1,3 +1,4 @@
+# LANG-EN: German outlets and agencies; add English ones for English conversations (ADR 0020)
 # Source tiers and their weights (brief 9.1). Data, not code: the fact-checker maps every
 # evidence URL to a tier by registrable-domain suffix ("bund.de" matches "www.destatis.bund.de")
 # and multiplies its ranking score by the tier weight. Unlisted domains get `sonstige`.

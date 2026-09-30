@@ -14,6 +14,7 @@ export const sttConfigShape = {
   STT_PROVIDER: z.enum(STT_PROVIDERS),
   /** e.g. `nova-3` (Deepgram), `universal-streaming-multilingual` (AssemblyAI), `small` (local). */
   STT_MODEL: z.string().min(1),
+  // LANG-EN: one language per deployment today; for English conversations take it from each recording's start message (ADR 0020)
   STT_LANGUAGE: z
     .string()
     .regex(/^[a-z]{2,3}(-[A-Z]{2})?$/)

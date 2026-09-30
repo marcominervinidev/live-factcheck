@@ -5,6 +5,7 @@ import type { SafeFetcher } from '../fetch/safe-fetch.js';
 import type { TierResolver } from '../tiers.js';
 import type { CallOptions, SourceDocument } from './types.js';
 
+// LANG-EN: German Wikipedia and Wikidata labels (`de` below); make the language a parameter of the research (ADR 0020)
 const WIKIPEDIA = 'https://de.wikipedia.org';
 const WIKIDATA_API = 'https://www.wikidata.org/w/api.php';
 
