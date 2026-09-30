@@ -156,9 +156,9 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - [x] Entschieden (Marco, 2026-09-29): Der Klassifikator bekommt in TP5 das ganze Segmentfenster als Kontext, **auch Jev**; Sprechernamen werden immer durch A, B, … ersetzt (ADR 0017, `packages/providers/AGENTS.md` angepasst)
 - [x] TP4 Audio-Pfad im Gateway (PR `phase-2/tp4-gateway-audio`): `src/audio.ts`, je ein Integrationstest pro Audio-Fehlercode, Stufe 3 `audio.spec.ts` über den echten Stack; neue depcruise-Regel gegen Dev-Abhängigkeiten im Produktionscode; Nachweis `docs/evidence/phase-2/tp4-gateway-audio.txt`
 - [x] TP5 T5.1–T5.5 `claim-extractor` (PR `phase-2/tp5-claim-extractor`): Vorfilter, Fenster in Redis, DETECTOR-Klassifikator, eigenständige Formulierung, Deduplizierung, `ClaimDetected` v3; Stufe 3 Audio → Behauptung → Urteil „falsch“; Nachweis `docs/evidence/phase-2/tp5-claim-extractor.txt`
-- [ ] T5.6 Erkennungs-Eval-Set (~150 Segmente, **Marco prüft die Labels**) und `pnpm eval --set detection`; Stryker für die Deduplizierung
+- [ ] T5.6 Erkennungs-Eval-Set: `evals/detection.de.jsonl` (154 Segmente aus Plenarprotokoll 20/213, 35 positiv, vorgelabelt mit Begründung) und `make eval EVAL_SET=detection` (Runner im internen Netz, Trockenlauf mit Mock grün) – **wartet auf Marcos Label-Prüfung**, danach Messlauf mit echtem Klassifikator (kostenpflichtig, Freigabe); Stryker für die Deduplizierung offen
 - Aktuelles Gate: **Gate 3 – Backend-Pfad komplett** (PRs #32 TP4 gemergt, TP5 offen); Gate 2 (PR #31) offen
-- Nächster Task: T5.6 vorbereiten (Quellen, Vorlabels), dann TP6 Frontend (Branch `phase-2/tp6-web-live`)
+- Nächster Task: TP6 Frontend (Branch `phase-2/tp6-web-live`); T5.6 wartet auf Marcos Labels
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
 - Security-Review PR #33 eingearbeitet (Marco, 2026-09-29): Budget „fail closed“ in `transcription`; Aufbewahrung 15 Min für Streams und Extractor-Speicher, Redis ohne AOF/RDB (ADR 0018); nosemgrep im Vorfilter **behalten** (Marco)

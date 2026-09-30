@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { loadClaims } from './dataset.js';
+import { loadClaims, loadDetection } from './dataset.js';
 
 const FILE = new URL('../claims.de.jsonl', import.meta.url).pathname;
 
@@ -26,6 +26,45 @@ describe('claims.de.jsonl', () => {
 
   it('names a documented source for every item', () => {
     expect([...new Set(items.map((i) => i.sourceId))]).toEqual(['agent-seed']);
+  });
+});
+
+describe('detection.de.jsonl', () => {
+  const items = loadDetection(new URL('../detection.de.jsonl', import.meta.url).pathname);
+
+  it('has about 150 segments with both labels, from a documented source (ADR 0017)', () => {
+    expect(items.length).toBeGreaterThanOrEqual(150);
+    const positives = items.filter((i) => i.expected).length;
+    expect(positives).toBeGreaterThanOrEqual(30);
+    expect(items.length - positives).toBeGreaterThanOrEqual(100);
+    expect([...new Set(items.map((i) => i.sourceId))]).toEqual(['bundestag-pp']);
+  });
+
+  it('keeps the segments of one conversation together, so the replay order is the file order', () => {
+    const seen: string[] = [];
+    for (const { conversationId } of items)
+      if (seen.at(-1) !== conversationId) seen.push(conversationId);
+    expect(seen).toEqual([...new Set(seen)]);
+  });
+});
+
+describe('loadDetection', () => {
+  it('rejects a speaker name instead of a letter (brief 15.6)', () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'lfc-evals-')), 'detection.jsonl');
+    writeFileSync(
+      path,
+      JSON.stringify({
+        id: 'a',
+        conversationId: 'c',
+        speaker: 'Merz',
+        text: 'Satz.',
+        expected: false,
+        sourceId: 'test',
+        note: 'n',
+        reviewed: true,
+      }),
+    );
+    expect(() => loadDetection(path)).toThrow(`${path}:1: speaker`);
   });
 });
 

@@ -5,7 +5,7 @@ Quality measurements of the LLM and classifier setups (brief 13.5). They run man
 | Set | File | Phase | Measures |
 |---|---|---|---|
 | Verdict | `claims.de.jsonl` (target ≥ 200 claims) | 1 | accuracy, calibration (Brier score, expected calibration error, reliability diagram), latency p50/p95 per path (`cacheHit`), cost per claim |
-| Detection | `detection.de.jsonl` (target several hundred segments) | 2 | precision, recall, F1 of "contains a check-worthy claim", plus the expected standalone wording |
+| Detection | `detection.de.jsonl` (154 segments, target several hundred) | 2 | precision, recall, F1 of "the segment becomes a new claim", latency p50/p95 |
 
 The eval result decides which classifier becomes the default and whether phase 7 (own model) is needed.
 
@@ -40,6 +40,12 @@ Metrics:
 | Cost | mean and total `usage.estimatedCostUsd` per claim |
 
 Every paid run needs the owner's go-ahead with a cost estimate first.
+
+### Detection set
+
+`make eval EVAL_SET=detection EVAL_LABEL=<name>` replays every conversation of `detection.de.jsonl` as final transcript segments into `transcript.segments` (one session per conversation, segments in file order, so the classifier sees the same window as live) and waits until the claim-extractor has handled each segment. A segment counts as detected when a new claim with its id reaches `claims.detected`; duplicates dropped by the extractor count as not detected. Timeouts are reported separately and never count as correct.
+
+Live mode takes only audio through the gateway, so this runner (`eval-detection` in `compose.test.yaml`) runs in the internal network with the services' Redis user instead of acting as a client. Reports: `docs/evidence/phase-2/evals/eval-detection-<label>-<time>.md` and `.json`. With the mock classifier (every segment with a digit is a claim) a dry run checks only the mechanics.
 
 ### In GitHub Actions
 
