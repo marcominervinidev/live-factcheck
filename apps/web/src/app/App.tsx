@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 
 import { ClaimCard } from '../components/ClaimCard';
+import { LiveTranscript } from '../components/LiveTranscript';
+import { RecordPanel } from '../components/RecordPanel';
 import { SettingsPage } from '../components/SettingsPage';
 import { TextModeForm } from '../components/TextModeForm';
 import { Timeline } from '../components/Timeline';
@@ -45,11 +47,14 @@ function CheckView({ gatewayUrl }: { gatewayUrl: string }) {
   return (
     <>
       <Timeline claims={list} />
-      {token === null && (
+      {token === null ? (
         <p data-testid="no-token" className="rounded-md bg-amber-50 p-3 text-amber-900">
           {t('connection.noToken')}
         </p>
+      ) : (
+        <RecordPanel gatewayUrl={gatewayUrl} token={token} />
       )}
+      <LiveTranscript />
       <TextModeForm gatewayUrl={gatewayUrl} />
       {list.length === 0 ? (
         <p data-testid="claims-empty" className="text-slate-500">
