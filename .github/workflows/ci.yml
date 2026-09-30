@@ -223,7 +223,6 @@ jobs:
             ${{ matrix.workspace.dir }}/test-results
           retention-days: 7
 
-  # SonarQube Cloud (brief 15.7, ADR 0014): code smells, duplication, security hotspots and the
   # The Python service (brief 13.1 stage 0/1 for stt-local): ruff, mypy strict and pytest in the
   # same dev image as locally, so the runner needs no Python setup.
   stt-local:
@@ -235,12 +234,25 @@ jobs:
       - name: checks in the dev image
         run: |
           docker build --target dev -t stt-local:dev -f services/stt-local/Dockerfile .
-          docker run --rm stt-local:dev sh -c 'ruff check . && ruff format --check . && mypy && pytest'
+          # The container runs as uid 65532; the report directory must be writable for it.
+          mkdir -p reports/stt-local && chmod 0777 reports/stt-local
+          docker run --rm -v "$PWD/reports/stt-local:/out" stt-local:dev sh -c \
+            'ruff check . && ruff format --check . && mypy && pytest --cov=stt_local --cov-report=xml:/out/coverage.xml'
+          # SonarQube analyses from the repo root; coverage.py writes the path inside the image.
+          sed -i 's#<source>/app</source>#<source>services/stt-local</source>#' reports/stt-local/coverage.xml
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-stt-local
+          path: reports/stt-local/coverage.xml
+          if-no-files-found: ignore
+          retention-days: 3
 
+  # SonarQube Cloud (brief 15.7, ADR 0014): code smells, duplication, security hotspots and the
   # coverage trend on new code. Advisory during the baseline week, hence not part of `ci passed`.
   sonar:
     name: sonarqube
-    needs: [changes, backend-unit, backend-int, frontend-unit]
+    needs: [changes, backend-unit, backend-int, frontend-unit, stt-local]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -266,6 +278,8 @@ jobs:
           args=()
           lcov=$(find coverage-reports -name lcov.info 2>/dev/null | sort | paste -sd, -)
           if [ -n "$lcov" ]; then args+=("-Dsonar.javascript.lcov.reportPaths=$lcov"); fi
+          pycov=$(find coverage-reports -name coverage.xml 2>/dev/null | sort | paste -sd, -)
+          if [ -n "$pycov" ]; then args+=("-Dsonar.python.coverage.reportPaths=$pycov"); fi
           # A push to a branch with an open PR is analysed as that PR, so SonarQube comments on it.
           # Only a PR whose head is this branch: the same commit can also be in other PRs.
           pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/pulls" \

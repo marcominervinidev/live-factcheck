@@ -66,7 +66,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         read.issues.append("LOCAL_STT_MODEL: only letters, digits and - . _ / are allowed")
     # Loopback unless the container says otherwise (the image sets HOST=0.0.0.0).
     host = read.env.get("HOST", "") or "127.0.0.1"
-    if not all(c.isalnum() or c in ".:" for c in host):
+    if not all(c.isalnum() or c in ".:-" for c in host):
         read.issues.append("HOST: only an IP address or host name is allowed")
     settings = Settings(
         host=host,

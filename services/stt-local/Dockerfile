@@ -30,6 +30,7 @@ ENV PATH="/app/.venv/bin:${PATH}" \
     HF_HOME=/tmp/models \
     RUFF_CACHE_DIR=/tmp/ruff \
     MYPY_CACHE_DIR=/tmp/mypy \
+    COVERAGE_FILE=/tmp/.coverage \
     PYTEST_ADDOPTS="-p no:cacheprovider"
 USER 65532:65532
 CMD ["stt-local"]

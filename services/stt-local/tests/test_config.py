@@ -14,14 +14,14 @@ def test_defaults() -> None:
 def test_reads_values_and_treats_empty_as_unset() -> None:
     settings = load_settings(
         {
-            "HOST": "10.0.0.5",
+            "HOST": "stt-local",
             "PORT": "9000",
             "LOCAL_STT_MODEL": "large-v3-turbo",
             "LOCAL_STT_CPU_THREADS": "",
             "LOG_LEVEL": "debug",
         }
     )
-    assert settings.host == "10.0.0.5"
+    assert settings.host == "stt-local"
     assert (settings.port, settings.model, settings.cpu_threads, settings.log_level) == (
         9000,
         "large-v3-turbo",
@@ -34,7 +34,7 @@ def test_names_every_invalid_variable() -> None:
     with pytest.raises(ConfigError) as caught:
         load_settings(
             {
-                "HOST": "10.0.0.5 --reload",
+                "HOST": "stt-local --reload",
                 "PORT": "x",
                 "LOCAL_STT_MODEL": "../../etc/passwd;rm",
                 "LOCAL_STT_COMPUTE_TYPE": "float16",
