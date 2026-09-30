@@ -30,7 +30,7 @@ describe('ClaimCard (brief 11)', () => {
   it('shows verdict chip with icon and text, confidence, best evidence, badges and sources', () => {
     render(<ClaimCard claim={view({ detected: detected(), checked: checked() })} />);
     const chip = screen.getByTestId('verdict-chip');
-    expect(text(chip)).toContain('✗');
+    expect(chip.querySelector('svg')?.getAttribute('data-icon')).toBe('false');
     expect(text(chip)).toContain('Falsch');
     expect(text(screen.getByTestId('confidence'))).toContain('hoch');
     expect(text(screen.getByTestId('best-evidence'))).toContain(

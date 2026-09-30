@@ -17,7 +17,7 @@ describe('Timeline (brief 11)', () => {
     expect(screen.queryByTestId('timeline')).toBeNull();
   });
 
-  it('shows one dot per claim, oldest first, linking to its card', () => {
+  it('shows one bar per claim, oldest first, linking to its card', () => {
     render(
       <Timeline
         claims={[
@@ -45,5 +45,10 @@ describe('Timeline (brief 11)', () => {
     ]);
     expect(dots[1]?.getAttribute('aria-label')).toContain('Wird geprüft …');
     expect(dots[0]?.getAttribute('aria-label')).not.toContain('Wird geprüft');
+    // Colour is never the only signal: every bar carries its verdict's icon.
+    expect(dots.map((dot) => dot.querySelector('svg')?.getAttribute('data-icon'))).toEqual([
+      'false',
+      'pending',
+    ]);
   });
 });

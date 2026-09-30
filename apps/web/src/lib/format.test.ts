@@ -4,13 +4,13 @@ import { confidenceWidth, distribution, verdictDisplay } from './format';
 
 describe('verdictDisplay', () => {
   it.each([
-    ['stimmt', 'hoch', '✓', 'Stimmt', false],
-    ['groesstenteils_richtig', 'hoch', '◐', 'Größtenteils richtig', false],
-    ['uebertrieben', 'hoch', '!', 'Übertrieben', false],
-    ['falsch', 'hoch', '✗', 'Falsch', false],
-    ['nicht_pruefbar', 'niedrig', '?', 'Nicht prüfbar', false],
-    ['falsch', 'mittel', '~', 'Unsicher: Falsch', true],
-    ['nicht_pruefbar', 'mittel', '?', 'Nicht prüfbar', false],
+    ['stimmt', 'hoch', 'true', 'Stimmt', false],
+    ['groesstenteils_richtig', 'hoch', 'mostly', 'Größtenteils richtig', false],
+    ['uebertrieben', 'hoch', 'exaggerated', 'Übertrieben', false],
+    ['falsch', 'hoch', 'false', 'Falsch', false],
+    ['nicht_pruefbar', 'niedrig', 'open', 'Nicht prüfbar', false],
+    ['falsch', 'mittel', 'uncertain', 'Unsicher: Falsch', true],
+    ['nicht_pruefbar', 'mittel', 'open', 'Nicht prüfbar', false],
   ] as const)('%s / %s → %s %s', (verdict, confidenceLevel, icon, label, uncertain) => {
     expect(verdictDisplay({ verdict, confidenceLevel })).toMatchObject({ icon, label, uncertain });
   });
