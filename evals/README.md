@@ -5,7 +5,7 @@ Quality measurements of the LLM and classifier setups (brief 13.5). They run man
 | Set | File | Phase | Measures |
 |---|---|---|---|
 | Verdict | `claims.de.jsonl` (target ≥ 200 claims) | 1 | accuracy, calibration (Brier score, expected calibration error, reliability diagram), latency p50/p95 per path (`cacheHit`), cost per claim |
-| Detection | `detection.de.jsonl` (154 segments, target several hundred) | 2 | precision, recall, F1 of "the segment becomes a new claim", latency p50/p95 |
+| Detection | `detection.de.jsonl` (161 segments, target several hundred) | 2 | precision, recall, F1 of "the segment becomes a new claim", latency p50/p95 |
 
 The eval result decides which classifier becomes the default and whether phase 7 (own model) is needed.
 
