@@ -161,7 +161,8 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - [ ] T5.6 Erkennungs-Eval-Set (~150 Segmente, **Marco prüft die Labels**) und `pnpm eval --set detection`; Stryker für die Deduplizierung
 - Aktuelles Gate: Gate 2 (PR #31) und Gate 3 (PR #33) gemergt
 - [x] TP6 T6.1–T6.4 funktionale Basis (PR #36): Einwilligungsdialog mit allen Cloud-Anbietern (ohne Anbieterliste keine Aufnahme), Aufnahme per AudioWorklet (PCM16, 16 kHz, 100 ms), Beenden bei Displaysperre/App-Wechsel und Verbindungsverlust, Live-Transkript mit Markierungen und Sprung zur Karte; Stufe 1 (Stores, Encoder, Komponenten) und Stufe 2b in Chromium und WebKit mit synthetischem Mikrofon (39/39)
-- Nächster Task: **T6.5 Design-Durchgang** mit Marco (Zielgruppen festlegen); bis dahin kein weiterer UI-Ausbau. Ohne Marco möglich: TP7 T7.1–T7.4
+- [x] TP7 T7.1–T7.4 (PR `phase-2/tp7-e2e`, auf #36): Stufe-4-Journey Live-Modus grün in drei Browsern, Reconnect in Stufe 2b, iPhone-Checkliste, README und AGENTS, ZAP 0 Befunde, Security-Review ohne Befunde; Nachweis `docs/evidence/phase-2/tp7-e2e.txt`. Offen: `make llm-scan` (LM Studio)
+- Nächster Task: **T6.5 Design-Durchgang** mit Marco (Zielgruppen festlegen), iPhone-Lauf (T7.2, Marco), T7.5 Red-Team (Guthaben oder LM Studio); danach Gate 4
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5
 - Offen (Marco, 2026-09-30): Das Claude-Abo-Guthaben ist nicht für API-Aufrufe der App nutzbar; der Opus-Red-Team-Lauf und bezahlte Eval-Läufe brauchen Guthaben in der Claude Console (API-Key). Vor T7.5 klären: Console-Guthaben aufladen, lokales Modell oder Lauf verschieben
