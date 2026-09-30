@@ -65,6 +65,14 @@ const sleep = (ms: number) =>
     setTimeout(resolve, ms);
   });
 
+/** Polls `check` every 50 ms until it is true (true) or the deadline passed (false). */
+async function waitUntil(check: () => Promise<boolean>, deadline: number): Promise<boolean> {
+  if (await check()) return true;
+  if (performance.now() > deadline) return false;
+  await sleep(50);
+  return waitUntil(check, deadline);
+}
+
 async function replay(item: DetectionItem, sessionId: string, index: number) {
   const segment: TranscriptSegment = {
     schemaVersion: 1,
@@ -84,11 +92,11 @@ async function replay(item: DetectionItem, sessionId: string, index: number) {
     payload: segment,
   });
   // The extractor marks a segment after it published its claim (or dropped it).
-  while (!(await marker.isProcessed(segment.segmentId))) {
-    if (performance.now() - started > TIMEOUT_MS)
-      return { item, processed: false, detected: false };
-    await sleep(50);
-  }
+  const processed = await waitUntil(
+    () => marker.isProcessed(segment.segmentId),
+    started + TIMEOUT_MS,
+  );
+  if (!processed) return { item, processed: false, detected: false };
   const latencyMs = performance.now() - started;
   // The claim travels over Pub/Sub on another connection; give it a moment to arrive.
   await sleep(200);
@@ -113,20 +121,25 @@ const conversations = new Map<string, DetectionItem[]>();
 for (const item of items)
   conversations.set(item.conversationId, [...(conversations.get(item.conversationId) ?? []), item]);
 
-// One session per conversation, segments in order: the window matches a live recording.
-for (const segments of conversations.values()) {
+/** One session per conversation: its segments in order, so the window matches a live recording. */
+async function replayConversation(segments: readonly DetectionItem[]): Promise<void> {
   const sessionId = randomUUID();
-  await subscriber.subscribe(sessionEventsChannel(sessionId));
+  const channel = sessionEventsChannel(sessionId);
+  await subscriber.subscribe(channel);
   for (const [index, item] of segments.entries()) {
-    const outcome = await replay(item, sessionId, index);
+    // Sequential on purpose: the classifier sees the previous segments as context, like live.
+    const outcome = await replay(item, sessionId, index); // NOSONAR typescript:S9382
     outcomes.push(outcome);
     const got = outcome.processed ? String(outcome.detected) : 'timeout';
     console.log(
       `${String(outcomes.length).padStart(3)}/${String(items.length)} ${item.id}: expected ${String(item.expected)}, got ${got}`,
     );
   }
-  await subscriber.unsubscribe(sessionEventsChannel(sessionId));
+  await subscriber.unsubscribe(channel);
 }
+
+// Conversations one after another as well: latencies stay comparable and rate limits hold.
+for (const segments of conversations.values()) await replayConversation(segments); // NOSONAR typescript:S9382
 subscriber.disconnect();
 redis.disconnect();
 
@@ -161,7 +174,8 @@ writeFileSync(
     2,
   ),
 );
-console.log(`\nReport: ${join(OUT_DIR, `${base}.md`)}`);
+const reportPath = join(OUT_DIR, `${base}.md`);
+console.log(`\nReport: ${reportPath}`);
 console.log(
   `precision ${summary.precision.toFixed(3)}, recall ${summary.recall.toFixed(3)}, f1 ${summary.f1.toFixed(3)}, timeouts ${String(summary.timeouts)}`,
 );
