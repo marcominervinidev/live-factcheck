@@ -39,6 +39,8 @@ export function handleRecording(socket: WebSocket, deps: RecordingDeps): void {
   let session: SttSession | undefined;
   let opening = false;
   let finished = false;
+  // Read through a function after an await: the socket's close handler changes it meanwhile.
+  const hasFinished = () => finished;
   let audioBytes = 0;
   let bookedBytes = 0;
   let segments = 0;
@@ -82,6 +84,9 @@ export function handleRecording(socket: WebSocket, deps: RecordingDeps): void {
       },
       'recording stopped',
     );
+    // The last booking's result does not change the reason: the audio is spent and the stream
+    // closes either way. Failing closed happens where money would still be spent – on every
+    // booking step while recording and before the next recording opens a stream.
     void book(true)
       .catch((error: unknown) => {
         logger.warn({ ...context, err: error }, 'could not book the last audio');
@@ -139,6 +144,8 @@ export function handleRecording(socket: WebSocket, deps: RecordingDeps): void {
       stop('budget_exceeded');
       return;
     }
+    // The gateway went away during the budget check: never open a paid stream for nobody.
+    if (hasFinished()) return;
     try {
       session = await deps.stt.open(
         { language: message.language, sampleRate: message.sampleRate },
@@ -146,6 +153,8 @@ export function handleRecording(socket: WebSocket, deps: RecordingDeps): void {
           onSegment,
           onError: (error) => {
             logger.warn({ ...context, kind: error.kind, err: error }, 'speech-to-text failed');
+            // Ended from our side too, whatever state the provider's connection is in.
+            session?.abort();
             stop('provider_error');
           },
         },
@@ -155,7 +164,7 @@ export function handleRecording(socket: WebSocket, deps: RecordingDeps): void {
       stop('provider_error');
       return;
     }
-    if (finished) {
+    if (hasFinished()) {
       // The gateway went away while the provider connected.
       session.abort();
       return;
