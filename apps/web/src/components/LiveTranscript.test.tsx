@@ -85,4 +85,22 @@ describe('LiveTranscript (T6.3)', () => {
     expect(done.textContent).toContain('Falsch');
     expect(done.getAttribute('aria-label')).toContain('Falsch');
   });
+
+  it('shows the segment text once when it holds two claims, with one link per claim', () => {
+    render(<LiveTranscript />);
+    act(() => {
+      useTranscript
+        .getState()
+        .apply(segment(SEGMENT_A, 'Berlin hat 3,9 Millionen Einwohner und wurde 1237 gegründet.'));
+      for (const claimId of [CLAIM_ID, '5d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a'])
+        useClaims.getState().applyEvent({
+          type: 'claim.detected',
+          schemaVersion: 2,
+          payload: detected({ claimId, sourceSegmentIds: [SEGMENT_A] }),
+        });
+    });
+    const row = screen.getByTestId('transcript-segment');
+    expect(row.textContent.match(/Berlin hat/g)).toHaveLength(1);
+    expect(screen.getAllByTestId('transcript-claim')).toHaveLength(2);
+  });
 });
