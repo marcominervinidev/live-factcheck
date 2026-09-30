@@ -182,6 +182,17 @@ describe('detectClaim (ADR 0017)', () => {
     },
   );
 
+  it('lets a rhetorical question that insinuates a fact reach the classifier and become a claim', async () => {
+    const { deps: d, classifierStates, llmRequests } = deps({ classifier: answering(0.97, 3) });
+    const outcome = await detectClaim(
+      segment('Denn waren es nicht Sie, der der Ampel ein Durchpeitschen vorgeworfen hat?'),
+      d,
+    );
+    expect(outcome.kind).toBe('claim');
+    expect(classifierStates).toHaveLength(1);
+    expect(llmRequests.at(-1)?.system).toContain('rhetorische Frage');
+  });
+
   it('gives classifier and LLM the window as context, speakers as letters, data in random tags', async () => {
     const { deps: d, classifierStates, llmRequests } = deps();
     await detectClaim(segment('Wir reden heute über den Zweiten Weltkrieg.', 'A', 0), d);
