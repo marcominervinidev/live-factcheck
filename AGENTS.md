@@ -40,6 +40,13 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 - Every non-trivial architecture decision gets an ADR in `docs/adr/NNNN-title.md` (template `0000-template.md`).
 - A task is done only with evidence (brief 1.3): real command output, requests/responses, screenshots. Store it compactly in `docs/evidence/phase-N/`.
 - Scripts that change git state (checkout, reset, commit, branch) run only in a throwaway clone, start with `set -euo pipefail` and verify their working directory before the first write. Never run such experiments against the real working tree.
+- Pull requests are sized for the owner's review (owner decision 2026-09-30):
+  - One task of the plan per PR (e.g. T6.2), at most about 400 changed lines of production code; tests, evidence and lockfiles do not count. Split larger tasks.
+  - Commits tell the story in review order (contract → logic → wiring → tests → docs), so the owner can review commit by commit.
+  - At most one PR stacked on another open PR; its description names the merge order.
+  - The description follows `.github/pull_request_template.md`: first the German review guide for the owner (what and why, where to look with the risk, what to skip, decisions, how it was verified, and the table "Belegt durch" mapping every requirement of the PR to its proving test and stage, like the plan's "DoD → Tests"), then the technical details in English.
+  - A Mermaid diagram (rendered by GitHub) only when a flow or the architecture changes, never as decoration.
+  - No third-party review bots; the scanners in `docs/SECURITY.md` and the prompts in `.ai/prompts/` do the automated review.
 - Learning from mistakes: note the first occurrence of an agent mistake (or a correction by the owner) in `.ai/lessons.md`. A rule is written only when the same mistake happens **a second time** and no tool (hook, lint, CI, gitleaks, contract check) already catches it. Prefer turning it into an automated check; otherwise add the rule to the narrowest `AGENTS.md`, skill or review prompt and mark the lesson as promoted. Do not use personal agent memory for project rules.
 
 ## Code conventions
