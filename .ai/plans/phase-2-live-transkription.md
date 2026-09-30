@@ -108,6 +108,7 @@ Eigene Festlegungen (jeweils im ADR begründet, Freigabe an Gate 0):
 - **T6.2 Aufnahme:** AudioWorklet (PCM16, mono, 16 kHz, ca. 100 ms), Start/Stopp-Button, Aufnahme- und Verbindungsstatus, Verhalten bei Displaysperre und App-Wechsel (Aufnahme sauber beenden und anzeigen)
 - **T6.3 Live-Transkript:** Sprecher-Labels, interim grau, final schwarz; erkannte Behauptungen unterstrichen (grau „erkannt“ → Animation „wird geprüft“ → Farbe des Urteils, immer zusätzlich Icon/Text); Tipp auf die Markierung springt zur Karte; Zeitleiste zeigt auch Live-Behauptungen
 - **T6.4** Store-Erweiterungen (Zustand) für Segmente und Aufnahme, Reconnect-Verhalten während einer Aufnahme
+- **T6.5 Design-Durchgang (Marco, 2026-09-30):** Bevor das Frontend weiter ausgebaut wird, geht ein Design-Skill über die ganze Oberfläche (Aufnahme, Einwilligung, Live-Transkript, Karten, Zeitleiste, Einstellungen) und passt sie an die Zielgruppen an. Die Zielgruppen sind im Brief nicht ausdrücklich beschrieben; sie werden zu Beginn von T6.5 mit Marco festgelegt. T6.1–T6.4 liefern nur die funktionale Basis mit Tests; Politur und Layout kommen erst nach T6.5
 - Tests: Stufe 1 (Stores, Worklet-Umrechnung, Komponenten), Stufe 2b mit `page.routeWebSocket` und Fake-Audio (Chromium) bzw. synthetischem MediaStream (WebKit), axe-Prüfung
 
 ## TP7 – E2E, iPhone, Phasenabschluss
@@ -158,9 +159,11 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - [x] TP5 T5.1–T5.5 `claim-extractor` (PR `phase-2/tp5-claim-extractor`): Vorfilter, Fenster in Redis, DETECTOR-Klassifikator, eigenständige Formulierung, Deduplizierung, `ClaimDetected` v3; Stufe 3 Audio → Behauptung → Urteil „falsch“; Nachweis `docs/evidence/phase-2/tp5-claim-extractor.txt`
 - [ ] T5.6 Erkennungs-Eval-Set (~150 Segmente, **Marco prüft die Labels**) und `pnpm eval --set detection`; Stryker für die Deduplizierung
 - Aktuelles Gate: **Gate 3 – Backend-Pfad komplett** (PRs #32 TP4 gemergt, TP5 offen); Gate 2 (PR #31) offen
-- Nächster Task: T5.6 vorbereiten (Quellen, Vorlabels), dann TP6 Frontend (Branch `phase-2/tp6-web-live`)
+- [x] TP6 T6.1–T6.4 funktionale Basis (PR `phase-2/tp6-web-live`, auf TP5 gestapelt): Einwilligungsdialog mit allen Cloud-Anbietern (ohne Anbieterliste keine Aufnahme), Aufnahme per AudioWorklet (PCM16, 16 kHz, 100 ms), Beenden bei Displaysperre/App-Wechsel und Verbindungsverlust, Live-Transkript mit Markierungen und Sprung zur Karte; Stufe 1 (Stores, Encoder, Komponenten) und Stufe 2b in Chromium und WebKit mit synthetischem Mikrofon (39/39)
+- Nächster Task: **T6.5 Design-Durchgang** mit Marco (Zielgruppen festlegen); bis dahin kein weiterer UI-Ausbau. T5.6 wartet auf Marcos Labels
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5; Deepgram-Account (Marco) vor T2.5; Labels des Erkennungs-Sets (Marco) in T5.6
+- Offen (Marco, 2026-09-30): Das Claude-Abo-Guthaben ist nicht für API-Aufrufe der App nutzbar; der Opus-Red-Team-Lauf und bezahlte Eval-Läufe brauchen Guthaben in der Claude Console (API-Key). Vor T7.5 klären: Console-Guthaben aufladen, lokales Modell oder Lauf verschieben
 - Security-Review PR #33 eingearbeitet (Marco, 2026-09-29): Budget „fail closed“ in `transcription`; Aufbewahrung 15 Min für Streams und Extractor-Speicher, Redis ohne AOF/RDB (ADR 0018); nosemgrep im Vorfilter **behalten** (Marco)
 - Beobachten: Ein Redis-Neustart setzt den Tages-Budgetzähler zurück (ADR 0018, von Marco vorerst akzeptiert). Macht das Probleme, nur den Budgetzähler persistieren
 - Nach Phase 2: Distroless-Runtime-Image für `stt-local` (Marco: „definitiv“)
