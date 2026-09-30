@@ -13,7 +13,7 @@ Brief 5, 6.5 and 8.1 describe the `claim-extractor`: a rolling window of recent 
 
 **Window:** per session the last `DETECTOR_WINDOW_SEGMENTS` (default 6) final segments, stored in Redis (`extractor:v1:window:{sessionId}`, list trimmed on write, TTL = session TTL). Sorted by `startMs` when read. The window gives context for resolving references; the decision is made for the newest segment.
 
-**Pre-filter (deterministic, unit-tested):** drop a segment when it is shorter than `DETECTOR_MIN_WORDS` (default 5), is a question, consists of greetings or filler, or is pure opinion ("ich finde", "meiner Meinung nach" without a number, date, named entity or comparison). The rules are data in `services/claim-extractor/src/prefilter.ts` with German test cases; every drop is counted by reason (metric).
+**Pre-filter (deterministic, unit-tested):** drop a segment when it is shorter than `DETECTOR_MIN_WORDS` (default 5), is a genuine question (a question with a negation such as „Waren es nicht Sie, der …?“ insinuates a fact and goes on to the classifier, see the amendment below), consists of greetings or filler, or is pure opinion ("ich finde", "meiner Meinung nach" without a number, date, named entity or comparison). The rules are data in `services/claim-extractor/src/prefilter.ts` with German test cases; every drop is counted by reason (metric).
 
 **Classifier (`ClassifierProvider`, ADR 0007):** one call with two questions on the state "window + newest segment" – for every classifier provider, Jev (`typesafe`, USA) included; speaker names are always replaced by the letters `A`, `B`, … before the state leaves the service (owner decision 2026-09-29, brief 15.6): Bool "the newest segment contains a checkable factual claim" and Score "checkworthiness 1–5". Configuration `DETECTOR_CLASSIFIER_PROVIDER` (`llm` default, `typesafe`, `mock`), the `llm` classifier uses `EXTRACTOR_LLM_*`. Thresholds `DETECTOR_CONFIDENCE_HIGH` / `DETECTOR_CONFIDENCE_LOW` (start 0.75 / 0.5, tuned with the detection eval): below low → dropped; between → dropped too (precision first), counted as "uncertain" for the eval; high and score ≥ `DETECTOR_MIN_SCORE` (default 3) → positive. `checkworthiness` in the event = score mapped to 0..1.
 
@@ -45,4 +45,8 @@ Brief 5, 6.5 and 8.1 describe the `claim-extractor`: a rolling window of recent 
 - `detectMs` is measured from receiving the final segment to publishing the claim; STT finalisation is not included.
 - The classifier sees the window for every provider, Jev included; speakers are letters (owner decision 2026-09-29).
 - Defaults: window 6 segments, at least 5 words, checkworthiness ≥ 3 of 5, confidence high 0.75 / low 0.5, 10 duplicate candidates.
+
+## Amendment 2026-09-30: rhetorical questions
+
+Owner decision: accusations phrased as rhetorical questions must be detected. A question with a negation (`nicht`, `kein…`, `nie`, `niemals`) passes the pre-filter; the classifier's claim question counts a rhetorical question that insinuates a checkable fact as a claim of that fact, and the standalone prompt turns it into a statement ("X hat … gesagt") without confirming it. Genuine questions ("Wie hoch ist …?", "Stimmt es, dass …?") are still dropped by the pre-filter. Cost: negated genuine questions ("Warum kommst du nicht?") now reach the classifier; the detection eval shows whether that matters. The detection set labels rhetorical questions accordingly (`evals/README.md`, label rule).
 
