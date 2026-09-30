@@ -165,6 +165,25 @@ services:
       GATEWAY_TOKEN_FILE: /run/secrets/gateway_token
     command: ['node_modules/.bin/tsx', '--conditions=development', 'src/run.ts']
 
+  # Stage 5, detection set (ADR 0017): `make eval EVAL_SET=detection` replays transcript segments
+  # into `transcript.segments`. Live mode takes only audio through the gateway, so this runner
+  # sits in the internal network with the services' Redis user; no internet, no gateway token.
+  # Reports go to docs/evidence/phase-2/evals/.
+  eval-detection:
+    <<: *playwright
+    profiles: [eval]
+    working_dir: /workspace/evals
+    networks: [internal]
+    secrets: [redis_password]
+    environment:
+      REDIS_URL: redis://redis:6379
+      REDIS_USERNAME: app
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      EVAL_LABEL: ${EVAL_LABEL:-unnamed}
+      EVAL_INCLUDE_UNREVIEWED: ${EVAL_INCLUDE_UNREVIEWED:-false}
+      EVAL_LIMIT: ${EVAL_LIMIT:-0}
+    command: ['node_modules/.bin/tsx', '--conditions=development', 'src/run-detection.ts']
+
 networks:
   # Red team only: reaches Caddy, nothing else, no internet.
   redteam:
