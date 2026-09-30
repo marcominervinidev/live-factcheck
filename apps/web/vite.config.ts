@@ -31,5 +31,8 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+    // Fonts stay files: Caddy's CSP allows `font-src 'self'` only, so an inlined data: URI is
+    // blocked (found by stage 4; vite preview in stage 2b has no CSP). Other assets as default.
+    assetsInlineLimit: (filePath) => (/\.(woff2?|ttf|otf)$/.test(filePath) ? false : undefined),
   },
 });
