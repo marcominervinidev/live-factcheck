@@ -19,7 +19,13 @@ interface Props {
  * Asked before every recording (brief 11, 15.6): names every active cloud provider from
  * `/api/status`. Without that list there is no recording (fails closed).
  */
-export function ConsentDialog({ gatewayUrl, token, onAccept, onCancel, fetchImpl }: Props) {
+export function ConsentDialog({
+  gatewayUrl,
+  token,
+  onAccept,
+  onCancel,
+  fetchImpl,
+}: Readonly<Props>) {
   const [status, setStatus] = useState<Status>({ state: 'loading' });
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -39,12 +45,11 @@ export function ConsentDialog({ gatewayUrl, token, onAccept, onCancel, fetchImpl
   const jev = cloud.some((p) => p.provider === 'typesafe');
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      open
       aria-labelledby="consent-title"
       data-testid="consent-dialog"
-      className="flex flex-col gap-3 rounded-lg bg-white p-4 shadow-lg ring-1 ring-slate-300"
+      className="static m-0 flex w-full flex-col gap-3 rounded-lg bg-white p-4 text-slate-900 shadow-lg ring-1 ring-slate-300"
     >
       <h2 id="consent-title" className="text-lg font-semibold text-slate-900">
         {t('consent.title')}
@@ -98,6 +103,6 @@ export function ConsentDialog({ gatewayUrl, token, onAccept, onCancel, fetchImpl
           {t('consent.cancel')}
         </button>
       </div>
-    </div>
+    </dialog>
   );
 }

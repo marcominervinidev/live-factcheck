@@ -13,10 +13,19 @@ const BATCH_SAMPLES = 4_096;
 class CaptureProcessor extends AudioWorkletProcessor {
   private batch = new Float32Array(BATCH_SAMPLES);
   private filled = 0;
+  /** The page sends 'stop' when the recording ends; returning false lets the browser drop us. */
+  private active = true;
+
+  constructor() {
+    super();
+    this.port.onmessage = (event: MessageEvent<unknown>) => {
+      if (event.data === 'stop') this.active = false;
+    };
+  }
 
   process(inputs: Float32Array[][]): boolean {
     const channel = inputs[0]?.[0];
-    if (channel === undefined) return true;
+    if (!this.active || channel === undefined) return this.active;
     let offset = 0;
     while (offset < channel.length) {
       const take = Math.min(channel.length - offset, BATCH_SAMPLES - this.filled);
@@ -29,7 +38,7 @@ class CaptureProcessor extends AudioWorkletProcessor {
         this.filled = 0;
       }
     }
-    return true;
+    return this.active;
   }
 }
 

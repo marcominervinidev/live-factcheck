@@ -20,6 +20,7 @@ export interface Microphone {
 export function browserMicrophone(): Microphone {
   let stream: MediaStream | undefined;
   let context: AudioContext | undefined;
+  let node: AudioWorkletNode | undefined;
   return {
     async start(onFrame) {
       // Created first, inside the user's tap: Safari only starts audio from a user gesture.
@@ -39,13 +40,15 @@ export function browserMicrophone(): Microphone {
         return;
       }
       const encoder = new Pcm16Encoder(current.sampleRate);
-      const node = new AudioWorkletNode(current, 'lfc-capture', { numberOfOutputs: 0 });
+      node = new AudioWorkletNode(current, 'lfc-capture', { numberOfOutputs: 0 });
       node.port.onmessage = (event: MessageEvent<Float32Array>) => {
         for (const frame of encoder.push(event.data)) onFrame(frame);
       };
       current.createMediaStreamSource(granted).connect(node);
     },
     stop() {
+      node?.port.postMessage('stop');
+      node = undefined;
       stream?.getTracks().forEach((track) => {
         track.stop();
       });

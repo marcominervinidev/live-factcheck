@@ -1,3 +1,4 @@
+import type { EventEnvelope } from '@lfc/contracts';
 import { WsServerMessage } from '@lfc/contracts';
 import { create } from 'zustand';
 
@@ -81,6 +82,28 @@ const clearExplanationTimer = (claimId: string) => {
   explanationTimers.delete(claimId);
 };
 
+/** A pipeline event of the session: into its store, plus the explanation timeout (ADR 0009). */
+function applySessionEvent(event: EventEnvelope) {
+  if (event.type === 'transcript.segment') useTranscript.getState().apply(event.payload);
+  useClaims.getState().applyEvent(event);
+  if (event.type === 'claim.checked') {
+    const { claimId } = event.payload;
+    // At-least-once delivery: a repeated verdict restarts the one timer, and a claim whose
+    // explanation already arrived needs none (review, phase 1).
+    clearExplanationTimer(claimId);
+    if (useClaims.getState().claims[claimId]?.explained !== undefined) return;
+    explanationTimers.set(
+      claimId,
+      setTimeout(() => {
+        explanationTimers.delete(claimId);
+        useClaims.getState().markExplanationMissing(claimId);
+      }, EXPLANATION_TIMEOUT_MS),
+    );
+  } else if (event.type === 'claim.explained') {
+    clearExplanationTimer(event.payload.claimId);
+  }
+}
+
 export const useConnection = create<ConnectionStore>((set, get) => {
   const open = (url: string, token: string, factory: SocketFactory) => {
     const current = factory(url);
@@ -112,25 +135,7 @@ export const useConnection = create<ConnectionStore>((set, get) => {
           set({ status: 'unauthorized', sessionId: null });
         }
       } else {
-        if (message.event.type === 'transcript.segment')
-          useTranscript.getState().apply(message.event.payload);
-        useClaims.getState().applyEvent(message.event);
-        if (message.event.type === 'claim.checked') {
-          const { claimId } = message.event.payload;
-          // At-least-once delivery: a repeated verdict restarts the one timer, and a claim whose
-          // explanation already arrived needs none (review, phase 1).
-          clearExplanationTimer(claimId);
-          if (useClaims.getState().claims[claimId]?.explained !== undefined) return;
-          explanationTimers.set(
-            claimId,
-            setTimeout(() => {
-              explanationTimers.delete(claimId);
-              useClaims.getState().markExplanationMissing(claimId);
-            }, EXPLANATION_TIMEOUT_MS),
-          );
-        } else if (message.event.type === 'claim.explained') {
-          clearExplanationTimer(message.event.payload.claimId);
-        }
+        applySessionEvent(message.event);
       }
     };
     current.onclose = () => {

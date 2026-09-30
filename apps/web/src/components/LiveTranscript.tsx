@@ -7,7 +7,7 @@ import { useClaims } from '../state/claims';
 import { useTranscript } from '../state/transcript';
 
 /** A detected claim marked in its segment: pending while checked, then in its verdict's colour. */
-function ClaimMark({ claim, children }: { claim: ClaimView; children: string }) {
+function ClaimMark({ claim, children }: Readonly<{ claim: ClaimView; children: string }>) {
   const display = claim.checked === undefined ? undefined : verdictDisplay(claim.checked);
   const label = display?.label ?? t('transcript.checking');
   return (
