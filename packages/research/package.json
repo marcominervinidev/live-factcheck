@@ -17,6 +17,7 @@
   ],
   "scripts": {
     "build": "tsc -b",
+    "test:mutation": "stryker run",
     "test:unit": "vitest run --project unit"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
     "@types/jsdom": "30.0.0",
     "@types/node": "24.13.6",
     "@vitest/coverage-v8": "5.0.1",
