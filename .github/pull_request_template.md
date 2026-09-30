@@ -34,6 +34,11 @@ Mermaid weiter nur, wenn sich ein Fluss oder die Architektur ändert. -->
 
 **So habe ich geprüft:** Stufe 0 … · Stufe 1 … · Stufe 3/4 im isolierten Stack …
 
+**Agent-Bilanz** (erzeugt mit `python3 scripts/agent-usage.py --since <Branch-Beginn>`):
+
+<!-- Token je Modell, Top-Werkzeuge mit Fehlerquote, Wiederholungen. Dashboard mit Verlauf:
+privates Artefakt „Agenten-Bilanz“, wird an jedem Gate von der Retro aktualisiert. -->
+
 **Merge-Reihenfolge:** (nur bei gestapelten PRs)
 
 <!-- Mermaid only when a flow or the architecture changes:

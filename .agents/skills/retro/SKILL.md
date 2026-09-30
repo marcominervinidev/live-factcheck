@@ -40,6 +40,12 @@ The order is the preference: a deterministic check beats a prompt rule beats pro
    never changed behaviour; duplicated rules across files. Suggest deletions – shorter steering
    is a result, not a loss.
 
+Alongside the candidates, refresh the agent numbers for the period
+(`python3 scripts/agent-usage.py --since <last gate> --html <file>`, republish the private
+"Agenten-Bilanz" artifact) and read them for findings: a tool with a high error share, growing
+identical repeats, or one tool's results dominating the context are tool-economy candidates;
+fix-commits after a red first CI run per PR are the Pass@1 signal.
+
 ## 3. Report
 
 Number the suggestions, most valuable first. Per suggestion:
