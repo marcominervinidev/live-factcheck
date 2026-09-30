@@ -6,8 +6,16 @@ import type { ClaimView } from '../state/claims';
 import { useClaims } from '../state/claims';
 import { useTranscript } from '../state/transcript';
 
-/** A detected claim marked in its segment: pending while checked, then in its verdict's colour. */
-function ClaimMark({ claim, children }: Readonly<{ claim: ClaimView; children: string }>) {
+/**
+ * A detected claim marked in its segment: pending while checked, then in its verdict's colour.
+ * The first claim of a segment wraps its text; further claims show only their verdict link, so
+ * the text appears once.
+ */
+function ClaimMark({
+  claim,
+  text,
+  withText,
+}: Readonly<{ claim: ClaimView; text: string; withText: boolean }>) {
   const display = claim.checked === undefined ? undefined : verdictDisplay(claim.checked);
   const label = display?.label ?? t('transcript.checking');
   return (
@@ -16,10 +24,10 @@ function ClaimMark({ claim, children }: Readonly<{ claim: ClaimView; children: s
       data-testid="transcript-claim"
       data-claim-id={claim.claimId}
       data-state={display === undefined ? 'checking' : 'checked'}
-      aria-label={`${children} – ${label}`}
+      aria-label={`${text} – ${label}`}
       className={`rounded px-0.5 underline decoration-2 underline-offset-4 ${display === undefined ? 'animate-pulse decoration-dotted decoration-slate-400' : display.className}`}
     >
-      {children}
+      {withText && text}
       <span aria-hidden="true" className="ml-1 text-xs no-underline">
         {display?.icon ?? '⋯'} {label}
       </span>
@@ -75,10 +83,13 @@ export function LiveTranscript() {
               <span className={segment.isFinal ? 'text-slate-900' : 'text-slate-400 italic'}>
                 {marked.length === 0
                   ? segment.text
-                  : marked.map((claim) => (
-                      <ClaimMark key={claim.claimId} claim={claim}>
-                        {segment.text}
-                      </ClaimMark>
+                  : marked.map((claim, index) => (
+                      <ClaimMark
+                        key={claim.claimId}
+                        claim={claim}
+                        text={segment.text}
+                        withText={index === 0}
+                      />
                     ))}
               </span>
             </li>
