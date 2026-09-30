@@ -28,7 +28,7 @@ export function RecordPanel({
   token,
   createMicrophone = browserMicrophone,
   fetchImpl,
-}: Props) {
+}: Readonly<Props>) {
   const status = useRecording((state) => state.status);
   const lastEnd = useRecording((state) => state.lastEnd);
   const connected = useConnection((state) => state.status === 'open');
@@ -70,15 +70,14 @@ export function RecordPanel({
         </button>
       ) : (
         <div className="flex items-center justify-between gap-3">
-          <p
-            role="status"
+          <output
             data-testid="recording-status"
             data-status={status}
             className={status === 'recording' ? 'font-medium text-red-800' : 'text-slate-600'}
           >
             <span aria-hidden="true">{STATUS_ICON[status]} </span>
             {t(`recording.status.${status}`)}
-          </p>
+          </output>
           <button
             type="button"
             data-testid="record-stop"

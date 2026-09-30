@@ -24,7 +24,7 @@ export class Pcm16Encoder {
   private frameSamples = 0;
 
   constructor(inputRate: number) {
-    if (!(inputRate >= AUDIO_SAMPLE_RATE))
+    if (!Number.isFinite(inputRate) || inputRate < AUDIO_SAMPLE_RATE)
       throw new RangeError(`input rate ${String(inputRate)} is below ${String(AUDIO_SAMPLE_RATE)}`);
     this.ratio = inputRate / AUDIO_SAMPLE_RATE;
   }
