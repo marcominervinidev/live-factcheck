@@ -164,7 +164,7 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - Aktuelles Gate: Gates 0–3 gemergt; TP5 (#33, #35, #37, #41, #43), TP6 (#36), Audio-Robustheit (#42), Zahlwörter (#40), PR-Regeln (#38) gemergt; TP7 (#39) landete auf dem alten TP6-Zweig und kommt mit einem Nachzieh-PR auf `main`. **Gate 4 offen**
 - [x] TP6 T6.1–T6.4 funktionale Basis (PR #36): Einwilligungsdialog mit allen Cloud-Anbietern (ohne Anbieterliste keine Aufnahme), Aufnahme per AudioWorklet (PCM16, 16 kHz, 100 ms), Beenden bei Displaysperre/App-Wechsel und Verbindungsverlust, Live-Transkript mit Markierungen und Sprung zur Karte; Stufe 1 (Stores, Encoder, Komponenten) und Stufe 2b in Chromium und WebKit mit synthetischem Mikrofon (39/39)
 - [x] TP7 T7.1–T7.4 (PR #39, per Nachzieh-PR auf `main`): Stufe-4-Journey Live-Modus grün in drei Browsern, Reconnect in Stufe 2b, iPhone-Checkliste, README und AGENTS, ZAP 0 Befunde, Security-Review ohne Befunde; Nachweis `docs/evidence/phase-2/tp7-e2e.txt`. Offen: `make llm-scan` (LM Studio)
-- Nächster Task: **T6.5 Umsetzung**, PR 1 Farben, Schrift, Umschalter (Zwischenstand auf `phase-2/design-tokens`), danach T6.6; offen bei Marco: iPhone-Lauf (T7.2), T7.5 Red-Team (Guthaben oder LM Studio); danach Gate 4
+- Nächster Task: **T6.5 Umsetzung PR 3** (Einwilligung, Zeigen-Modus, Zusammenfassung, Zustände). PR 1 (#47, Farben, Schrift, Umschalter) grün; PR 2 (`phase-2/design-cards`, gestapelt auf #47: SVG-Urteilssymbole, Karten, Zeitleiste als Farbbalken, Transkript, Aufnahme-Knöpfe) offen; danach T6.6; offen bei Marco: iPhone-Lauf (T7.2), T7.5 Red-Team (Guthaben oder LM Studio); danach Gate 4
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
 - Erinnerungen: **2026-10-01: Marco an den iPhone-Test erinnern** (`docs/testing/iphone-smoke.md`, T7.2; Marco, 2026-09-30); Opus-5-Red-Team-Lauf in T7.5
 - Offen (Marco, 2026-09-30): Das Claude-Abo-Guthaben ist nicht für API-Aufrufe der App nutzbar; der Opus-Red-Team-Lauf und bezahlte Eval-Läufe brauchen Guthaben in der Claude Console (API-Key). Vor T7.5 klären: Console-Guthaben aufladen, lokales Modell oder Lauf verschieben
@@ -173,3 +173,12 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - Nach Phase 2: Distroless-Runtime-Image für `stt-local` (Marco: „definitiv“; 44 HIGH-Befunde im Debian-Basisimage, 0 kritisch)
 - Offen für Marco: CodeQL-Alerts #7–#11; alte Volume `live-factcheck_redis-data` einmal löschen (`docker volume rm`, enthält AOF-Daten)
 - **Beim Phasenwechsel nach Phase 2 (Marco erinnern, 2026-09-29):** Umstieg von Docker Desktop auf **OrbStack** prüfen. Grund: Die Docker-VM (8 GB RAM, 58 GB Platte) ist auf dem 16-GB-Mac knapp – starkes Swapping bei lokalen Modellen, die Platte lief dreimal voll (zuletzt `stt-local` konnte sein Modell nicht laden). Vorher: die Caddy-CA sichern (iPhone-Zertifikat; Redis hält seit ADR 0018 nichts mehr), und `make up`, `make test`, `make up-local` danach einmal komplett prüfen
+
+### 2026-09-30T17:37Z – compaction (auto)
+
+- branch: `phase-2/design-cards`, HEAD `4c6448c`
+- uncommitted:
+
+```
+ M .ai/plans/phase-2-live-transkription.md
+```
