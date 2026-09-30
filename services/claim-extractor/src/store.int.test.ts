@@ -89,4 +89,14 @@ describe('redisSessionStore against a real Redis', () => {
       expect(await redis.pttl(`extractor:v1:${key}:${sessionId}`)).toBeGreaterThan(50_000);
     }
   });
+
+  it('registers a claim exactly once when two consumers race on it', async () => {
+    const sessionId = randomUUID();
+    const results = await Promise.all([
+      store().addClaim(sessionId, 'gleich', 'Satz.'),
+      store().addClaim(sessionId, 'gleich', 'Satz.'),
+    ]);
+    expect(results.filter(Boolean)).toHaveLength(1);
+    expect(await store().recentClaims(sessionId)).toEqual(['Satz.']);
+  });
 });

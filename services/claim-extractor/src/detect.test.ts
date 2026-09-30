@@ -51,9 +51,10 @@ function memoryStore(): SessionStore & { windows: Map<string, WindowSegment[]> }
       Promise.resolve(claims.get(sessionId)?.has(normalized) ?? false),
     recentClaims: (sessionId) => Promise.resolve(recent.get(sessionId) ?? []),
     addClaim(sessionId, normalized, standalone) {
+      if (claims.get(sessionId)?.has(normalized) === true) return Promise.resolve(false);
       claims.set(sessionId, new Set([...(claims.get(sessionId) ?? []), normalized]));
       recent.set(sessionId, [standalone, ...(recent.get(sessionId) ?? [])]);
-      return Promise.resolve();
+      return Promise.resolve(true);
     },
   };
 }
@@ -296,6 +297,17 @@ describe('detectClaim (ADR 0017)', () => {
     // Level 2 of 0–4 is score 3 on the 1–5 scale, the default minimum.
     const { deps: d } = deps({ classifier: answering(0.97, 2) });
     expect((await detectClaim(segment('Die Mondlandung fand 1969 statt.'), d)).kind).toBe('claim');
+  });
+
+  it('drops a claim another consumer registered between the check and the registration', async () => {
+    const store = memoryStore();
+    // The race: the duplicate check still sees nothing, the registration already fails.
+    const racing: SessionStore = { ...store, addClaim: () => Promise.resolve(false) };
+    const { deps: d } = deps({ store: racing });
+    expect(await detectClaim(segment('Der Zweite Weltkrieg endete im Jahr 1965.'), d)).toEqual({
+      kind: 'dropped',
+      reason: 'duplicate',
+    });
   });
 
   it('maps model failures and a used-up budget to drop reasons', async () => {
