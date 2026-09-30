@@ -127,10 +127,10 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 
 | Anforderung (Brief 11, 13.2, 17) | Stufe | Test | Stand |
 |---|---|---|---|
-| **DoD:** ins iPhone sprechen, Transkript live, Karte für eine falsche Behauptung in wenigen Sekunden | manuell | `docs/testing/iphone-smoke.md` (Marco, T7.2) | geplant |
-| Dasselbe automatisiert: Live-Modus mit WAV-Fixture bis zur Karte | 4 | `tests/e2e/live.spec.ts` `@dod` – Chromium Fake-Audio, WebKit synthetischer MediaStream (T7.1) | geplant |
-| Ohne Einwilligung keine Aufnahme; Dialog nennt die aktiven Anbieter | 2b + 4 | 2b: Dialog-Logik und Anbieterliste; 4: `@dod` Journey (T6.1, T7.1) | geplant |
-| Reconnect während einer Aufnahme | 1 + 4 | 1: Reconnect-Logik im Store; 4: `@dod` Journey (T6.4, T7.1) | geplant |
+| **DoD:** ins iPhone sprechen, Transkript live, Karte für eine falsche Behauptung in wenigen Sekunden | manuell | `docs/testing/iphone-smoke.md` (Marco, T7.2) | Checkliste fertig, Lauf offen |
+| Dasselbe automatisiert: Live-Modus bis zur Karte | 4 | `tests/e2e/live.spec.ts` `@dod` – synthetischer MediaStream in allen Browsern (das Mock-STT ignoriert den Ton, eine WAV-Datei brächte nichts) (T7.1) | grün |
+| Ohne Einwilligung keine Aufnahme; Dialog nennt die aktiven Anbieter | 2b + 4 | 2b: `recording.spec.ts` (Anbieterliste, Abbrechen); 4: `live.spec.ts` `@dod` (T6.1, T7.1) | grün |
+| Reconnect während einer Aufnahme | 1 + 2b | 1: `recording.test.ts`, `connection.test.ts`; 2b: `recording.spec.ts` `@dod` (Mock-Backend trennt; im echten Stack kann der Test den Gateway nicht neu starten) (T6.4, T7.1) | grün |
 | Live-Transkript: interim grau, final schwarz, Markierungen, Sprung zur Karte | 1 + 2b | Komponenten- und Store-Tests; 2b mit `mock-backend.ts` (T6.3) | geplant |
 | Audio-Weg Browser → Gateway → `transcription` → Transkript-Events | 3 | `tests/api/audio.spec.ts` (T4) | vorhanden |
 | Audio-Fehlercodes, Budget, Backpressure, Aufnahmelimit | 1 + 2a | `services/gateway/src/audio.test.ts`, `api.int.test.ts`, `services/transcription/src/recording.test.ts` (T2, T4) | vorhanden |
@@ -161,7 +161,8 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - [ ] T5.6 Erkennungs-Eval-Set (PR #35): `evals/detection.de.jsonl` (161 Segmente aus Plenarprotokoll 20/213 mit Zitaten, 47 positiv), Labels nach zwei KI-Prüfungen zusammengeführt und von Marco als Ganzes angenommen (2026-09-30, Regel in `evals/README.md`); `make eval EVAL_SET=detection` (Runner im internen Netz, Trockenlauf mit Mock grün). Offen: Messlauf mit echtem Klassifikator (kostenpflichtig, Freigabe); Stryker für die Deduplizierung in PR #41
 - Aktuelles Gate: Gate 2 (PR #31) und Gate 3 (PR #33) gemergt; rhetorische Fragen (PR #37, Entscheidung Marco 2026-09-30) offen
 - [x] TP6 T6.1–T6.4 funktionale Basis (PR #36): Einwilligungsdialog mit allen Cloud-Anbietern (ohne Anbieterliste keine Aufnahme), Aufnahme per AudioWorklet (PCM16, 16 kHz, 100 ms), Beenden bei Displaysperre/App-Wechsel und Verbindungsverlust, Live-Transkript mit Markierungen und Sprung zur Karte; Stufe 1 (Stores, Encoder, Komponenten) und Stufe 2b in Chromium und WebKit mit synthetischem Mikrofon (39/39)
-- Nächster Task: **T6.5 Design-Durchgang** mit Marco (Zielgruppen festlegen); bis dahin kein weiterer UI-Ausbau. TP7 T7.1–T7.4 in PR #39
+- [x] TP7 T7.1–T7.4 (PR `phase-2/tp7-e2e`, auf #36): Stufe-4-Journey Live-Modus grün in drei Browsern, Reconnect in Stufe 2b, iPhone-Checkliste, README und AGENTS, ZAP 0 Befunde, Security-Review ohne Befunde; Nachweis `docs/evidence/phase-2/tp7-e2e.txt`. Offen: `make llm-scan` (LM Studio)
+- Nächster Task: **T6.5 Design-Durchgang** mit Marco (Zielgruppen festlegen), iPhone-Lauf (T7.2, Marco), T7.5 Red-Team (Guthaben oder LM Studio); danach Gate 4
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
 - Erinnerungen: Opus-5-Red-Team-Lauf in T7.5
 - Offen (Marco, 2026-09-30): Das Claude-Abo-Guthaben ist nicht für API-Aufrufe der App nutzbar; der Opus-Red-Team-Lauf und bezahlte Eval-Läufe brauchen Guthaben in der Claude Console (API-Key). Vor T7.5 klären: Console-Guthaben aufladen, lokales Modell oder Lauf verschieben

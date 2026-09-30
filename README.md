@@ -135,6 +135,15 @@ After pulling a new version, run `make secrets-init` again: it adds secret files
 
 With the default `mock` providers the verdicts come from a small fixed corpus, which is enough to try the flow. For real checks, configure real providers.
 
+### Trying live mode
+
+1. Set the token as in text mode, then press **Aufnahme starten**.
+2. The consent dialog names every active cloud provider (speech-to-text, classifier, LLM). Record only if everyone present agrees; without the provider list there is no recording.
+3. Talk. The transcript appears live (grey while a sentence is still forming, black once final); a checkable claim is underlined, first as *wird geprüft*, then in the colour of its verdict. Tap it to jump to its card.
+4. **Aufnahme beenden** stops it. Locking the screen, switching apps or losing the connection also ends the recording and says why.
+
+With `mock` providers the speech-to-text ignores what you say and reads a fixed German script (every 2 s of audio one sentence, the second one a false claim). For real transcription, set a speech-to-text provider below. Audio is never stored; transcripts live in Redis for at most 15 minutes (ADR 0018). On the iPhone the microphone needs HTTPS, see [Trusting the local certificate](#trusting-the-local-certificate); the manual iPhone check is [docs/testing/iphone-smoke.md](docs/testing/iphone-smoke.md).
+
 ### Real providers
 
 Providers are chosen per task in `.env` (see `.env.example`); keys go only into the secret files.
@@ -144,6 +153,8 @@ Providers are chosen per task in `.env` (see `.env.example`); keys go only into 
 | Claude | `CHECKER_LLM_PROVIDER=anthropic`, `CHECKER_LLM_MODEL=claude-opus-5`; explainer and extractor likewise (e.g. `claude-haiku-4-5`) | `anthropic_api_key` |
 | LM Studio / Ollama on the Mac | `CHECKER_LLM_PROVIDER=openai-compatible`, `CHECKER_LLM_BASE_URL=http://host.docker.internal:1234/v1` (Ollama: port `11434`) | none |
 | Classifier | `CHECKER_CLASSIFIER_PROVIDER=llm` (uses the checker's LLM) or `typesafe` with `CHECKER_CLASSIFIER_MODEL=jev-1.13.0` | `typesafe_api_key` |
+| Speech-to-text | `STT_PROVIDER=deepgram`, `STT_MODEL=nova-3` (EU endpoint, default for live mode); `assemblyai` with `universal-streaming-multilingual`; `local` with `make up-local` (faster-whisper in the `stt-local` container, CPU only) | `deepgram_api_key`, `assemblyai_api_key`, none |
+| Claim detection | `DETECTOR_CLASSIFIER_PROVIDER=llm` (uses `EXTRACTOR_LLM_*`) or `typesafe`; `EXTRACTOR_LLM_PROVIDER=anthropic` with e.g. `claude-haiku-4-5` for the standalone wording | `anthropic_api_key`, `typesafe_api_key` |
 | Live research | `CHECKER_RESEARCH_SOURCES=live` (Wikipedia, Wikidata, web search via the bundled SearXNG); Google Fact Check with a key | `google_factcheck_api_key` |
 
 `host.docker.internal` is how containers reach LM Studio or Ollama on the Mac. `PRIVACY_MODE=local` makes the workers refuse any provider that would send data to a cloud service. `CLOUD_DAILY_BUDGET_USD` caps the daily spend of each worker; when it is used up, claims end as *nicht prüfbar* instead of calling the model. After changing `.env` or a key file: `docker compose up -d --force-recreate`.
