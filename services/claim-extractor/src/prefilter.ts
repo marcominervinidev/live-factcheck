@@ -37,6 +37,13 @@ const GREETING_OR_FILLER =
 const OPINION_MARKERS =
   /\b(ich finde|finde ich|ich glaube|glaube ich|ich denke|denke ich|ich meine|meiner meinung nach|meines erachtens|das sehe ich anders|ich bin der meinung|aus meiner sicht)\b/i;
 
+/**
+ * A negated question insinuates a fact ("Waren es nicht Sie, der …?", "Stimmt es nicht, dass …?")
+ * and is a claim in disguise, so it goes on to the classifier (owner decision 2026-09-30, ADR 0017).
+ * Genuine questions are still dropped here.
+ */
+const INSINUATION = /\b(nicht|kein|keine|keinen|keinem|keiner|keines|nie|niemals)\b/i;
+
 /** Numbers, quantities, comparisons and time spans: things a fact-checker can verify. */
 const FACT_SIGNAL =
   /\d|\b(null|eins|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|zwanzig|dreißig|hundert|tausend|millionen?|milliarden?|prozent|hälfte|drittel|viertel|doppelt|dreimal|mehr als|weniger als|höher als|niedriger als|größer als|kleiner als|mehrheit|jahrhundert|jahrzehnt|seit)\b/i;
@@ -58,9 +65,8 @@ export function prefilter(text: string, options: PrefilterOptions): PrefilterRes
   if (words.length < options.minWords) return { pass: false, reason: 'too_short' };
 
   const first = words[0]?.toLowerCase().replace(/[^\p{L}]/gu, '') ?? '';
-  if (trimmed.endsWith('?') || INTERROGATIVES.has(first)) {
-    return { pass: false, reason: 'question' };
-  }
+  const question = trimmed.endsWith('?') || INTERROGATIVES.has(first);
+  if (question && !INSINUATION.test(trimmed)) return { pass: false, reason: 'question' };
   const factSignal = FACT_SIGNAL.test(trimmed);
   if (!factSignal && GREETING_OR_FILLER.test(trimmed)) {
     return { pass: false, reason: 'greeting_or_filler' };

@@ -23,10 +23,11 @@ export const DETECTION_QUESTIONS = {
   claim: {
     type: 'bool',
     instructions:
-      'Enthält die neueste Äußerung eine überprüfbare Tatsachenbehauptung – eine Aussage über Fakten, Zahlen, Ereignisse oder Zustände, die sich mit Quellen belegen oder widerlegen lässt? Meinungen, Wertungen, Fragen, Prognosen, Versprechen und Aufforderungen sind keine Tatsachenbehauptungen. Der Verlauf dient nur zum Verständnis von Bezügen.',
+      'Enthält die neueste Äußerung eine überprüfbare Tatsachenbehauptung – eine Aussage über Fakten, Zahlen, Ereignisse oder Zustände, die sich mit Quellen belegen oder widerlegen lässt? Meinungen, Wertungen, echte Fragen, Prognosen, Versprechen und Aufforderungen sind keine Tatsachenbehauptungen. Eine rhetorische Frage, die einen überprüfbaren Sachverhalt unterstellt (etwa „Waren es nicht Sie, der …?“), behauptet diesen Sachverhalt. Der Verlauf dient nur zum Verständnis von Bezügen.',
     criteria: {
-      true: 'Die neueste Äußerung behauptet einen überprüfbaren Sachverhalt.',
-      false: 'Die neueste Äußerung ist Meinung, Frage, Prognose, Smalltalk oder unverständlich.',
+      true: 'Die neueste Äußerung behauptet oder unterstellt einen überprüfbaren Sachverhalt.',
+      false:
+        'Die neueste Äußerung ist Meinung, echte Frage, Prognose, Smalltalk oder unverständlich.',
     },
   } satisfies BoolQuestion,
   checkworthiness: {
