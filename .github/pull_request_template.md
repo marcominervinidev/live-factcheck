@@ -1,11 +1,11 @@
 <!-- Review guide for the owner in German first (AGENTS.md, "Pull requests"), technical details in English below. -->
 
-> **Merge-Gefahr:** Risiko **niedrig / mittel / hoch** · **Zweiweg-/Einwegtür** (warum) · Wirkradius: **örtlich / dienstübergreifend / System** · Nutzen: **hoch / mittel / niedrig** (warum)
+> **Merge-Gefahr:** Risiko **niedrig / mittel / hoch** · **revertibel / nicht revertibel** (warum) · Wirkradius: **örtlich / dienstübergreifend / System** · Nutzen: **hoch / mittel / niedrig** (warum)
 > **Empfohlene Review-Tiefe:** überfliegen · gezielt die genannten Stellen · Zeile für Zeile
 
-<!-- Herleitung (AGENTS.md, "Pull requests"): Einwegtür = Verträge/Schema, Migration oder Datenverlust,
-Secrets/Security, CI/Branch-Schutz, nach außen sichtbares Verhalten – sonst Zweiwegtür.
-Risiko niedrig = Zweiwegtür + örtlich; hoch = Einwegtür oder Wirkradius System; sonst mittel.
+<!-- Herleitung (AGENTS.md, "Pull requests"): nicht revertibel = Verträge/Schema, Migration oder
+Datenverlust, Secrets/Security, CI/Branch-Schutz, nach außen sichtbares Verhalten.
+Risiko niedrig = revertibel + örtlich; hoch = nicht revertibel oder Wirkradius System; sonst mittel.
 Nutzen: hoch = Phasenziel/MVP oder spürbarer Fehler; mittel = Qualität/Prozess; niedrig = Aufräumen. -->
 
 ## Für Marco: Review-Leitfaden

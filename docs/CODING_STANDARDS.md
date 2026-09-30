@@ -25,6 +25,11 @@ Rules in `AGENTS.md` files are binding anyway and are not repeated here.
 
 ## Tests as behaviour
 
+Scope: unit tests (stage 1) and pure-logic integration tests. The UI and E2E stages (2b/3/4)
+replay user behaviour on purpose – stable test ids, clicked flows and visible texts are the
+point there, not a smell. What stays tautological on every stage: asserting back exactly what
+the test's own mock injected, without asserting a user-visible outcome.
+
 - A test states an observable behaviour, not the implementation: no asserting a constant against
   its own literal, no reading source files, no pinning internal call order. If a refactor that
   keeps behaviour breaks the test, the test was wrong.

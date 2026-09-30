@@ -28,7 +28,7 @@ Agents tend to make tests pass the easy way. Block the change if you find:
 - types weakened after the fact, e.g. a required field made optional (`?`) to silence the compiler
 - silent defaults or fallbacks that swallow bad input or errors instead of failing fast
 - weakened tests: loosened assertions, removed cases, skipped or quarantined tests without a reason
-- tautological or structure-sensitive tests: a test that restates the implementation (asserting a constant against its own literal, reading source files instead of executing behaviour) or that pins internals so any refactor breaks it; tests go through the module's public interface
+- tautological or structure-sensitive tests: a test that restates the implementation (asserting a constant against its own literal, reading source files instead of executing behaviour) or that pins internals so any refactor breaks it; tests go through the module's public interface. Scope: stage 1 and pure-logic tests – stages 2b/3/4 replay user behaviour by design (`docs/CODING_STANDARDS.md`, "Tests as behaviour")
 - shallow interfaces: exports, parameters or config added only so tests can reach internals. Behaviour stays behind the existing small interface (deep modules); if the interface makes the behaviour untestable, that is a design finding, not a licence to export internals
 
 ## PRIO 2: Contracts and module boundaries (brief 4.2)

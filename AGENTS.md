@@ -36,7 +36,7 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 - Stop at every review gate in the plan. Do not start the next task block without approval.
 - Never commit to `main` and never merge. One feature branch per phase or subproject; small Conventional Commits.
 - Keep the plan file current enough that a fresh session in any tool can continue without questions: tick finished tasks, name the next task, note open points in `## Status`.
-- Every task in a plan gets a risk level when the plan is written (low/medium/high, derived like the PR merge-danger block). High-risk tasks are implemented and reviewed with the strongest available model; low-risk tasks may use a faster one (owner decision 2026-09-30).
+- Every task in a plan gets a risk level when the plan is written (low/medium/high, derived like the PR merge-danger block from revertibility and blast radius). High-risk tasks are implemented and reviewed with the strongest available model; low-risk tasks may use a faster one (owner decision 2026-09-30).
 - At every review gate, run the skill `retro` over the merged PRs and sessions since the last gate. Its suggestions go to the owner; accepted ones are implemented before the next task block and marked as promoted in `.ai/lessons.md`.
 - Switch tools only at a review gate. Before switching, update the plan and commit work in progress (`wip:` prefix allowed).
 - Every non-trivial architecture decision gets an ADR in `docs/adr/NNNN-title.md` (template `0000-template.md`).
@@ -48,7 +48,7 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
   - Commits tell the story in review order (contract → logic → wiring → tests → docs), so the owner can review commit by commit.
   - At most one PR stacked on another open PR; its description names the merge order.
   - The description follows `.github/pull_request_template.md`: first the German review guide for the owner (what and why, where to look with the risk, what to skip, decisions, how it was verified, and the table "Belegt durch" mapping every requirement of the PR to its proving test and stage, like the plan's "DoD → Tests"), then the technical details in English.
-  - The description opens with the merge-danger block from the template: risk (low/medium/high), door (two-way = cleanly revertable; one-way = contracts or schema, migrations or data loss, secrets/security, CI or branch protection, outward-visible behaviour), blast radius (local / cross-service / system), the value for the phase goal, and the recommended review depth (low risk = skim, medium = the named spots, high = line by line). The reviewer prompt double-checks the self-rating.
+  - The description opens with the merge-danger block from the template: risk (low/medium/high), revertibility (not revertible = contracts or schema, migrations or data loss, secrets/security, CI or branch protection, outward-visible behaviour), blast radius (local / cross-service / system), the value for the phase goal, and the recommended review depth (low risk = skim, medium = the named spots, high = line by line). The reviewer prompt double-checks the self-rating.
   - The guide's "Was und warum" carries a small structure sketch in the show-me style (pseudocode, a component or file tree, such a tree as a diff, or a call chain) instead of prose alone.
   - A Mermaid diagram (rendered by GitHub) only when a flow or the architecture changes, never as decoration.
   - No third-party review bots; the scanners in `docs/SECURITY.md` and the prompts in `.ai/prompts/` do the automated review.
@@ -57,7 +57,7 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 ## Code conventions
 
 - Judgement-call quality standards live in `docs/CODING_STANDARDS.md`, enforced by the automated review, not the implementation. Mechanical rules become checks (ESLint, dependency-cruiser, Sonar, CI) instead of prose; the file grows through retros and lessons, never by copying book rules.
-- **Every message to the owner is in German** (owner decision 2026-09-30, after several corrections): chat replies, short status lines between tool calls, questions, summaries and the review guide at the top of a PR. Use German words where they exist (Stufe, Zweig, Prüfung). Only artefacts in the repository stay English: code, identifiers, comments, commit messages and the technical part of PR descriptions.
+- **Every message to the owner is in German** (owner decision 2026-09-30, after several corrections): chat replies, short status lines between tool calls, questions, summaries and the review guide at the top of a PR. Use German words where they exist (Stufe, Zweig, Prüfung), but never force a translation: established English technical terms (revertibel/revertible, Blast-Radius, Commit) are fine (owner 2026-09-30). Only artefacts in the repository stay English: code, identifiers, comments, commit messages and the technical part of PR descriptions.
 - Code, identifiers and comments in English. UI texts in German, stored i18n-ready (never inline in components).
 - TypeScript strict. `any` and `@ts-ignore` are forbidden; an exception needs an ESLint disable or `@ts-expect-error` with a written reason.
 - Configuration only via environment variables, validated with zod at startup (fail fast). Secrets also via `<NAME>_FILE`.
