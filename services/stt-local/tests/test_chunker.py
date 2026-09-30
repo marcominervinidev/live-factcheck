@@ -1,5 +1,7 @@
 import struct
 
+import pytest
+
 from stt_local.chunker import Chunker, ms_of, rms
 
 FRAME_SAMPLES = 1600  # 100 ms at 16 kHz
@@ -16,9 +18,9 @@ def quiet() -> bytes:
 
 
 def test_rms_and_duration() -> None:
-    assert rms(b"") == 0.0
-    assert rms(b"\x01") == 0.0
-    assert rms(struct.pack("<4h", 300, -300, 300, -300)) == 300.0
+    assert rms(b"") == pytest.approx(0.0)
+    assert rms(b"\x01") == pytest.approx(0.0)
+    assert rms(struct.pack("<4h", 300, -300, 300, -300)) == pytest.approx(300.0)
     assert ms_of(3200) == 100
 
 

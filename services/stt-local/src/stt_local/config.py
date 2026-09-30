@@ -20,6 +20,7 @@ class ConfigError(Exception):
 
 @dataclass(frozen=True)
 class Settings:
+    host: str
     port: int
     model: str
     compute_type: str
@@ -63,7 +64,12 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
     model = read.env.get("LOCAL_STT_MODEL", "") or "small"
     if not all(c.isalnum() or c in "-._/" for c in model):
         read.issues.append("LOCAL_STT_MODEL: only letters, digits and - . _ / are allowed")
+    # Loopback unless the container says otherwise (the image sets HOST=0.0.0.0).
+    host = read.env.get("HOST", "") or "127.0.0.1"
+    if not all(c.isalnum() or c in ".:" for c in host):
+        read.issues.append("HOST: only an IP address or host name is allowed")
     settings = Settings(
+        host=host,
         port=read.integer("PORT", 8000, (1, 65535)),
         model=model,
         compute_type=read.choice("LOCAL_STT_COMPUTE_TYPE", "int8", COMPUTE_TYPES),

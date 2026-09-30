@@ -87,8 +87,10 @@ def run() -> None:
     state = State()
     threading.Thread(target=load_model, args=(state, settings), daemon=True).start()
     app = create_app(state, settings.silence_ms, settings.max_chunk_ms)
-    logging.getLogger("stt_local").info("service started", extra={"port": settings.port})
-    uvicorn.run(app, host="0.0.0.0", port=settings.port, log_config=None, access_log=False)  # noqa: S104 - container
+    logging.getLogger("stt_local").info(
+        "service started", extra={"host": settings.host, "port": settings.port}
+    )
+    uvicorn.run(app, host=settings.host, port=settings.port, log_config=None, access_log=False)
 
 
 if __name__ == "__main__":

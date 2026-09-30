@@ -39,6 +39,7 @@ The model lands in `~/.cache/huggingface`. `large-v3-turbo` needs about 2 GB of 
 | `LOCAL_STT_CPU_THREADS` | `0` | 0 = all cores |
 | `LOCAL_STT_SILENCE_MS` | `500` | pause that ends a chunk |
 | `LOCAL_STT_MAX_CHUNK_MS` | `15000` | a chunk ends at the latest after this |
+| `HOST` | `127.0.0.1` | bind address; the image sets `0.0.0.0` so other containers reach it |
 | `PORT` | `8000` | |
 
 ## Measured (2026-09-29, `small`, int8, container on an M2 with 8 GB Docker VM)

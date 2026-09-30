@@ -30,7 +30,8 @@ class WhisperTranscriber:
     """
 
     def __init__(self, settings: Settings) -> None:
-        from faster_whisper import WhisperModel  # noqa: PLC0415 - heavy import, only when used
+        # Heavy import, only when a model is actually loaded.
+        from faster_whisper import WhisperModel  # noqa: PLC0415
 
         self._model = WhisperModel(
             settings.model,

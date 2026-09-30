@@ -90,7 +90,7 @@ async def _stream(socket: WebSocket, state: State, chunker: Chunker) -> None:
 
     chunks: asyncio.Queue[Chunk | None] = asyncio.Queue()
     worker = asyncio.create_task(_transcribe_chunks(socket, state, transcriber, start, chunks))
-    stats = {"bytes": 0, "chunks": 0}
+    pipe = _Pipeline(chunker, chunks, worker)
     try:
         while True:
             message = await socket.receive()
@@ -98,35 +98,57 @@ async def _stream(socket: WebSocket, state: State, chunker: Chunker) -> None:
                 worker.cancel()
                 return
             data = message.get("bytes")
-            if data is not None:
-                if len(data) > MAX_FRAME_BYTES:
-                    worker.cancel()
-                    await _send_error(socket, "frame too large", CLOSE_POLICY)
-                    return
-                stats["bytes"] += len(data)
-                for chunk in chunker.feed(data):
-                    stats["chunks"] += 1
-                    await chunks.put(chunk)
-                continue
-            try:
-                StopMessage.model_validate(json.loads(message.get("text") or ""))
-            except (ValidationError, ValueError):
-                worker.cancel()
-                await _send_error(socket, "invalid message", CLOSE_POLICY)
+            if data is None:
+                await _finish(socket, message.get("text"), pipe)
                 return
-            rest = chunker.flush()
-            if rest is not None:
-                stats["chunks"] += 1
-                await chunks.put(rest)
-            await chunks.put(None)
-            await worker
-            log.info(
-                "stream finished", extra={"audio_bytes": stats["bytes"], "chunks": stats["chunks"]}
-            )
-            await socket.close(1000)
-            return
+            if not await _accept_frame(socket, data, pipe):
+                worker.cancel()
+                return
     except WebSocketDisconnect:
         worker.cancel()
+
+
+@dataclass
+class _Pipeline:
+    """One stream's way from frames to the transcription worker, with counters for the log."""
+
+    chunker: Chunker
+    chunks: asyncio.Queue[Chunk | None]
+    worker: asyncio.Task[None]
+    audio_bytes: int = 0
+    chunk_count: int = 0
+
+    async def put(self, chunk: Chunk) -> None:
+        self.chunk_count += 1
+        await self.chunks.put(chunk)
+
+
+async def _accept_frame(socket: WebSocket, data: bytes, pipe: _Pipeline) -> bool:
+    """Queues the chunks a frame completes; False (socket closed) for an oversized frame."""
+    if len(data) > MAX_FRAME_BYTES:
+        await _send_error(socket, "frame too large", CLOSE_POLICY)
+        return False
+    pipe.audio_bytes += len(data)
+    for chunk in pipe.chunker.feed(data):
+        await pipe.put(chunk)
+    return True
+
+
+async def _finish(socket: WebSocket, text: str | None, pipe: _Pipeline) -> None:
+    """Handles the only text message after start: stop flushes, waits for the worker, closes."""
+    try:
+        StopMessage.model_validate(json.loads(text or ""))
+    except (ValidationError, ValueError):
+        pipe.worker.cancel()
+        await _send_error(socket, "invalid message", CLOSE_POLICY)
+        return
+    rest = pipe.chunker.flush()
+    if rest is not None:
+        await pipe.put(rest)
+    await pipe.chunks.put(None)
+    await pipe.worker
+    log.info("stream finished", extra={"audio_bytes": pipe.audio_bytes, "chunks": pipe.chunk_count})
+    await socket.close(1000)
 
 
 async def _transcribe_chunks(
