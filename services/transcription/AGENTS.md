@@ -3,6 +3,7 @@
 Rules for this service only. Repo-wide rules: `/AGENTS.md`. Structure copied from the reference service `services/gateway`.
 
 - Responsibility (brief 5, 6, 10; ADR 0015, 0016): the internal WebSocket `/v1/audio` takes one recording per connection from the gateway (`start`, binary PCM16 frames, `stop`), streams it to the configured `SttProvider` (`@lfc/providers`: `deepgram`, `assemblyai`, `local` → `stt-local`, `mock`) and publishes **final** segments to `transcript.segments` and the session channel, **interim** segments only to the session channel (`publishToSession`). Interim and final segments of one utterance share the `segmentId`.
+- German number words in STT output become digits before publishing (`src/numbers.ts`, e.g. „neunzehnhundertfünfundvierzig“ → 1945): Deepgram's `smart_format` misses German year forms, and pre-filter, deduplication and search queries downstream need digits. Numbers up to twelve and articles („eine“) stay words.
 - Never store audio and never log transcript text (brief 15.6); logs carry ids, byte counts and durations only.
 - Cloud STT is booked against `CLOUD_DAILY_BUDGET_USD` in 10 s steps of audio; a used-up budget stops the recording with `budget_exceeded`, and so does a budget that cannot be booked or checked (fails closed). A provider that falls behind (`STT_MAX_BUFFERED_BYTES`) stops it with `overloaded` – never buffer without limit.
 - Publishes its provider to `status:v1:transcription` (role `stt`) for the settings page and the consent dialog.

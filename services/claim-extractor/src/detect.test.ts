@@ -51,9 +51,10 @@ function memoryStore(): SessionStore & { windows: Map<string, WindowSegment[]> }
       Promise.resolve(claims.get(sessionId)?.has(normalized) ?? false),
     recentClaims: (sessionId) => Promise.resolve(recent.get(sessionId) ?? []),
     addClaim(sessionId, normalized, standalone) {
+      if (claims.get(sessionId)?.has(normalized) === true) return Promise.resolve(false);
       claims.set(sessionId, new Set([...(claims.get(sessionId) ?? []), normalized]));
       recent.set(sessionId, [standalone, ...(recent.get(sessionId) ?? [])]);
-      return Promise.resolve();
+      return Promise.resolve(true);
     },
   };
 }
@@ -182,6 +183,17 @@ describe('detectClaim (ADR 0017)', () => {
     },
   );
 
+  it('lets a rhetorical question that insinuates a fact reach the classifier and become a claim', async () => {
+    const { deps: d, classifierStates, llmRequests } = deps({ classifier: answering(0.97, 3) });
+    const outcome = await detectClaim(
+      segment('Denn waren es nicht Sie, der der Ampel ein Durchpeitschen vorgeworfen hat?'),
+      d,
+    );
+    expect(outcome.kind).toBe('claim');
+    expect(classifierStates).toHaveLength(1);
+    expect(llmRequests.at(-1)?.system).toContain('rhetorische Frage');
+  });
+
   it('gives classifier and LLM the window as context, speakers as letters, data in random tags', async () => {
     const { deps: d, classifierStates, llmRequests } = deps();
     await detectClaim(segment('Wir reden heute über den Zweiten Weltkrieg.', 'A', 0), d);
@@ -226,6 +238,76 @@ describe('detectClaim (ADR 0017)', () => {
     expect(classifierStates.some((s) => typeof s === 'object' && s !== null && 'a' in s)).toBe(
       true,
     );
+  });
+
+  it('drops an exact duplicate by its normalised text, without asking whether it is the same', async () => {
+    const { deps: d, classifierStates } = deps({ classifier: answering(0.97, 4) });
+    await detectClaim(segment('Der Zweite Weltkrieg endete im Jahr 1965.'), d);
+    const asked = classifierStates.length;
+    expect(await detectClaim(segment('Der Zweite Weltkrieg endete im Jahr 1965!'), d)).toEqual({
+      kind: 'dropped',
+      reason: 'duplicate',
+    });
+    // Only the detection call for the second segment, no "same claim?" question.
+    expect(classifierStates).toHaveLength(asked + 1);
+  });
+
+  const sameAs =
+    (same: number): MockClassifierHandler =>
+    (state, questions) =>
+      'same' in questions ? { same } : answering(0.97, 4)(state, questions);
+
+  it.each([
+    ['confirmed as the same claim', 0.97, 'dropped'],
+    ['not confident enough that it is the same', 0.6, 'claim'],
+    ['rated as a different claim', 0.03, 'claim'],
+  ] as const)('similar wording %s → %s', async (_case, same, kind) => {
+    const { deps: d } = deps({ classifier: sameAs(same) });
+    await detectClaim(segment('Der Zweite Weltkrieg endete im Jahr 1965.'), d);
+    const outcome = await detectClaim(segment('Der Zweite Weltkrieg endete wohl im Jahr 1965.'), d);
+    expect(outcome.kind).toBe(kind);
+  });
+
+  it('asks "same claim?" from a similarity of exactly 0.6 on', async () => {
+    // Five words for the pre-filter, four tokens each ("so" is too short to count), three
+    // shared: Jaccard 3 / 5 = 0.6, the threshold itself.
+    expect(similarity('Der Krieg endete 1945 so.', 'Der Krieg endete 1965 so.')).toBeCloseTo(
+      0.6,
+      10,
+    );
+    const { deps: d } = deps({ classifier: sameAs(0.97) });
+    await detectClaim(segment('Der Krieg endete 1945 so.'), d);
+    expect(await detectClaim(segment('Der Krieg endete 1965 so.'), d)).toEqual({
+      kind: 'dropped',
+      reason: 'duplicate',
+    });
+  });
+
+  it('asks "same claim?" only for similar wording', async () => {
+    const { deps: d, classifierStates } = deps({ classifier: sameAs(0.97) });
+    await detectClaim(segment('Der Zweite Weltkrieg endete im Jahr 1965.'), d);
+    const outcome = await detectClaim(segment('Berlin hat ungefähr 3,9 Millionen Einwohner.'), d);
+    expect(outcome.kind).toBe('claim');
+    expect(classifierStates.some((s) => typeof s === 'object' && s !== null && 'a' in s)).toBe(
+      false,
+    );
+  });
+
+  it('keeps a claim whose checkworthiness is exactly the minimum', async () => {
+    // Level 2 of 0–4 is score 3 on the 1–5 scale, the default minimum.
+    const { deps: d } = deps({ classifier: answering(0.97, 2) });
+    expect((await detectClaim(segment('Die Mondlandung fand 1969 statt.'), d)).kind).toBe('claim');
+  });
+
+  it('drops a claim another consumer registered between the check and the registration', async () => {
+    const store = memoryStore();
+    // The race: the duplicate check still sees nothing, the registration already fails.
+    const racing: SessionStore = { ...store, addClaim: () => Promise.resolve(false) };
+    const { deps: d } = deps({ store: racing });
+    expect(await detectClaim(segment('Der Zweite Weltkrieg endete im Jahr 1965.'), d)).toEqual({
+      kind: 'dropped',
+      reason: 'duplicate',
+    });
   });
 
   it('maps model failures and a used-up budget to drop reasons', async () => {
@@ -280,5 +362,7 @@ describe('similarity', () => {
     expect(similarity('Der Krieg endete 1945.', 'Der Krieg endete 1965.')).toBeCloseTo(0.6, 5);
     expect(similarity('Berlin wächst', 'Hamburg schrumpft')).toBe(0);
     expect(similarity('', 'abc')).toBe(0);
+    // Only words of at least three characters count; none left on either side is no similarity.
+    expect(similarity('ab cd', 'ab cd')).toBe(0);
   });
 });

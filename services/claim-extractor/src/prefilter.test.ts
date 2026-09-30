@@ -16,8 +16,42 @@ describe('prefilter (ADR 0017)', () => {
     'Guten Abend, heute sind 30 Millionen Menschen zugeschaltet.',
     // No fact signal, no marker: the classifier decides.
     'Die Mondlandung wurde in einem Filmstudio gedreht.',
+    // Rhetorical questions that insinuate a fact reach the classifier (owner decision 2026-09-30).
+    'Denn waren es nicht Sie, der der Ampel ein Durchpeitschen vorgeworfen hat?',
+    'Stimmt es nicht, dass die Arbeitslosigkeit gestiegen ist?',
+    'Hat die Regierung nicht gerade erst die Steuern erhöht?',
   ])('passes %j', (text) => {
     expect(run(text)).toEqual({ pass: true });
+  });
+
+  it.each([
+    'Wer',
+    'Wen',
+    'Wem',
+    'Wessen',
+    'Was',
+    'Wann',
+    'Wo',
+    'Woher',
+    'Wohin',
+    'Warum',
+    'Wieso',
+    'Weshalb',
+    'Wie',
+    'Welche',
+    'Welcher',
+    'Welches',
+    'Welchen',
+    'Welchem',
+  ])('drops a question starting with %j even without a question mark', (word) => {
+    expect(run(`${word} hat das damals eigentlich entschieden`)).toEqual({
+      pass: false,
+      reason: 'question',
+    });
+  });
+
+  it('treats a greeting word inside a sentence as content, not as a greeting', () => {
+    expect(run('Der Kanzler sagte danke an alle Beteiligten im Saal.')).toEqual({ pass: true });
   });
 
   it.each([
@@ -26,6 +60,7 @@ describe('prefilter (ADR 0017)', () => {
     ['Wie hoch ist die Arbeitslosigkeit eigentlich gerade?', 'question'],
     ['Warum sollten wir das überhaupt glauben', 'question'],
     ['Stimmt es, dass Berlin größer als Hamburg ist?', 'question'],
+    ['Wer soll Ihnen glauben, dass es diesmal erstmals anders sein wird?', 'question'],
     ['Guten Abend und willkommen zur Diskussion.', 'greeting_or_filler'],
     ['Vielen Dank für die Einladung in diese Runde.', 'greeting_or_filler'],
     ['Das sehe ich anders, ich finde das Thema wichtig.', 'opinion_only'],
