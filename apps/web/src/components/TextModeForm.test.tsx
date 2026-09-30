@@ -43,6 +43,38 @@ describe('TextModeForm (brief 6.8)', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('keeps text typed while the previous claim was still being sent', async () => {
+    let respond: (() => void) | undefined;
+    vi.stubGlobal(
+      'fetch',
+      () =>
+        new Promise<Response>((resolve) => {
+          respond = () => {
+            resolve(
+              new Response(
+                JSON.stringify({ schemaVersion: 1, claimId: CLAIM_ID, sessionId: SESSION_ID }),
+                { status: 202 },
+              ),
+            );
+          };
+        }),
+    );
+    render(<TextModeForm gatewayUrl="/api" />);
+    type('Berlin hat 3,9 Millionen Einwohner.');
+    fireEvent.submit(screen.getByTestId('textmode-form'));
+    type('Ich finde, Berlin ist die schönste Stadt.');
+    await act(async () => {
+      respond?.();
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(button().disabled).toBe(false);
+    });
+    expect(screen.getByTestId<HTMLTextAreaElement>('claim-input').value).toBe(
+      'Ich finde, Berlin ist die schönste Stadt.',
+    );
+  });
+
   it('sends the trimmed claim, adds a pending card and clears the input', async () => {
     const bodies: unknown[] = [];
     vi.stubGlobal('fetch', (_url: string, init: RequestInit) => {

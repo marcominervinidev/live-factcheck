@@ -1,0 +1,42 @@
+TP6 – live mode in the web app, functional base (T6.1–T6.4), 2026-09-30
+Branch phase-2/tp6-web-live, stacked on phase-2/tp5-claim-extractor
+
+Stage 0
+  make lint: typecheck, ESLint, depcruise green; Prettier only flags the owner's globally
+  ignored .claude/settings.local.json (not in git, not in CI)
+
+Stage 1 (Vitest, jsdom): apps/web 86 passed, coverage 95.0 % lines / 90.5 % branches
+  audio/pcm.test.ts         6  48 kHz and 44.1 kHz → exactly 10 frames per second, chunk-size
+                               independent, low-pass, refuses rates below 16 kHz
+  state/recording.test.ts  10  frames only after audio.started, microphone released on every end,
+                               background / timeout / denied / lost connection / rejected start,
+                               cancel at the permission prompt without telling the server
+  state/transcript.test.ts  3  interim → final with one id, no late interim, order by start time
+  state/connection.test.ts     transcript events into the store; binary send only while open;
+                               dropped socket ends the recording
+  RecordPanel.test.tsx      7  consent names every cloud provider (and Jev), local notice,
+                               no provider list → no recording, cancel, needs connection,
+                               status and end reasons, screen lock ends the recording
+  LiveTranscript.test.tsx   3  speaker letters, interim grey / final black, claim mark
+                               checking → verdict with icon and text, link to the card
+  microphone.ts and capture-worklet.ts need a real browser: covered by stage 2b, excluded from
+  unit coverage like main.tsx
+
+Stage 2b (Playwright, mocked backend, synthetic 440 Hz microphone replacing getUserMedia)
+  chromium-desktop, chromium-mobile, webkit-iphone: 39 passed (whole suite, incl. text mode)
+  recording.spec.ts: consent lists typesafe and deepgram, cancel sends nothing; recording sends
+  only 3200-byte frames, transcript final, claim mark "Falsch", tap scrolls the card into view,
+  stop sends audio.stop and no more frames; server stop budget_exceeded shown; axe: no serious
+  or critical violations with the dialog open and while recording
+
+Stages 3 and 4 (isolated stack lfc-verify): 40 passed · 6 passed
+
+Found on the way
+  - WebKit ignores assigning navigator.mediaDevices.getUserMedia on the instance; the test
+    microphone is defined on MediaDevices.prototype
+  - scrollIntoView on the newest segment would have scrolled the whole page on the phone; only
+    the transcript list scrolls now
+
+Open
+  T6.5 design pass with a design skill and the owner's target groups before more UI work
+  (owner, 2026-09-30); real iPhone smoke test in TP7

@@ -29,13 +29,15 @@ export function TextModeForm({ gatewayUrl }: { gatewayUrl: string }) {
   const submit = async (event: SyntheticEvent) => {
     event.preventDefault();
     if (sessionId === null || token === null) return;
+    const submitted = text.trim();
     setSending(true);
     setError(null);
-    const result = await checkClaim(gatewayUrl, token, sessionId, text.trim());
+    const result = await checkClaim(gatewayUrl, token, sessionId, submitted);
     setSending(false);
     if (result.ok) {
-      addSubmitted(result.claimId, text.trim(), new Date().toISOString());
-      setText('');
+      addSubmitted(result.claimId, submitted, new Date().toISOString());
+      // Text typed while the request ran is the next claim: keep it.
+      setText((current) => (current.trim() === submitted ? '' : current));
     } else {
       setError(ERROR_KEYS[result.code] ?? 'textmode.error.other');
     }

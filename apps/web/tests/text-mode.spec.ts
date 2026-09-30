@@ -113,7 +113,7 @@ test.describe('without a token', () => {
 
     await claims.openSettings();
     await claims.saveToken(TEST_TOKEN);
-    await expect(page.getByTestId('provider')).toHaveCount(3);
+    await expect(page.getByTestId('provider')).toHaveCount(4);
     await expect(page.getByTestId('jev-notice')).toBeVisible();
     await expect(page.getByTestId('provider').first()).toContainText(
       'Daten verlassen das eigene Netzwerk',

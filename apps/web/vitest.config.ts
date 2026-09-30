@@ -9,7 +9,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.test.{ts,tsx}', 'src/testing/**', 'src/main.tsx'],
+      // The microphone and the AudioWorklet need a real browser: stage 2b (tests/recording.spec.ts).
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/testing/**',
+        'src/main.tsx',
+        'src/audio/microphone.ts',
+        'src/audio/capture-worklet.ts',
+      ],
       reportsDirectory: 'reports/coverage',
       // Brief 13.5; measured over unit and integration tests together (test:coverage where both exist).
       thresholds: { lines: 80, branches: 80 },

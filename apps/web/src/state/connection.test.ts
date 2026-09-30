@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CLAIM_ID, SESSION_ID, checked, explained } from '../testing/fixtures';
 import { useClaims } from './claims';
+import { useRecording } from './recording';
+import { useTranscript } from './transcript';
 import type { SocketLike } from './connection';
 import { EXPLANATION_TIMEOUT_MS, backoffDelay, sessionUrl, useConnection } from './connection';
 
@@ -11,12 +13,12 @@ class FakeSocket implements SocketLike {
   onopen: SocketLike['onopen'] = null;
   onmessage: SocketLike['onmessage'] = null;
   onclose: SocketLike['onclose'] = null;
-  sent: string[] = [];
+  sent: (string | ArrayBuffer)[] = [];
   closed = false;
   constructor(readonly url: string) {
     FakeSocket.instances.push(this);
   }
-  send(data: string) {
+  send(data: string | ArrayBuffer) {
     this.sent.push(data);
   }
   close() {
@@ -25,6 +27,11 @@ class FakeSocket implements SocketLike {
   // Test helpers
   open() {
     this.onopen?.call(this, {});
+  }
+  /** The control messages sent so far, parsed. */
+  json(index: number): unknown {
+    const data = this.sent[index];
+    return typeof data === 'string' ? JSON.parse(data) : undefined;
   }
   receive(message: unknown) {
     this.onmessage?.call(this, { data: JSON.stringify(message) });
@@ -78,7 +85,7 @@ describe('connection store', () => {
     useConnection.getState().connect('wss://lfc.local/ws/session', 'token-123', factory);
     expect(useConnection.getState().status).toBe('connecting');
     last().open();
-    expect(JSON.parse(last().sent[0] ?? '')).toEqual({
+    expect(last().json(0)).toEqual({
       type: 'auth',
       schemaVersion: 2,
       token: 'token-123',
@@ -183,5 +190,51 @@ describe('connection store', () => {
     useConnection.getState().disconnect();
     vi.advanceTimersByTime(EXPLANATION_TIMEOUT_MS);
     expect(useClaims.getState().claims[CLAIM_ID]?.explanationMissing).toBe(false);
+  });
+
+  it('puts transcript segments into the transcript store (ADR 0015)', () => {
+    useTranscript.getState().reset();
+    useConnection.getState().connect('wss://lfc.local/ws/session', 'token-123', factory);
+    last().open();
+    last().receive({ type: 'session.ready', schemaVersion: 2, sessionId: SESSION_ID });
+    last().receive({
+      type: 'event',
+      schemaVersion: 2,
+      event: {
+        type: 'transcript.segment',
+        schemaVersion: 2,
+        payload: {
+          schemaVersion: 1,
+          sessionId: SESSION_ID,
+          segmentId: CLAIM_ID,
+          speaker: 'A',
+          text: 'Der Zweite Weltkrieg',
+          startMs: 0,
+          endMs: 900,
+          isFinal: false,
+          language: 'de',
+        },
+      },
+    });
+    expect(useTranscript.getState().order).toEqual([CLAIM_ID]);
+  });
+
+  it('sends binary audio only while open and ends a recording when the socket drops', async () => {
+    const send = useConnection.getState().send;
+    expect(send('x')).toBe(false);
+    useConnection.getState().connect('wss://lfc.local/ws/session', 'token-123', factory);
+    last().open();
+    last().receive({ type: 'session.ready', schemaVersion: 2, sessionId: SESSION_ID });
+    const socket = last();
+
+    await useRecording.getState().start({ start: () => Promise.resolve(), stop: vi.fn() }, send);
+    socket.receive({ type: 'audio.started', schemaVersion: 2, recordingId: CLAIM_ID });
+    expect(useRecording.getState().status).toBe('recording');
+    expect(send(new ArrayBuffer(3_200))).toBe(true);
+    expect(socket.sent.at(-1)).toBeInstanceOf(ArrayBuffer);
+
+    socket.drop();
+    expect(useRecording.getState()).toMatchObject({ status: 'idle', lastEnd: 'connection_lost' });
+    expect(send('x')).toBe(false);
   });
 });

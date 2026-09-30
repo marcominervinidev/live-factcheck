@@ -33,6 +33,7 @@ const SCENARIOS: readonly [RegExp, Scenario][] = [
     },
   ],
   [/finde/, { verdict: 'nicht_pruefbar', level: 'hoch', reason: 'classified_unverifiable' }],
+  [/endete 1965/, { verdict: 'falsch', level: 'hoch' }],
 ];
 
 const probabilities = (verdict: Verdict, top: number) =>
@@ -55,13 +56,27 @@ export class MockBackend {
   sessions = 0;
   /** Explanations are sent only when true; tests switch it off to see the timeout text. */
   sendExplanations = true;
+  /** Control messages of live mode the client sent (`audio.start`, `audio.stop`). */
+  readonly audioControls: string[] = [];
+  /** Sizes of the binary audio frames received. */
+  readonly frameSizes: number[] = [];
+  private recordingId: string | undefined;
+  private spoken = false;
 
   constructor(private readonly page: Page) {}
 
   async install(): Promise<void> {
     await this.page.routeWebSocket(/\/ws\/session$/, (ws) => {
       ws.onMessage((raw) => {
-        const message = JSON.parse(String(raw)) as { type: string; token?: string };
+        if (typeof raw !== 'string') {
+          this.onFrame(raw);
+          return;
+        }
+        const message = JSON.parse(raw) as { type: string; token?: string };
+        if (message.type === 'audio.start' || message.type === 'audio.stop') {
+          this.onAudioControl(message.type);
+          return;
+        }
         if (message.type !== 'auth' || message.token !== TEST_TOKEN) {
           ws.send(
             JSON.stringify({
@@ -115,6 +130,13 @@ export class MockBackend {
             },
             { service: 'fact-checker', role: 'search', provider: 'searxng', cloud: false },
             {
+              service: 'transcription',
+              role: 'stt',
+              provider: 'deepgram',
+              model: 'nova-3',
+              cloud: true,
+            },
+            {
               service: 'explainer',
               role: 'llm',
               provider: 'openai-compatible',
@@ -127,6 +149,66 @@ export class MockBackend {
     );
   }
 
+  /** Ends the running recording from the server side, e.g. with `budget_exceeded`. */
+  endRecording(reason: 'budget_exceeded' | 'recording_limit' | 'provider_error'): void {
+    const recordingId = this.recordingId;
+    if (recordingId === undefined) return;
+    this.recordingId = undefined;
+    this.socket?.send(
+      JSON.stringify({ type: 'audio.stopped', schemaVersion: 2, recordingId, reason }),
+    );
+  }
+
+  private onAudioControl(type: 'audio.start' | 'audio.stop') {
+    this.audioControls.push(type);
+    if (type === 'audio.start') {
+      this.recordingId = uuid();
+      this.spoken = false;
+      this.socket?.send(
+        JSON.stringify({ type: 'audio.started', schemaVersion: 2, recordingId: this.recordingId }),
+      );
+    } else if (this.recordingId !== undefined) {
+      this.endRecordingAsClient();
+    }
+  }
+
+  private endRecordingAsClient() {
+    const recordingId = this.recordingId;
+    this.recordingId = undefined;
+    this.socket?.send(
+      JSON.stringify({ type: 'audio.stopped', schemaVersion: 2, recordingId, reason: 'client' }),
+    );
+  }
+
+  /** After half a second of audio the "speaker" says a false claim, like the mock STT provider. */
+  private onFrame(frame: Buffer) {
+    this.frameSizes.push(frame.byteLength);
+    if (this.spoken || this.frameSizes.length < 5) return;
+    this.spoken = true;
+    const segmentId = uuid();
+    const segment = (text: string, isFinal: boolean) => ({
+      type: 'transcript.segment',
+      schemaVersion: 2,
+      payload: {
+        schemaVersion: 1,
+        sessionId: SESSION_ID,
+        segmentId,
+        speaker: 'B',
+        text,
+        startMs: 0,
+        endMs: 2_000,
+        isFinal,
+        language: 'de',
+      },
+    });
+    this.send(segment('Der Zweite Weltkrieg', false));
+    setTimeout(() => {
+      const text = 'Der Zweite Weltkrieg endete 1965.';
+      this.send(segment(text, true));
+      this.emit(uuid(), text, [segmentId]);
+    }, 300);
+  }
+
   /** Closes the WebSocket from the server side (e.g. a gateway restart). */
   async dropConnection(): Promise<void> {
     await this.socket?.close({ code: 1012 });
@@ -136,7 +218,7 @@ export class MockBackend {
     this.socket?.send(JSON.stringify({ type: 'event', schemaVersion: 2, event }));
   }
 
-  private emit(claimId: string, text: string) {
+  private emit(claimId: string, text: string, sourceSegmentIds: string[] = []) {
     const scenario = SCENARIOS.find(([pattern]) => pattern.test(text))?.[1] ?? {
       verdict: 'stimmt',
       level: 'hoch',
@@ -154,7 +236,7 @@ export class MockBackend {
         standaloneText: text,
         normalizedText: text.toLowerCase(),
         checkworthiness: 1,
-        sourceSegmentIds: [],
+        sourceSegmentIds,
         detectedAt: now,
         detectMs: 0,
         provider: { classifier: 'text-mode', model: 'none' },
