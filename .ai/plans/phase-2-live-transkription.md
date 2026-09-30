@@ -127,10 +127,10 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 
 | Anforderung (Brief 11, 13.2, 17) | Stufe | Test | Stand |
 |---|---|---|---|
-| **DoD:** ins iPhone sprechen, Transkript live, Karte für eine falsche Behauptung in wenigen Sekunden | manuell | `docs/testing/iphone-smoke.md` (Marco, T7.2) | geplant |
-| Dasselbe automatisiert: Live-Modus mit WAV-Fixture bis zur Karte | 4 | `tests/e2e/live.spec.ts` `@dod` – Chromium Fake-Audio, WebKit synthetischer MediaStream (T7.1) | geplant |
-| Ohne Einwilligung keine Aufnahme; Dialog nennt die aktiven Anbieter | 2b + 4 | 2b: Dialog-Logik und Anbieterliste; 4: `@dod` Journey (T6.1, T7.1) | geplant |
-| Reconnect während einer Aufnahme | 1 + 4 | 1: Reconnect-Logik im Store; 4: `@dod` Journey (T6.4, T7.1) | geplant |
+| **DoD:** ins iPhone sprechen, Transkript live, Karte für eine falsche Behauptung in wenigen Sekunden | manuell | `docs/testing/iphone-smoke.md` (Marco, T7.2) | Checkliste fertig, Lauf offen |
+| Dasselbe automatisiert: Live-Modus bis zur Karte | 4 | `tests/e2e/live.spec.ts` `@dod` – synthetischer MediaStream in allen Browsern (das Mock-STT ignoriert den Ton, eine WAV-Datei brächte nichts) (T7.1) | grün |
+| Ohne Einwilligung keine Aufnahme; Dialog nennt die aktiven Anbieter | 2b + 4 | 2b: `recording.spec.ts` (Anbieterliste, Abbrechen); 4: `live.spec.ts` `@dod` (T6.1, T7.1) | grün |
+| Reconnect während einer Aufnahme | 1 + 2b | 1: `recording.test.ts`, `connection.test.ts`; 2b: `recording.spec.ts` `@dod` (Mock-Backend trennt; im echten Stack kann der Test den Gateway nicht neu starten) (T6.4, T7.1) | grün |
 | Live-Transkript: interim grau, final schwarz, Markierungen, Sprung zur Karte | 1 + 2b | Komponenten- und Store-Tests; 2b mit `mock-backend.ts` (T6.3) | geplant |
 | Audio-Weg Browser → Gateway → `transcription` → Transkript-Events | 3 | `tests/api/audio.spec.ts` (T4) | vorhanden |
 | Audio-Fehlercodes, Budget, Backpressure, Aufnahmelimit | 1 + 2a | `services/gateway/src/audio.test.ts`, `api.int.test.ts`, `services/transcription/src/recording.test.ts` (T2, T4) | vorhanden |
