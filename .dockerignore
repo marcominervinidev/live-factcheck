@@ -23,3 +23,10 @@ docs
 secrets/
 .DS_Store
 **/.playwright-mcp
+
+# Python (services/stt-local)
+**/.venv
+**/__pycache__
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
