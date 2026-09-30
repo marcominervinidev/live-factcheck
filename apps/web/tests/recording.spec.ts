@@ -1,9 +1,11 @@
 // Stage 2b (T6.1–T6.3): live mode in real browsers against the mocked backend, with a synthetic
 // microphone. The real audio path (AudioWorklet, resampling, framing) runs unchanged.
-import { AUDIO_FRAME_BYTES } from '@lfc/contracts';
-
 import { expect, test } from './fixtures';
 import { RecordingPage } from './pages/recording.page';
+
+/** 100 ms of PCM16 mono at 16 kHz (`AUDIO_FRAME_BYTES` in @lfc/contracts, whose build output
+ * stage 2b does not have). */
+const FRAME_BYTES = 3_200;
 
 test.describe('live mode', () => {
   let recording: RecordingPage;
@@ -39,7 +41,7 @@ test.describe('live mode', () => {
     await recording.startRecording();
     await expect(recording.status).toHaveAttribute('data-status', 'recording');
     await expect.poll(() => backend.frameSizes.length).toBeGreaterThan(5);
-    expect(new Set(backend.frameSizes)).toEqual(new Set([AUDIO_FRAME_BYTES]));
+    expect(new Set(backend.frameSizes)).toEqual(new Set([FRAME_BYTES]));
 
     await expect(recording.segments).toHaveCount(1);
     await expect(recording.segments.first()).toHaveAttribute('data-final', 'true');
