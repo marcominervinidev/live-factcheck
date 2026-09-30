@@ -52,6 +52,7 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 
 ## Code conventions
 
+- **Every message to the owner is in German** (owner decision 2026-09-30, after several corrections): chat replies, short status lines between tool calls, questions, summaries and the review guide at the top of a PR. Use German words where they exist (Stufe, Zweig, Prüfung). Only artefacts in the repository stay English: code, identifiers, comments, commit messages and the technical part of PR descriptions.
 - Code, identifiers and comments in English. UI texts in German, stored i18n-ready (never inline in components).
 - TypeScript strict. `any` and `@ts-ignore` are forbidden; an exception needs an ESLint disable or `@ts-expect-error` with a written reason.
 - Configuration only via environment variables, validated with zod at startup (fail fast). Secrets also via `<NAME>_FILE`.
