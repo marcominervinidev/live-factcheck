@@ -36,6 +36,8 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 - Stop at every review gate in the plan. Do not start the next task block without approval.
 - Never commit to `main` and never merge. One feature branch per phase or subproject; small Conventional Commits.
 - Keep the plan file current enough that a fresh session in any tool can continue without questions: tick finished tasks, name the next task, note open points in `## Status`.
+- Every task in a plan gets a risk level when the plan is written (low/medium/high, derived like the PR merge-danger block). High-risk tasks are implemented and reviewed with the strongest available model; low-risk tasks may use a faster one (owner decision 2026-09-30).
+- At every review gate, run the skill `retro` over the merged PRs and sessions since the last gate. Its suggestions go to the owner; accepted ones are implemented before the next task block and marked as promoted in `.ai/lessons.md`.
 - Switch tools only at a review gate. Before switching, update the plan and commit work in progress (`wip:` prefix allowed).
 - Every non-trivial architecture decision gets an ADR in `docs/adr/NNNN-title.md` (template `0000-template.md`).
 - A task is done only with evidence (brief 1.3): real command output, requests/responses, screenshots. Store it compactly in `docs/evidence/phase-N/`.
@@ -46,12 +48,15 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
   - Commits tell the story in review order (contract → logic → wiring → tests → docs), so the owner can review commit by commit.
   - At most one PR stacked on another open PR; its description names the merge order.
   - The description follows `.github/pull_request_template.md`: first the German review guide for the owner (what and why, where to look with the risk, what to skip, decisions, how it was verified, and the table "Belegt durch" mapping every requirement of the PR to its proving test and stage, like the plan's "DoD → Tests"), then the technical details in English.
+  - The description opens with the merge-danger block from the template: risk (low/medium/high), door (two-way = cleanly revertable; one-way = contracts or schema, migrations or data loss, secrets/security, CI or branch protection, outward-visible behaviour), blast radius (local / cross-service / system), the value for the phase goal, and the recommended review depth (low risk = skim, medium = the named spots, high = line by line). The reviewer prompt double-checks the self-rating.
+  - The guide's "Was und warum" carries a small structure sketch in the show-me style (pseudocode, a component or file tree, such a tree as a diff, or a call chain) instead of prose alone.
   - A Mermaid diagram (rendered by GitHub) only when a flow or the architecture changes, never as decoration.
   - No third-party review bots; the scanners in `docs/SECURITY.md` and the prompts in `.ai/prompts/` do the automated review.
 - Learning from mistakes: note the first occurrence of an agent mistake (or a correction by the owner) in `.ai/lessons.md`. A rule is written only when the same mistake happens **a second time** and no tool (hook, lint, CI, gitleaks, contract check) already catches it. Prefer turning it into an automated check; otherwise add the rule to the narrowest `AGENTS.md`, skill or review prompt and mark the lesson as promoted. Do not use personal agent memory for project rules.
 
 ## Code conventions
 
+- Judgement-call quality standards live in `docs/CODING_STANDARDS.md`, enforced by the automated review, not the implementation. Mechanical rules become checks (ESLint, dependency-cruiser, Sonar, CI) instead of prose; the file grows through retros and lessons, never by copying book rules.
 - **Every message to the owner is in German** (owner decision 2026-09-30, after several corrections): chat replies, short status lines between tool calls, questions, summaries and the review guide at the top of a PR. Use German words where they exist (Stufe, Zweig, Prüfung). Only artefacts in the repository stay English: code, identifiers, comments, commit messages and the technical part of PR descriptions.
 - Code, identifiers and comments in English. UI texts in German, stored i18n-ready (never inline in components).
 - TypeScript strict. `any` and `@ts-ignore` are forbidden; an exception needs an ESLint disable or `@ts-expect-error` with a written reason.
