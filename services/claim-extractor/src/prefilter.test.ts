@@ -25,6 +25,36 @@ describe('prefilter (ADR 0017)', () => {
   });
 
   it.each([
+    'Wer',
+    'Wen',
+    'Wem',
+    'Wessen',
+    'Was',
+    'Wann',
+    'Wo',
+    'Woher',
+    'Wohin',
+    'Warum',
+    'Wieso',
+    'Weshalb',
+    'Wie',
+    'Welche',
+    'Welcher',
+    'Welches',
+    'Welchen',
+    'Welchem',
+  ])('drops a question starting with %j even without a question mark', (word) => {
+    expect(run(`${word} hat das damals eigentlich entschieden`)).toEqual({
+      pass: false,
+      reason: 'question',
+    });
+  });
+
+  it('treats a greeting word inside a sentence as content, not as a greeting', () => {
+    expect(run('Der Kanzler sagte danke an alle Beteiligten im Saal.')).toEqual({ pass: true });
+  });
+
+  it.each([
     ['Das stimmt so nicht.', 'too_short'],
     ['  ', 'too_short'],
     ['Wie hoch ist die Arbeitslosigkeit eigentlich gerade?', 'question'],
