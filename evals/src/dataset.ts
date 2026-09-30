@@ -29,15 +29,36 @@ export const ClaimItem = z.strictObject({
 });
 export type ClaimItem = z.infer<typeof ClaimItem>;
 
+/**
+ * One final transcript segment of the detection set (brief 13.5, ADR 0017). Segments of one
+ * `conversationId` are replayed in file order, so the classifier sees the same window as live.
+ */
+export const DetectionItem = z.strictObject({
+  id: z.string().regex(/^[a-z0-9-]+$/),
+  conversationId: z.string().regex(/^[a-z0-9-]+$/),
+  /** Always a letter, never a name (brief 15.6). */
+  speaker: z.string().regex(/^[A-Z]$/),
+  text: z.string().trim().min(1).max(10_000),
+  /** True when the segment should end as a new claim in `claims.detected`. */
+  expected: z.boolean(),
+  sourceId: z.string().min(1),
+  note: z.string().min(1),
+  reviewed: z.boolean(),
+});
+export type DetectionItem = z.infer<typeof DetectionItem>;
+
 /** Reads a JSONL file; every line must be a valid item and every id unique (fail fast). */
-export function loadClaims(path: string): ClaimItem[] {
-  const items: ClaimItem[] = [];
+function loadJsonl<T extends { id: string }>(
+  path: string,
+  schema: { safeParse(value: unknown): z.ZodSafeParseResult<T> },
+): T[] {
+  const items: T[] = [];
   const ids = new Set<string>();
   readFileSync(path, 'utf8')
     .split('\n')
     .forEach((line, index) => {
       if (line.trim() === '') return;
-      const parsed = ClaimItem.safeParse(JSON.parse(line));
+      const parsed = schema.safeParse(JSON.parse(line));
       if (!parsed.success) {
         throw new Error(
           `${path}:${String(index + 1)}: ${parsed.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`,
@@ -50,3 +71,7 @@ export function loadClaims(path: string): ClaimItem[] {
     });
   return items;
 }
+
+export const loadClaims = (path: string): ClaimItem[] => loadJsonl(path, ClaimItem);
+
+export const loadDetection = (path: string): DetectionItem[] => loadJsonl(path, DetectionItem);

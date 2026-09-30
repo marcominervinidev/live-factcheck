@@ -7,10 +7,13 @@
   "scripts": {
     "eval": "tsx --conditions=development src/run.ts",
     "test:unit": "vitest run --project unit",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "eval:detection": "tsx --conditions=development src/run-detection.ts"
   },
   "dependencies": {
     "@lfc/contracts": "workspace:*",
+    "@lfc/service-kit": "workspace:*",
+    "ioredis": "6.0.0",
     "ws": "8.21.3",
     "zod": "4.6.5"
   },

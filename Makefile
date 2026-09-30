@@ -97,9 +97,9 @@ llm-scan: ## Local LLM security scan of the diff (advisory, brief 15.7); needs L
 	  LLM_SCAN_BASE_REF=$${LLM_SCAN_BASE_REF:-origin/main} \
 	  pnpm --filter @lfc/llm-scan run scan
 
-eval: ## Stage 5: claim eval against the stack (EVAL_LABEL=name; see evals/README.md)
+eval: ## Stage 5: eval against the stack (EVAL_LABEL=name, EVAL_SET=claims|detection; evals/README.md)
 	$(TEST) up -d --build --wait
-	$(TEST) --profile eval run --rm eval
+	$(TEST) --profile eval run --rm $(if $(filter detection,$(EVAL_SET)),eval-detection,eval)
 
 scan: ## Trivy scan of all local images: critical vulnerabilities and embedded secrets fail
 	@status=0; for image in $(IMAGES); do \

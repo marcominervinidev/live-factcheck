@@ -5,11 +5,12 @@ Origin and licence of every source used in `evals/*.jsonl` (brief 13.5). Add a r
 | sourceId | Source | Used for | Licence / terms | Notes |
 |---|---|---|---|---|
 | `agent-seed` | Claims written by the coding agent from well-established, easily checked facts (dates, numbers, people, places, science) plus opinions and predictions | verdict set `claims.de.jsonl` (46 items) | own work | Each item has a `note` with the reason for its label. **All labels are `reviewed: false` until the owner has checked them**; `pnpm eval` ignores unreviewed items unless `EVAL_INCLUDE_UNREVIEWED=true` (dry runs only). |
+| `bundestag-pp` | Plenarprotokoll 20/213 des Deutschen Bundestags (13. März 2025), XML aus dem Open-Data-Angebot `https://www.bundestag.de/services/opendata` | detection set `detection.de.jsonl` (161 segments from six speeches) | official work, no copyright (§ 5 UrhG) | Speeches split into sentences like STT output, quotations (paragraph class `Z`) kept in place and never split; speakers replaced by `A`, interjections left out. Names of public officials inside the speeches stay as published. Labels proposed by the coding agent, reviewed by two further LLMs, merged under the owner's label rule (README) and accepted by the owner as a whole on 2026-09-30, not line by line; lines the owner decided himself say so in `note`. |
 
 Planned next (still no items):
 
 - Published fact checks with ClaimReview ratings via the Google Fact Check Tools API (verdict set, to reach ≥ 200 claims). The rating text of the publisher is mapped to our five verdicts in a reviewed step; only the claim wording and the rating are stored, never article text.
-- Bundestag plenary protocols (detection set, phase 2).
+- More plenary protocols and talk-show transcripts for the detection set (target several hundred segments).
 - Own test conversations, only with the consent of everyone involved.
 
 Checklist for a new source:
