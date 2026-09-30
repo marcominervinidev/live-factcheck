@@ -22,24 +22,38 @@ Mermaid weiter nur, wenn sich ein Fluss oder die Architektur ändert. -->
 
 **Kannst du überspringen:** Tests, Lockfile, Evidence, reine Formatierung, …
 
-**Belegt durch** (jede Anforderung dieses PRs mit ihrem Test, wie die Tabelle „DoD → Tests“ im Plan):
+**Deine Entscheidungen:**
+
+- [ ] …
+
+**Merge-Reihenfolge:** (nur bei gestapelten PRs)
+
+<!-- Ab hier eingeklappt, damit der PR kompakt öffnet (AGENTS.md, owner 2026-09-30).
+GitHub braucht die Leerzeile nach </summary>, sonst rendern Tabellen/Mermaid nicht. -->
+
+<details><summary><b>Belegt durch</b> (jede Anforderung mit ihrem Test, wie „DoD → Tests“ im Plan)</summary>
 
 | Anforderung | Stufe | Test |
 |---|---|---|
 | … | 1 / 2a / 2b / 3 / 4 | `pfad/test.ts` („Testname“) |
 
-**Deine Entscheidungen:**
+</details>
 
-- [ ] …
+<details><summary><b>Bilder und Diagramme</b> (Bildschirmfotos, Schaubild, Mermaid)</summary>
 
-**So habe ich geprüft:** Stufe 0 … · Stufe 1 … · Stufe 3/4 im isolierten Stack …
+</details>
 
-**Agent-Bilanz** (erzeugt mit `python3 scripts/agent-usage.py --since <Branch-Beginn>`):
+<details><summary><b>So habe ich geprüft</b></summary>
 
-<!-- Token je Modell, Top-Werkzeuge mit Fehlerquote, Wiederholungen. Dashboard mit Verlauf:
-privates Artefakt „Agenten-Bilanz“, wird an jedem Gate von der Retro aktualisiert. -->
+Stufe 0 … · Stufe 1 … · Stufe 3/4 im isolierten Stack …
 
-**Merge-Reihenfolge:** (nur bei gestapelten PRs)
+</details>
+
+<details><summary><b>Agent-Bilanz</b> (`python3 scripts/agent-usage.py --since <Branch-Beginn>`)</summary>
+
+<!-- Token je Modell, Top-Werkzeuge mit Fehlerquote, Wiederholungen; Dashboard-Link. -->
+
+</details>
 
 <!-- Mermaid only when a flow or the architecture changes:
 ```mermaid
@@ -48,9 +62,7 @@ flowchart LR
 ```
 -->
 
----
-
-## Details (English)
+<details><summary><b>Details (English)</b></summary>
 
 ### Changes
 
@@ -59,3 +71,5 @@ flowchart LR
 ### Evidence
 
 `docs/evidence/phase-N/…`
+
+</details>
