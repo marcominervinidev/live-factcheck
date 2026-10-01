@@ -60,4 +60,22 @@ describe('transcript store (ADR 0015)', () => {
     apply(segment(ids.a, 'eins', { startMs: 1_000 }));
     expect(texts()).toEqual(['eins', 'zwei', 'drei']);
   });
+
+  it('keeps a later recording below the earlier one although its clock restarts at zero', () => {
+    const { apply, beginEpoch } = useTranscript.getState();
+    beginEpoch();
+    apply(segment(ids.a, 'erste Aufnahme', { startMs: 90_000 }));
+    beginEpoch();
+    apply(segment(ids.b, 'zweite Aufnahme', { startMs: 0 }));
+    apply(segment(ids.c, 'zweite Aufnahme, zweiter Satz', { startMs: 5_000 }));
+    expect(texts()).toEqual(['erste Aufnahme', 'zweite Aufnahme', 'zweite Aufnahme, zweiter Satz']);
+
+    // A late final of the first recording still replaces its sentence in place.
+    apply(segment(ids.a, 'erste Aufnahme, korrigiert', { startMs: 90_000 }));
+    expect(texts()).toEqual([
+      'erste Aufnahme, korrigiert',
+      'zweite Aufnahme',
+      'zweite Aufnahme, zweiter Satz',
+    ]);
+  });
 });

@@ -127,6 +127,8 @@ export const useConnection = create<ConnectionStore>((set, get) => {
         attempt = 0;
         set({ status: 'open', sessionId: message.sessionId });
       } else if (message.type === 'audio.started' || message.type === 'audio.stopped') {
+        // Each recording restarts the transcript clock; the epoch keeps its sentences in order.
+        if (message.type === 'audio.started') useTranscript.getState().beginEpoch();
         useRecording.getState().handleServerMessage(message);
       } else if (message.type === 'error') {
         useRecording.getState().handleServerMessage(message);

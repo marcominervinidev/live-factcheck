@@ -228,8 +228,11 @@ describe('connection store', () => {
     const socket = last();
 
     await useRecording.getState().start({ start: () => Promise.resolve(), stop: vi.fn() }, send);
+    const epochBefore = useTranscript.getState().epoch;
     socket.receive({ type: 'audio.started', schemaVersion: 2, recordingId: CLAIM_ID });
     expect(useRecording.getState().status).toBe('recording');
+    // Each recording bumps the transcript epoch, so its sentences sort below earlier ones.
+    expect(useTranscript.getState().epoch).toBe(epochBefore + 1);
     expect(send(new ArrayBuffer(3_200))).toBe(true);
     expect(socket.sent.at(-1)).toBeInstanceOf(ArrayBuffer);
 
