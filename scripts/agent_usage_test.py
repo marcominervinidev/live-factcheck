@@ -121,5 +121,21 @@ class DashboardEscapeTest(unittest.TestCase):
         self.assertIn("&lt;script&gt;t&lt;/script&gt;", page)
 
 
+
+class ProjectSlugTest(unittest.TestCase):
+    def test_maps_the_absolute_path_to_the_claude_folder_name(self) -> None:
+        self.assertEqual(
+            agent_usage.project_slug(Path("/Users/jane/dev/my.app")),
+            "-Users-jane-dev-my-app",
+        )
+
+    def test_default_slug_of_this_repo_resolves_under_the_projects_base(self) -> None:
+        # The tool must work without --project on any checkout of this repo (review W2):
+        # the slug of the current directory is the default, not a hardcoded machine path.
+        slug = agent_usage.project_slug(Path.cwd().resolve())
+        self.assertTrue(slug.startswith("-"))
+        self.assertNotIn("/", slug)
+
+
 if __name__ == "__main__":
     sys.exit(unittest.main())

@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -223,6 +224,11 @@ Werkzeugfehler gesamt: {data["tool_errors"]}.</footer>
 </div>"""
 
 
+def project_slug(path: Path) -> str:
+    """Claude Code's folder name for a project: the absolute path with '/' and '.' as '-'."""
+    return re.sub(r"[/.]", "-", str(path))
+
+
 def resolve_project(base: Path, project: str) -> Path:
     """The project's folder, required to be a direct child of `base` (Sonar S8707): a crafted
     slug (`..`, absolute, nested, a symlink pointing outside) must not read elsewhere."""
@@ -239,7 +245,8 @@ def fmt(number: float) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--project", default="-Users-marcominervini-dev-live-factcheck")
+    parser.add_argument("--project", default=None,
+                        help="project folder under ~/.claude/projects (default: this directory's slug)")
     parser.add_argument("--since", type=parse_when, default=None)
     parser.add_argument("--until", type=parse_when, default=None)
     parser.add_argument("--json", action="store_true")
@@ -247,8 +254,9 @@ def main() -> None:
                         help="also write the dashboard page to this file")
     args = parser.parse_args()
 
+    project = args.project if args.project is not None else project_slug(Path.cwd().resolve())
     try:
-        folder = resolve_project(Path.home() / ".claude" / "projects", args.project)
+        folder = resolve_project(Path.home() / ".claude" / "projects", project)
     except ValueError as error:
         sys.exit(str(error))
     data = collect(folder, args.since, args.until)
