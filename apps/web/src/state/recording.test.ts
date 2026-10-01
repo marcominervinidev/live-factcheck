@@ -216,4 +216,27 @@ describe('lastEndRecorded and clearEnd (T6.5 PR 4)', () => {
     expect(useRecording.getState().lastEnd).toBeNull();
     expect(useRecording.getState().lastEndRecorded).toBe(false);
   });
+
+  it('tracks the one summary per end: markSummaryShown, reset by the next end and clearEnd', async () => {
+    const send = () => true;
+    await useRecording.getState().start(fakeMicrophone(), send);
+    useRecording.getState().handleServerMessage(started);
+    useRecording.getState().stop();
+    useRecording.getState().handleServerMessage(stopped('client'));
+    expect(useRecording.getState().lastEndSummaryShown).toBe(false);
+
+    useRecording.getState().markSummaryShown();
+    expect(useRecording.getState().lastEndSummaryShown).toBe(true);
+
+    // The next talk's end starts unshown, even though the previous summary was seen.
+    await useRecording.getState().start(fakeMicrophone(), send);
+    useRecording.getState().handleServerMessage(started);
+    useRecording.getState().stop();
+    useRecording.getState().handleServerMessage(stopped('client'));
+    expect(useRecording.getState().lastEndSummaryShown).toBe(false);
+
+    useRecording.getState().markSummaryShown();
+    useRecording.getState().clearEnd();
+    expect(useRecording.getState().lastEndSummaryShown).toBe(false);
+  });
 });

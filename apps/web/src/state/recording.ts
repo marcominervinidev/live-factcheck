@@ -27,12 +27,16 @@ interface RecordingStore {
   lastEnd: RecordingEnd | null;
   /** True when the ended attempt had really started recording (`audio.started` arrived). */
   lastEndRecorded: boolean;
+  /** True once the Danach summary opened for this end - it opens at most once per talk. */
+  lastEndSummaryShown: boolean;
   start: (microphone: Microphone, send: SessionSender) => Promise<void>;
   /** Ends the recording on the user's request or because the app went to the background. */
   stop: (why?: 'client' | 'background') => void;
   handleServerMessage: (message: WsServerMessage) => void;
   /** The session socket closed: a recording cannot survive it (a new session gets a new id). */
   connectionLost: () => void;
+  /** The summary opened for this end; late verdicts must not open it again. */
+  markSummaryShown: () => void;
   /** "Neues Gespräch": the shown end is acknowledged, the next start begins clean. */
   clearEnd: () => void;
 }
@@ -65,6 +69,7 @@ export const useRecording = create<RecordingStore>((set, get) => {
       recordingId: null,
       lastEnd,
       lastEndRecorded: get().recordingId !== null,
+      lastEndSummaryShown: false,
     });
   };
 
@@ -73,6 +78,7 @@ export const useRecording = create<RecordingStore>((set, get) => {
     recordingId: null,
     lastEnd: null,
     lastEndRecorded: false,
+    lastEndSummaryShown: false,
     start: async (mic, send) => {
       if (get().status !== 'idle') return;
       microphone = mic;
@@ -142,8 +148,11 @@ export const useRecording = create<RecordingStore>((set, get) => {
         finish('rejected');
       }
     },
+    markSummaryShown: () => {
+      set({ lastEndSummaryShown: true });
+    },
     clearEnd: () => {
-      set({ lastEnd: null, lastEndRecorded: false });
+      set({ lastEnd: null, lastEndRecorded: false, lastEndSummaryShown: false });
     },
     connectionLost: () => {
       if (get().status !== 'idle') finish('connection_lost');
