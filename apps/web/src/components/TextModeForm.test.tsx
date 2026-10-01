@@ -121,6 +121,10 @@ describe('TextModeForm (brief 6.8)', () => {
     type('Der Zweite Weltkrieg endete 1945.');
     fireEvent.submit(screen.getByTestId('textmode-form'));
     expect((await screen.findByTestId('claim-error')).textContent).toBe(message);
+    // The error belongs to the field (review finding): aria wiring, not just a text somewhere.
+    const input = screen.getByTestId('claim-input');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(input.getAttribute('aria-describedby')).toBe('claim-error');
     // The text stays, so the user can send it again.
     expect(screen.getByTestId<HTMLTextAreaElement>('claim-input').value).toBe(
       'Der Zweite Weltkrieg endete 1945.',

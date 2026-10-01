@@ -4,7 +4,7 @@ import type { Microphone } from '../audio/microphone';
 import { browserMicrophone } from '../audio/microphone';
 import { t } from '../i18n';
 import { useConnection } from '../state/connection';
-import type { RecordingStatus } from '../state/recording';
+import type { RecordingEnd, RecordingStatus } from '../state/recording';
 import { useRecording } from '../state/recording';
 import { ConsentDialog } from './ConsentDialog';
 
@@ -17,7 +17,7 @@ interface Props {
 }
 
 /** Ends that mean something broke (red card); the rest is calm information (brief 11). */
-const FAILED_ENDS = new Set<string>([
+const FAILED_ENDS = new Set<Exclude<RecordingEnd, 'client'>>([
   'microphone_denied',
   'microphone_error',
   'provider_error',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { ClaimCard } from '../components/ClaimCard';
 import { ShowClaim } from '../components/ShowClaim';
@@ -46,6 +46,7 @@ function CheckView({
   onOpenSettings,
 }: Readonly<{ gatewayUrl: string; onOpenSettings: () => void }>) {
   const [shownId, setShownId] = useState<string | null>(null);
+  const showTrigger = useRef<HTMLElement | null>(null);
   const order = useClaims((state) => state.order);
   const claims = useClaims((state) => state.claims);
   const token = useSettings((state) => state.token);
@@ -91,7 +92,15 @@ function CheckView({
       ) : (
         <section data-testid="claims" className="flex flex-col gap-4">
           {list.map((claim) => (
-            <ClaimCard key={claim.claimId} claim={claim} onShow={setShownId} />
+            <ClaimCard
+              key={claim.claimId}
+              claim={claim}
+              onShow={(id) => {
+                showTrigger.current =
+                  document.activeElement instanceof HTMLElement ? document.activeElement : null;
+                setShownId(id);
+              }}
+            />
           ))}
         </section>
       )}
@@ -103,6 +112,7 @@ function CheckView({
             checked={shown.checked}
             onClose={() => {
               setShownId(null);
+              showTrigger.current?.focus();
             }}
           />
         );

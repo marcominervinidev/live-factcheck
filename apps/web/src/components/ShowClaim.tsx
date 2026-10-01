@@ -21,10 +21,31 @@ export function ShowClaim({ claim, checked, onClose }: Readonly<Props>) {
   const display = verdictDisplay(checked);
   const backRef = useRef<HTMLButtonElement>(null);
 
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Mount-only: the focus must not jump back to "Zurück" on every store-driven re-render
+  // (review finding - CheckView re-renders on every claim event while the phone is handed over).
   useEffect(() => {
     backRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
+      // aria-modal promises a focus trap: cycle Tab inside the overlay.
+      if (event.key === 'Tab' && rootRef.current !== null) {
+        const focusables = rootRef.current.querySelectorAll<HTMLElement>('a[href], button');
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (first === undefined || last === undefined) return;
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => {
@@ -34,6 +55,7 @@ export function ShowClaim({ claim, checked, onClose }: Readonly<Props>) {
 
   return (
     <div
+      ref={rootRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="show-claim-text"
