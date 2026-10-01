@@ -168,6 +168,7 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - Risikostufen der offenen Tasks: T6.5 PR 2 (#48) und PR 3 **niedrig** (Zweiwegtür, nur `apps/web`) · T6.6 englische Oberfläche **niedrig** · Stryker-Ausweitung **niedrig** (Konfig + CI) · T7.5 Red-Team **mittel** (echte Schlüssel, Kosten) · Gate-4-Abnahme **hoch** (Einwegtür: Phasenabschluss)
 - Nächster Task: **T6.5 Umsetzung**, PR 1 Farben, Schrift, Umschalter (Zwischenstand auf `phase-2/design-tokens`), danach T6.6; offen bei Marco: iPhone-Lauf (T7.2), T7.5 Red-Team (Guthaben oder LM Studio); danach Gate 4
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
+- Backlog und offene Owner-Punkte leben jetzt als GitHub-Issues #51–#60 (Labels `backlog`/`erinnerung`, Owner 2026-09-30); der Status hier bleibt schlank
 - Erinnerungen: **2026-10-01: Marco an den iPhone-Test erinnern** (`docs/testing/iphone-smoke.md`, T7.2; Marco, 2026-09-30); Opus-5-Red-Team-Lauf in T7.5
 - Offen (Marco, 2026-09-30): Das Claude-Abo-Guthaben ist nicht für API-Aufrufe der App nutzbar; der Opus-Red-Team-Lauf und bezahlte Eval-Läufe brauchen Guthaben in der Claude Console (API-Key). Vor T7.5 klären: Console-Guthaben aufladen, lokales Modell oder Lauf verschieben
 - Security-Review PR #33 eingearbeitet (Marco, 2026-09-29): Budget „fail closed“ in `transcription`; Aufbewahrung 15 Min für Streams und Extractor-Speicher, Redis ohne AOF/RDB (ADR 0018); nosemgrep im Vorfilter **behalten** (Marco)
