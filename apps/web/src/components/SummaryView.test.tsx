@@ -34,9 +34,7 @@ describe('SummaryView (T6.5, Danach)', () => {
   it('lists only checked claims as colour bars and opens one on tap', () => {
     const onShow = vi.fn();
     render(<SummaryView claims={claims()} onShow={onShow} onNewTalk={noop} onClose={noop} />);
-    expect(screen.getByTestId('summary-view').textContent).toContain(
-      'Ein Gespräch, eine Behauptung',
-    );
+    expect(screen.getByTestId('summary-view').textContent).toContain('Ein Abend, eine Behauptung');
     const items = screen.getAllByTestId('summary-item');
     expect(items).toHaveLength(1);
     expect(items[0]?.getAttribute('data-verdict')).toBe('falsch');
@@ -70,9 +68,7 @@ describe('SummaryView (T6.5, Danach)', () => {
       },
     ];
     render(<SummaryView claims={two} onShow={noop} onNewTalk={noop} onClose={noop} />);
-    expect(screen.getByTestId('summary-view').textContent).toContain(
-      'Ein Gespräch, 2 Behauptungen',
-    );
+    expect(screen.getByTestId('summary-view').textContent).toContain('Ein Abend, 2 Behauptungen');
 
     // aria-modal promises a trap: Tab on the last focusable wraps to the first and back.
     screen.getByTestId('summary-new').focus();
