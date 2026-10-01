@@ -31,6 +31,8 @@ interface RecordingStore {
   handleServerMessage: (message: WsServerMessage) => void;
   /** The session socket closed: a recording cannot survive it (a new session gets a new id). */
   connectionLost: () => void;
+  /** "Neues Gespräch": the shown end is acknowledged, the next start begins clean. */
+  clearEnd: () => void;
 }
 
 let microphone: Microphone | undefined;
@@ -130,6 +132,9 @@ export const useRecording = create<RecordingStore>((set, get) => {
       ) {
         finish('rejected');
       }
+    },
+    clearEnd: () => {
+      set({ lastEnd: null });
     },
     connectionLost: () => {
       if (get().status !== 'idle') finish('connection_lost');
