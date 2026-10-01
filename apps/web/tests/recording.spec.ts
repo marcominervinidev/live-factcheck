@@ -37,6 +37,7 @@ test.describe('live mode', () => {
     backend,
     claims,
     a11yViolations,
+    page,
   }) => {
     await recording.startRecording();
     await expect(recording.status).toHaveAttribute('data-status', 'recording');
@@ -55,6 +56,18 @@ test.describe('live mode', () => {
     await expect(claims.card('Der Zweite Weltkrieg endete 1965.')).toBeInViewport();
 
     await recording.stop.click();
+    // The user's own stop opens the Danach summary (T6.5 PR 4); server ends keep their cards.
+    const summary = page.getByTestId('summary-view');
+    await expect(summary).toBeVisible();
+    await expect(summary.getByTestId('summary-item')).toHaveCount(1);
+    expect(await a11yViolations()).toEqual([]);
+    await summary.getByTestId('summary-item').first().click();
+    await expect(page.getByTestId('show-view')).toBeVisible();
+    await page.getByTestId('show-back').click();
+    await expect(summary).toBeVisible();
+    await summary.getByTestId('summary-new').click();
+    await expect(summary).toBeHidden();
+    await expect(page.getByTestId('claims-empty')).toBeVisible();
     await expect(recording.start).toBeVisible();
     await expect(recording.end).toHaveCount(0);
     expect(backend.audioControls).toEqual(['audio.start', 'audio.stop']);
