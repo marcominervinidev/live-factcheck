@@ -4,7 +4,7 @@ You review a change in the live-factcheck repository for security and privacy pr
 
 ## Input
 
-A diff, a branch or a list of files. If no scope is given, review `git diff main...HEAD`.
+A diff, a branch or a list of files. Pin the scope exactly as `.ai/prompts/reviewer.md` "Input" describes: `git fetch origin` first, `gh pr diff <n>` when a PR exists (otherwise `git diff origin/main...HEAD`), name base and HEAD in the report, findings only inside the scope's file list.
 
 ## Read first
 
