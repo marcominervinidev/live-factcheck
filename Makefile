@@ -7,12 +7,14 @@ DEV := $(COMPOSE) -f docker-compose.yml -f compose.dev.yaml
 TEST := $(COMPOSE) -f docker-compose.yml -f compose.test.yaml
 SECRETS_DIR ?= $(HOME)/.config/live-factcheck/secrets
 TRIVY := aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+# Keep the tag in sync with the sast job in .github/workflows/pr.yml.
+SEMGREP := semgrep/semgrep:1.178.0
 PLAYWRIGHT := docker run --rm --ipc=host -e CI -v $(CURDIR):/workspace mcr.microsoft.com/playwright:v1.63.0-noble
 # stt-local exists only with the local-stt profile (make up-local); CI builds and scans it on every PR.
 IMAGES := caddy web gateway transcription claim-extractor fact-checker explainer
 
 .PHONY: help up up-local dev down logs ready check-ports lint test test-unit test-integration stt-probe \
-        test-api test-e2e zap redteam llm-scan eval scan toolbox toolbox-down install secrets-init hooks-install
+        test-api test-e2e zap redteam llm-scan sast eval scan toolbox toolbox-down install secrets-init hooks-install
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -100,6 +102,11 @@ llm-scan: ## Local LLM security scan of the diff (advisory, brief 15.7); needs L
 eval: ## Stage 5: eval against the stack (EVAL_LABEL=name, EVAL_SET=claims|detection; evals/README.md)
 	$(TEST) up -d --build --wait
 	$(TEST) --profile eval run --rm $(if $(filter detection,$(EVAL_SET)),eval-detection,eval)
+
+sast: ## Semgrep exactly like the CI job (pinned image, same rule packs); run before opening a PR
+	docker run --rm -v $(CURDIR):/src $(SEMGREP) semgrep scan --error --metrics=off \
+	  --config p/typescript --config p/nodejsscan --config p/dockerfile \
+	  --config p/github-actions --config p/secrets
 
 scan: ## Trivy scan of all local images: critical vulnerabilities and embedded secrets fail
 	@status=0; for image in $(IMAGES); do \

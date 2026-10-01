@@ -3,8 +3,9 @@
 
 Prints the German "Agent-Bilanz" section for a PR (default) or, with --json, the raw
 numbers for the dashboard. Host Python 3 only, no dependencies. Limits: a PR maps to a
-time window (--since/--until), not to exact turns; sub-agent sessions are separate files
-in the same folder and are included; token cost of a single tool cannot be isolated -
+time window (--since/--until), not to exact turns; a session file can span days when it is
+continued, and current Claude Code keeps sub-agent transcripts outside this folder, so
+"sessions" counts the files here; token cost of a single tool cannot be isolated -
 the result size below is the honest proxy for what eats context.
 """
 from __future__ import annotations

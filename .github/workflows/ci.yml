@@ -43,6 +43,10 @@ jobs:
         run: pnpm --dir tests/redteam test:unit
       - name: MCP configs in sync (Claude Code / Antigravity)
         run: node scripts/ci/check-mcp-parity.ts
+      - name: cloud-capable services reach egress (lesson 2026-09-29)
+        # An explicit bash shell runs with pipefail, so a failing compose render fails the step.
+        shell: bash
+        run: docker compose config --format json | node scripts/ci/check-egress.ts
       - name: host script tests (stdlib python)
         run: python3 scripts/agent_usage_test.py
       - name: gitleaks (full history)

@@ -58,6 +58,7 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
   - PRs with visible UI changes, and any PR of medium or high risk, additionally get a visual review guide as a private HTML artifact linked at the top of the German guide (owner 2026-09-30): before/after of what the owner will see for frontend work, Mermaid or show-me sketches where flows or backend change – mix as fits. Built with the app's real colour tokens.
   - A Mermaid diagram (rendered by GitHub) only when a flow or the architecture changes, never as decoration.
   - No third-party review bots; the scanners in `docs/SECURITY.md` and the prompts in `.ai/prompts/` do the automated review.
+  - Before opening a PR run `make sast` (the CI-pinned Semgrep); after pushing, read the PR's SonarCloud quality gate and work its findings before reporting the PR ready - three new-code gates failed only after opening in the gate-3→4 block (promoted lesson 2026-10-01).
 - Learning from mistakes: note the first occurrence of an agent mistake (or a correction by the owner) in `.ai/lessons.md`. A rule is written only when the same mistake happens **a second time** and no tool (hook, lint, CI, gitleaks, contract check) already catches it. Prefer turning it into an automated check; otherwise add the rule to the narrowest `AGENTS.md`, skill or review prompt and mark the lesson as promoted. Do not use personal agent memory for project rules.
 
 ## Code conventions
