@@ -17,7 +17,7 @@ IMAGES := caddy web gateway transcription claim-extractor fact-checker explainer
         test-api test-e2e zap redteam llm-scan sast eval scan toolbox toolbox-down install secrets-init hooks-install
 
 help: ## List targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
+	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
 
 ## ---- stack
 up: ## Build and start the stack, wait until every service is healthy
