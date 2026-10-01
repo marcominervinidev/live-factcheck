@@ -91,7 +91,7 @@
   "recording.end.microphone_error": "Das Mikrofon konnte nicht gestartet werden.",
   "recording.end.rejected": "Der Server hat die Aufnahme abgelehnt. Bitte erneut starten.",
   "consent.title": "Alle am Tisch wissen Bescheid?",
-  "consent.intro": "Das Handy hört zu und prüft Behauptungen, während ihr redet. Sag den anderen vorher, dass es mitläuft.",
+  "consent.intro": "Das Handy hört zu und prüft Behauptungen, während ihr redet. Sag es den anderen vorher – und starte nur, wenn alle einverstanden sind.",
   "consent.cloud": "Für das Verstehen gehen Textstücke an diese Dienste im Internet:",
   "consent.provider": "{role}: {provider}",
   "consent.local": "Alles läuft lokal auf dem eigenen Rechner. Nichts geht ins Internet.",

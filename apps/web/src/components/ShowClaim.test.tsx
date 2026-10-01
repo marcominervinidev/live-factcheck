@@ -29,7 +29,15 @@ describe('ShowClaim (T6.5, Zeigen)', () => {
     expect(verdict.textContent).toContain('Falsch');
     expect(verdict.querySelector('svg')?.getAttribute('data-icon')).toBe('false');
     expect(screen.getByTestId('show-claim').textContent).toBe(checked().claim);
-    expect(screen.getByTestId('show-sources').querySelectorAll('a').length).toBeGreaterThan(0);
+    const links = [...screen.getByTestId('show-sources').querySelectorAll('a')];
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      // Handing the phone across the table must never hand over the session (security review).
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('href')).toMatch(/^https?:\/\//);
+      expect(link.textContent).toContain('Nachschlagewerk');
+    }
   });
 
   it('closes on the back button and on Escape, never suggesting certainty when uncertain', () => {

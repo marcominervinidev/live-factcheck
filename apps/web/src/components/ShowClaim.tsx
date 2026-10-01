@@ -2,7 +2,7 @@ import type { ClaimChecked } from '@lfc/contracts';
 import { useEffect, useRef } from 'react';
 
 import { t } from '../i18n';
-import { verdictDisplay } from '../lib/format';
+import { tierLabel, verdictDisplay } from '../lib/format';
 import type { ClaimView } from '../state/claims';
 import { VerdictIcon } from './VerdictIcon';
 
@@ -98,9 +98,12 @@ export function ShowClaim({ claim, checked, onClose }: Readonly<Props>) {
                     href={e.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex min-h-11 items-center text-lg font-bold text-ink underline-offset-4 hover:underline"
+                    className="flex min-h-11 flex-col justify-center underline-offset-4 hover:underline"
                   >
-                    {e.title}
+                    <span className="text-lg leading-snug font-bold text-ink">{e.title}</span>
+                    <span className="text-sm text-muted">
+                      {e.publisher} · {tierLabel(e.tier)}
+                    </span>
                   </a>
                 </li>
               ))}
