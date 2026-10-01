@@ -182,3 +182,61 @@ describe('recording store (ADR 0015)', () => {
     expect(second.start).not.toHaveBeenCalled();
   });
 });
+describe('lastEndRecorded and clearEnd (T6.5 PR 4)', () => {
+  it('marks only ends of recordings that really started, clearEnd resets both', async () => {
+    const send = () => true;
+    await useRecording.getState().start(fakeMicrophone(), send);
+    // Stop before audio.started ever arrived: never a real recording.
+    useRecording.getState().stop();
+    useRecording.getState().handleServerMessage({
+      type: 'audio.stopped',
+      schemaVersion: 2,
+      recordingId: '7f6e5d4c-3b2a-4190-8f7e-6d5c4b3a2918',
+      reason: 'client',
+    });
+    expect(useRecording.getState().lastEnd).toBe('client');
+    expect(useRecording.getState().lastEndRecorded).toBe(false);
+
+    await useRecording.getState().start(fakeMicrophone(), send);
+    useRecording.getState().handleServerMessage({
+      type: 'audio.started',
+      schemaVersion: 2,
+      recordingId: '7f6e5d4c-3b2a-4190-8f7e-6d5c4b3a2918',
+    });
+    useRecording.getState().stop();
+    useRecording.getState().handleServerMessage({
+      type: 'audio.stopped',
+      schemaVersion: 2,
+      recordingId: '7f6e5d4c-3b2a-4190-8f7e-6d5c4b3a2918',
+      reason: 'client',
+    });
+    expect(useRecording.getState().lastEndRecorded).toBe(true);
+
+    useRecording.getState().clearEnd();
+    expect(useRecording.getState().lastEnd).toBeNull();
+    expect(useRecording.getState().lastEndRecorded).toBe(false);
+  });
+
+  it('tracks the one summary per end: markSummaryShown, reset by the next end and clearEnd', async () => {
+    const send = () => true;
+    await useRecording.getState().start(fakeMicrophone(), send);
+    useRecording.getState().handleServerMessage(started);
+    useRecording.getState().stop();
+    useRecording.getState().handleServerMessage(stopped('client'));
+    expect(useRecording.getState().lastEndSummaryShown).toBe(false);
+
+    useRecording.getState().markSummaryShown();
+    expect(useRecording.getState().lastEndSummaryShown).toBe(true);
+
+    // The next talk's end starts unshown, even though the previous summary was seen.
+    await useRecording.getState().start(fakeMicrophone(), send);
+    useRecording.getState().handleServerMessage(started);
+    useRecording.getState().stop();
+    useRecording.getState().handleServerMessage(stopped('client'));
+    expect(useRecording.getState().lastEndSummaryShown).toBe(false);
+
+    useRecording.getState().markSummaryShown();
+    useRecording.getState().clearEnd();
+    expect(useRecording.getState().lastEndSummaryShown).toBe(false);
+  });
+});

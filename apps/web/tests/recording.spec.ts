@@ -55,6 +55,22 @@ test.describe('live mode', () => {
     await expect(claims.card('Der Zweite Weltkrieg endete 1965.')).toBeInViewport();
 
     await recording.stop.click();
+    // The user's own stop opens the Danach summary (T6.5 PR 4); server ends keep their cards.
+    const summary = claims.summaryView;
+    await expect(summary).toBeVisible();
+    await expect(claims.summaryItems).toHaveCount(1);
+    expect(await a11yViolations()).toEqual([]);
+    await claims.summaryItems.first().click();
+    await expect(claims.showView).toBeVisible();
+    await claims.showBack.click();
+    await expect(summary).toBeVisible();
+    await claims.summaryNew.click();
+    await expect(summary).toBeHidden();
+    // A new talk means a new session id (security review): late events of the old talk can
+    // never resurface, and the extractor's dedup memory starts fresh.
+    await expect.poll(() => backend.sessions).toBe(2);
+    await expect(claims.connection).toHaveAttribute('data-status', 'open');
+    await expect(claims.emptyFeed).toBeVisible();
     await expect(recording.start).toBeVisible();
     await expect(recording.end).toHaveCount(0);
     expect(backend.audioControls).toEqual(['audio.start', 'audio.stop']);
@@ -62,11 +78,42 @@ test.describe('live mode', () => {
     await expect.poll(() => backend.frameSizes.length, { timeout: 1_000 }).toBe(framesAtStop);
   });
 
-  test('explains why the server ended the recording', async ({ backend }) => {
+  test('the summary waits for a verdict that lands only after the stop', async ({
+    backend,
+    claims,
+  }) => {
+    backend.holdVerdicts = true;
+    await recording.startRecording();
+    await expect(recording.claimMarks.first()).toHaveAttribute('data-state', 'checking');
+    await recording.stop.click();
+    await expect(recording.start).toBeVisible();
+    // Nothing has a verdict yet, so there is nothing to summarise.
+    await expect(claims.summaryView).toHaveCount(0);
+
+    // The late verdict arrives: now the talk has a result and the summary opens.
+    backend.releaseVerdicts();
+    await expect(claims.summaryView).toBeVisible();
+    await expect(claims.summaryItems).toHaveCount(1);
+
+    // Closed stays closed: a further late verdict must not reopen the seen summary.
+    await claims.summaryClose.click();
+    await expect(claims.summaryView).toBeHidden();
+    await claims.check('Berlin hat 3,9 Millionen Einwohner.');
+    const berlin = claims.card('Berlin hat 3,9 Millionen Einwohner.');
+    // Wait for the card before releasing: the verdict is only queued once the claim arrived.
+    await expect(berlin).toBeVisible();
+    backend.releaseVerdicts();
+    await expect(berlin.getByTestId('verdict-chip')).toContainText('Größtenteils');
+    await expect(claims.summaryView).toHaveCount(0);
+  });
+
+  test('explains why the server ended the recording', async ({ backend, claims }) => {
     await recording.startRecording();
     await expect(recording.status).toHaveAttribute('data-status', 'recording');
     backend.endRecording('budget_exceeded');
     await expect(recording.end).toContainText('Tagesbudget');
+    // A server end never auto-opens the summary (review blocker guard).
+    await expect(claims.summaryView).toHaveCount(0);
     await expect(recording.start).toBeVisible();
   });
 

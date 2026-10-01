@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { ClaimCard } from '../components/ClaimCard';
 import { ShowClaim } from '../components/ShowClaim';
+import { SummaryView } from '../components/SummaryView';
 import { LiveTranscript } from '../components/LiveTranscript';
 import { RecordPanel } from '../components/RecordPanel';
 import { SettingsPage } from '../components/SettingsPage';
@@ -10,6 +11,8 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { Timeline } from '../components/Timeline';
 import { t } from '../i18n';
 import { useClaims } from '../state/claims';
+import { useRecording } from '../state/recording';
+import { useTranscript } from '../state/transcript';
 import type { ConnectionStatus } from '../state/connection';
 import { sessionUrl, useConnection } from '../state/connection';
 import { useSettings } from '../state/settings';
@@ -47,6 +50,39 @@ function CheckView({
 }: Readonly<{ gatewayUrl: string; onOpenSettings: () => void }>) {
   const [shownId, setShownId] = useState<string | null>(null);
   const showTrigger = useRef<HTMLElement | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [returnFocusId, setReturnFocusId] = useState<string | null>(null);
+
+  // The summary opens exactly once per ended talk - the user's own stop ("client") of a
+  // recording that really ran, as soon as at least one claim has a verdict (design board
+  // "Danach"). Server or error ends keep their cards; aborted start attempts never saw
+  // audio.started, so lastEndRecorded stays false. The talk's last verdict often lands only
+  // after the stop, so claim updates re-run the check (third review on this PR), and
+  // lastEndSummaryShown keeps a summary the user already saw from reopening.
+  useEffect(() => {
+    const maybeOpen = () => {
+      const recording = useRecording.getState();
+      if (
+        recording.lastEnd !== 'client' ||
+        !recording.lastEndRecorded ||
+        recording.lastEndSummaryShown
+      )
+        return;
+      const hasChecked = Object.values(useClaims.getState().claims).some(
+        (claim) => claim.checked !== undefined,
+      );
+      if (!hasChecked) return;
+      recording.markSummaryShown();
+      setSummaryOpen(true);
+    };
+    const unsubscribeRecording = useRecording.subscribe(maybeOpen);
+    const unsubscribeClaims = useClaims.subscribe(maybeOpen);
+    return () => {
+      unsubscribeRecording();
+      unsubscribeClaims();
+    };
+  }, []);
+
   const order = useClaims((state) => state.order);
   const claims = useClaims((state) => state.claims);
   const token = useSettings((state) => state.token);
@@ -104,6 +140,41 @@ function CheckView({
           ))}
         </section>
       )}
+      {summaryOpen && shownId === null && (
+        <SummaryView
+          claims={list}
+          onShow={(id) => {
+            showTrigger.current =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            setShownId(id);
+          }}
+          focusClaimId={returnFocusId}
+          onNewTalk={() => {
+            // A fresh session id, not just empty stores: late pipeline events of the old talk
+            // must never resurface in front of a new audience, and the extractor's window and
+            // dedup memory are keyed by session (security review on this PR).
+            useConnection.getState().disconnect();
+            useClaims.getState().reset();
+            useTranscript.getState().reset();
+            useRecording.getState().clearEnd();
+            setSummaryOpen(false);
+            setReturnFocusId(null);
+            const token = useSettings.getState().token;
+            // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- null check, not a secret comparison (same as tests/fixtures.ts)
+            if (token !== null)
+              useConnection.getState().connect(sessionUrl(gatewayUrl, window.location), token);
+          }}
+          onClose={() => {
+            // "Zurück" continues the same talk on purpose: the cards stay and the session
+            // stays open, so late verdicts for this talk still arrive. Only "Neues Gespräch"
+            // ends it and rotates the session for a new audience.
+            setSummaryOpen(false);
+            setReturnFocusId(null);
+            // Auto-opened overlay has no trigger element; the start button is the natural home.
+            document.querySelector<HTMLElement>('[data-testid="record-start"]')?.focus();
+          }}
+        />
+      )}
       {(() => {
         const shown = shownId === null ? undefined : claims[shownId];
         return shown?.checked === undefined ? null : (
@@ -111,6 +182,7 @@ function CheckView({
             claim={shown}
             checked={shown.checked}
             onClose={() => {
+              setReturnFocusId(shownId);
               setShownId(null);
               showTrigger.current?.focus();
             }}
