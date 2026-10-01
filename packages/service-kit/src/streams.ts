@@ -16,7 +16,9 @@ export const STREAM_RETENTION_MS = 15 * 60 * 1_000;
  * Publishes an event to its stream and, for client-relevant events, to the session channel
  * (brief 6, 6.7). The envelope is validated before it leaves the producer (contract-first).
  * Every publish trims the stream to entries younger than `STREAM_RETENTION_MS` (exact `MINID`,
- * so small streams are trimmed too; the threshold uses this host's clock).
+ * so small streams are trimmed too; the threshold uses this host's clock) and refreshes a TTL
+ * of the same length on the key, so a stream that falls silent disappears entirely instead of
+ * keeping its last entries forever - the consent dialog promises exactly that.
  */
 export async function publishEvent(
   redis: Redis,
@@ -27,7 +29,10 @@ export async function publishEvent(
   const envelope = EventEnvelope.parse(event);
   const json = JSON.stringify(envelope);
   const minId = `${String(Date.now() - STREAM_RETENTION_MS)}-0`;
-  const multi = redis.multi().xadd(stream, 'MINID', minId, '*', DATA_FIELD, json);
+  const multi = redis
+    .multi()
+    .xadd(stream, 'MINID', minId, '*', DATA_FIELD, json)
+    .pexpire(stream, STREAM_RETENTION_MS);
   if (options.toSession === true) {
     multi.publish(sessionEventsChannel(envelope.payload.sessionId), json);
   }
@@ -228,6 +233,9 @@ export function startStreamConsumer(options: StreamConsumerOptions): StreamConsu
         }
       } catch (error) {
         if (isStopping()) return;
+        // The retention TTL deletes a silent stream together with its groups; recreate ours
+        // instead of retrying into the same NOGROUP error forever.
+        if (error instanceof Error && error.message.includes('NOGROUP')) groupReady = false;
         logger.error({ err: error, stream, group }, 'stream read failed, retrying');
         await new Promise((resolve) => setTimeout(resolve, 1_000));
       }

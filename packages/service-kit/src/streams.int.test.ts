@@ -128,6 +128,30 @@ describe('Redis Streams helpers against a real Redis', () => {
     expect(STREAM_RETENTION_MS).toBe(15 * 60_000);
   });
 
+  it('expires a silent stream entirely, and the consumer heals its lost group', async () => {
+    const redis = connect();
+    const { stream, group } = names();
+
+    await publishEvent(redis, stream, detected());
+    // The consent dialog's promise: a stream that falls silent deletes itself.
+    const ttl = await redis.pttl(stream);
+    expect(ttl).toBeGreaterThan(0);
+    expect(ttl).toBeLessThanOrEqual(STREAM_RETENTION_MS);
+
+    const received: StreamMessage[] = [];
+    consume(redis, stream, group, (message) => {
+      received.push(message);
+      return Promise.resolve();
+    });
+    await expect.poll(() => received.length).toBe(1);
+
+    // Simulate the TTL firing between events: key and group vanish together.
+    await redis.del(stream);
+    await publishEvent(redis, stream, detected());
+    // NOGROUP recovery: the running consumer recreates its group and keeps processing.
+    await expect.poll(() => received.length, { timeout: 5_000 }).toBe(2);
+  });
+
   it('publishes a client-only event to the session channel and never to a stream', async () => {
     const redis = connect();
     const subscriber = connect();
