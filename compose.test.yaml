@@ -1,6 +1,6 @@
 # Test overlay (brief 13.2 stages 3 and 4): runs the Playwright suites as containers inside the
 # stack networks. Caddy gets its LAN name (LAN_HOST, default lfc.local) as alias, so TLS works via SNI.
-#   make test-api   make test-e2e
+#   make test-api   make test-e2e   (their own project lfc-test on the settings of .env.example)
 
 x-playwright: &playwright
   image: mcr.microsoft.com/playwright:v1.63.0-noble

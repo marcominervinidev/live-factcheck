@@ -108,7 +108,7 @@ tools/toolbox/       dev container: the only place Node tooling runs
 
 Coverage must stay at 80 % lines and branches in every workspace (enforced in CI). In CI every Playwright test records trace, video and screenshot; each PR gets a comment linking the reports.
 
-`make test` runs stages 0–4 locally, everything in containers.
+`make test` runs stages 0–4 locally, everything in containers. Stages 3 and 4 (`make test-api`, `make test-e2e`) and `make zap` start a stack of their own with the mock settings of `.env.example` and throwaway secrets (Compose project `lfc-test`, host ports 8084/8446 on localhost, images tagged `test`) and remove it afterwards, also when a run fails. Neither your `.env`, exported settings nor your real API keys reach it, and a running stack and its images stay untouched.
 
 ## Getting started
 
@@ -204,6 +204,11 @@ affected services: `docker compose up -d --force-recreate claim-extractor fact-c
 (running containers keep old secrets and environment). The settings page and the consent dialog
 always list what is active. Cloud spending is capped by `CLOUD_DAILY_BUDGET_USD` (default 2 USD
 a day); recording stops at the cap.
+
+To start the stack on another settings file without editing `.env`, pass it for one call:
+`make up ENV_FILE=.env.example` brings the mock defaults back, plain `make up` returns to your
+`.env`. The file replaces `.env` as a whole, ports, `LAN_HOST` and `SECRETS_DIR` included; a
+second file of your own (any `.env.*` name is git-ignored) works the same way.
 
 ## Recommended branch protection
 
