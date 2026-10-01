@@ -43,6 +43,8 @@ jobs:
         run: pnpm --dir tests/redteam test:unit
       - name: MCP configs in sync (Claude Code / Antigravity)
         run: node scripts/ci/check-mcp-parity.ts
+      - name: host script tests (stdlib python)
+        run: python3 scripts/agent_usage_test.py
       - name: gitleaks (full history)
         run: |
           curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/gitleaks.tgz \
