@@ -172,7 +172,7 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - Nächster Task: **Gate 4 mit Retro**, sobald Marco #72 und dann #73 gemergt hat (Reihenfolge; #73 ziele ich nach dem #72-Merge sofort auf `main` um). Offen in den PRs: Owner-Checkboxen (#72 „Zurück“-Semantik und „Ein Gespräch“; #73 en-GB-Datum, Urteils-Wortwahl, consent.local-Wortlaut)
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
 - Backlog und offene Owner-Punkte leben jetzt als GitHub-Issues #51–#60 (Labels `backlog`/`erinnerung`, Owner 2026-09-30); der Status hier bleibt schlank
-- Erinnerungen: iPhone-Test → Issue #51 (fällig 01.10.); Opus-5-Red-Team-Lauf in T7.5 → Issue #55
+- Erinnerungen: iPhone-Test → Issue #51 (**Samstag 04.10.**, Marco hat erst am Wochenende Zeit – am Samstag aktiv erinnern); Opus-5-Red-Team-Lauf in T7.5 → Issue #55
 - Security-Review PR #33 eingearbeitet (Marco, 2026-09-29): Budget „fail closed“ in `transcription`; Aufbewahrung 15 Min für Streams und Extractor-Speicher, Redis ohne AOF/RDB (ADR 0018); nosemgrep im Vorfilter **behalten** (Marco)
 - Beobachten: Ein Redis-Neustart setzt den Tages-Budgetzähler zurück (ADR 0018, von Marco vorerst akzeptiert). Macht das Probleme, nur den Budgetzähler persistieren
 - Feature-Plan Debattier-Modus: ADR 0021 (proposed) + `.ai/plans/feature-debate-mode.md` – Umsetzung nach Launch, verfolgt in Issue #59
