@@ -2,8 +2,15 @@
 # Exception: secrets-init and hooks-install touch host paths by design.
 SHELL := /bin/sh
 TB := scripts/tb
-COMPOSE := docker compose
+# Compose reads the settings from .env by default. ENV_FILE picks another file for one call:
+# `make up ENV_FILE=.env.example` starts the stack on the mock defaults. The file replaces .env
+# as a whole, ports, LAN_HOST and SECRETS_DIR included. Only the command line sets it, never the
+# environment.
+ENV_FILE :=
+COMPOSE := docker compose $(if $(ENV_FILE),--env-file $(ENV_FILE))
 DEV := $(COMPOSE) -f docker-compose.yml -f compose.dev.yaml
+# The configured stack with the test overlay: eval and redteam measure the providers it runs.
+# Stages 3 and 4 and the ZAP scan run like CI instead, through scripts/stack-test.sh.
 TEST := $(COMPOSE) -f docker-compose.yml -f compose.test.yaml
 SECRETS_DIR ?= $(HOME)/.config/live-factcheck/secrets
 TRIVY := aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
@@ -12,12 +19,18 @@ SEMGREP := semgrep/semgrep:1.178.0
 PLAYWRIGHT := docker run --rm --ipc=host -e CI -v $(CURDIR):/workspace mcr.microsoft.com/playwright:v1.63.0-noble
 # stt-local exists only with the local-stt profile (make up-local); CI builds and scans it on every PR.
 IMAGES := caddy web gateway transcription claim-extractor fact-checker explainer
+# make up builds :local, the stack test targets build :test (make scan SCAN_TAG=test after a test run).
+SCAN_TAG ?= local
+
+# The stack test targets share the project lfc-test and start with `down -v`; in parallel they
+# would remove each other's stack.
+.NOTPARALLEL:
 
 .PHONY: help up up-local dev down logs ready check-ports lint test test-unit test-integration stt-probe \
         test-api test-e2e zap redteam llm-scan sast eval scan toolbox toolbox-down install secrets-init hooks-install
 
 help: ## List targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
+	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
 
 ## ---- stack
 up: ## Build and start the stack, wait until every service is healthy
@@ -59,20 +72,17 @@ test-integration: ## Stages 2a (backend, Testcontainers; Docker socket) and 2b (
 	  pnpm --filter '!@lfc/web' -r --if-present test:int
 	$(PLAYWRIGHT) sh -c 'cd /workspace/apps/web && node_modules/.bin/playwright test -c tests/playwright.config.ts'
 
-test-api: ## Stage 3: API tests against the running stack (starts it with the test overlay)
-	$(TEST) up -d --build --wait
-	$(TEST) run --rm api-tests
+test-api: ## Stage 3: API tests on a fresh mock stack (own project lfc-test, removed afterwards)
+	scripts/stack-test.sh run --rm api-tests
 
-test-e2e: ## Stage 4: E2E browser tests against the running stack (Chromium, WebKit/iPhone)
-	$(TEST) up -d --build --wait
-	$(TEST) run --rm e2e-tests
+test-e2e: ## Stage 4: E2E browser tests on a fresh mock stack (Chromium, WebKit/iPhone)
+	scripts/stack-test.sh run --rm e2e-tests
 
 test: lint test-unit test-integration test-api test-e2e ## Stages 0-4
 
-zap: ## OWASP ZAP baseline scan against the stack (brief 15.7); report in tests/security/reports/
-	$(TEST) up -d --build --wait
+zap: ## OWASP ZAP baseline scan on a fresh mock stack (brief 15.7); report in tests/security/reports/
 	@mkdir -p tests/security/reports && chmod 777 tests/security/reports
-	$(TEST) --profile test run --rm zap
+	scripts/stack-test.sh --profile test run --rm zap
 
 # The red team runs in its own Compose project, created fresh and removed afterwards: no verdict
 # cache from earlier runs (a cached verdict says nothing about the current model) and the
@@ -108,12 +118,12 @@ sast: ## Semgrep exactly like the CI job (pinned image, same rule packs); run be
 	  --config p/typescript --config p/nodejsscan --config p/dockerfile \
 	  --config p/github-actions --config p/secrets
 
-scan: ## Trivy scan of all local images: critical vulnerabilities and embedded secrets fail
+scan: ## Trivy scan of all local images (SCAN_TAG=local|test): critical vulnerabilities and embedded secrets fail
 	@status=0; for image in $(IMAGES); do \
-	  echo "== lfc/$$image:local"; \
+	  echo "== lfc/$$image:$(SCAN_TAG)"; \
 	  docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v lfc-trivy-cache:/root/.cache $(TRIVY) \
 	    image --scanners vuln,secret --severity CRITICAL --exit-code 1 --no-progress --quiet --table-mode detailed \
-	    lfc/$$image:local || status=1; \
+	    lfc/$$image:$(SCAN_TAG) || status=1; \
 	done; exit $$status
 
 ## ---- tooling
