@@ -16,7 +16,8 @@ test.describe('text mode and result cards (brief 11)', () => {
     await expect(card.getByTestId('verdict-pending')).toBeVisible();
 
     const chip = card.getByTestId('verdict-chip');
-    await expect(chip).toHaveText(/✗\s*Falsch/);
+    await expect(chip).toHaveText(/Falsch/);
+    await expect(chip.locator('svg[data-icon="false"]')).toBeVisible();
     await expect(card.getByTestId('badge-existing')).toHaveText(
       'Bereits von CORRECTIV geprüft: Falsch',
     );

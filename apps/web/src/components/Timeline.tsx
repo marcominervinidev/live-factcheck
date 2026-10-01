@@ -1,10 +1,11 @@
 import { t } from '../i18n';
 import { formatTime, verdictDisplay } from '../lib/format';
 import type { ClaimView } from '../state/claims';
+import { VerdictIcon } from './VerdictIcon';
 
 /**
- * One dot per claim, oldest left, in the colour of its verdict (brief 11), with icon and label
- * for screen readers. A tap jumps to the card.
+ * One bar per claim, oldest left, in the colour of its verdict with its icon (brief 11), and the
+ * label for screen readers. The whole 44 px row is the tap target; a tap jumps to the card.
  */
 export function Timeline({ claims }: { claims: readonly ClaimView[] }) {
   if (claims.length === 0) return null;
@@ -12,9 +13,9 @@ export function Timeline({ claims }: { claims: readonly ClaimView[] }) {
     <nav
       aria-label={t('timeline.label')}
       data-testid="timeline"
-      className="sticky top-0 z-10 -mx-4 bg-ground/95 px-4 py-2 backdrop-blur"
+      className="sticky top-0 z-10 -mx-4 bg-ground/95 px-3 backdrop-blur"
     >
-      <ol className="flex flex-wrap gap-1.5">
+      <ol className="flex flex-wrap gap-x-1">
         {[...claims].reverse().map((claim) => {
           const display = claim.checked === undefined ? undefined : verdictDisplay(claim.checked);
           const label = t('timeline.item', {
@@ -28,9 +29,13 @@ export function Timeline({ claims }: { claims: readonly ClaimView[] }) {
                 data-testid="timeline-dot"
                 title={label}
                 aria-label={label}
-                className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ring-1 ${display?.className ?? 'animate-pulse bg-lilac-soft text-faint ring-line'}`}
+                className="flex h-11 min-w-11 items-center justify-center"
               >
-                <span aria-hidden="true">{display?.icon ?? '⋯'}</span>
+                <span
+                  className={`flex h-6 w-10 items-center justify-center rounded-md ${display?.solidClassName ?? 'bg-lilac-soft text-faint motion-safe:animate-pulse'}`}
+                >
+                  <VerdictIcon name={display?.icon ?? 'pending'} className="h-4 w-4" />
+                </span>
               </a>
             </li>
           );
