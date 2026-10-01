@@ -29,6 +29,10 @@ export const sttConfigShape = {
   STT_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(10_000),
   /** Silence in ms after which a cloud provider closes an utterance (Deepgram `endpointing`). */
   STT_ENDPOINTING_MS: z.coerce.number().int().min(10).max(5_000).default(300),
+  /** Quiet audio in ms after speech before the adapter forces finalization (T2.5). Too small
+   * cuts sentences at thinking pauses into fragments that claim detection cannot use (owner
+   * finding 2026-10-01: 500 ms split mid-sentence in a lively discussion). */
+  STT_FINALIZE_SILENCE_MS: z.coerce.number().int().min(200).max(5_000).default(1_000),
 };
 
 export type SttConfig = z.infer<z.ZodObject<typeof sttConfigShape>>;

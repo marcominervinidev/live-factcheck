@@ -223,7 +223,7 @@ describe('Deepgram adapter (ADR 0016)', () => {
     session.abort();
   });
 
-  it('forces Finalize after 500 ms of silence following speech, once per pause', async () => {
+  it('forces Finalize after the configured silence following speech, once per pause', async () => {
     const out = collector();
     const session = await createDeepgramProvider(deepgramConfig, server.origin).open(
       { language: 'de', sampleRate: 16_000 },
@@ -237,11 +237,11 @@ describe('Deepgram adapter (ADR 0016)', () => {
 
     for (let i = 0; i < 4; i++) session.send(quiet); // silence before speech: no Finalize
     for (let i = 0; i < 3; i++) session.send(loud);
-    for (let i = 0; i < 12; i++) session.send(quiet); // 1.2 s pause: one Finalize after 0.5 s
+    for (let i = 0; i < 12; i++) session.send(quiet); // 1.2 s pause: one Finalize after 1 s
     session.send(loud);
-    for (let i = 0; i < 5; i++) session.send(quiet); // next pause: the second one
+    for (let i = 0; i < 11; i++) session.send(quiet); // next pause: the second one
     await vi.waitFor(() => {
-      expect(connection.binaryBytes).toBe(25 * 3_200);
+      expect(connection.binaryBytes).toBe(31 * 3_200);
     });
     expect(connection.json).toEqual([{ type: 'Finalize' }, { type: 'Finalize' }]);
 
@@ -252,6 +252,34 @@ describe('Deepgram adapter (ADR 0016)', () => {
         { text: 'und dann', isFinal: true, startMs: 0, endMs: 1_000, speaker: 'A' },
       ]);
     });
+    session.abort();
+  });
+
+  it('honours a configured finalize window', async () => {
+    const fast = z.object(sttConfigShape).parse({
+      STT_PROVIDER: 'deepgram',
+      STT_MODEL: 'nova-3',
+      DEEPGRAM_API_KEY: KEY,
+      STT_CONNECT_TIMEOUT_MS: 2_000,
+      STT_FINALIZE_SILENCE_MS: 400,
+    });
+    const out = collector();
+    const session = await createDeepgramProvider(
+      { ...fast, DEEPGRAM_API_KEY: KEY },
+      server.origin,
+    ).open({ language: 'de', sampleRate: 16_000 }, out.handlers);
+    const connection = await server.nextConnection();
+    const loud = new Uint8Array(3_200);
+    const view = new DataView(loud.buffer);
+    for (let i = 0; i < 1_600; i++) view.setInt16(i * 2, i % 2 === 0 ? 8_000 : -8_000, true);
+    const quiet = new Uint8Array(3_200);
+
+    session.send(loud);
+    for (let i = 0; i < 5; i++) session.send(quiet); // 0.5 s pause beats the 400 ms window
+    await vi.waitFor(() => {
+      expect(connection.binaryBytes).toBe(6 * 3_200);
+    });
+    expect(connection.json).toEqual([{ type: 'Finalize' }]);
     session.abort();
   });
 
