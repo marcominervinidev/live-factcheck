@@ -44,7 +44,7 @@ The host has only Docker and Git. Node tooling runs in the toolbox container.
 - Pull requests are sized for the owner's review (owner decision 2026-09-30):
   - One task of the plan per PR (e.g. T6.2), at most about 400 changed lines of production code; tests, evidence and lockfiles do not count. Split larger tasks.
   - Commits tell the story in review order (contract → logic → wiring → tests → docs), so the owner can review commit by commit.
-  - At most one PR stacked on another open PR; its description names the merge order.
+  - At most one PR stacked on another open PR; its description names the merge order. The moment the base PR is merged, retarget the stacked PR to `main` (`gh pr edit <n> --base main`) before anyone merges it - merging it into the stale base stranded #39 and #48 (promoted lesson 2026-10-01).
   - The description follows `.github/pull_request_template.md`: first the German review guide for the owner (what and why, where to look with the risk, what to skip, decisions, how it was verified, and the table "Belegt durch" mapping every requirement of the PR to its proving test and stage, like the plan's "DoD → Tests"), then the technical details in English.
   - A Mermaid diagram (rendered by GitHub) only when a flow or the architecture changes, never as decoration.
   - No third-party review bots; the scanners in `docs/SECURITY.md` and the prompts in `.ai/prompts/` do the automated review.
