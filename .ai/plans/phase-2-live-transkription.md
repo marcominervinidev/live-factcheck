@@ -168,11 +168,10 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - Risikostufen der offenen Tasks: T6.5 PR 2 (#48) und PR 3 **niedrig** (Zweiwegtür, nur `apps/web`) · T6.6 englische Oberfläche **niedrig** · Stryker-Ausweitung **niedrig** (Konfig + CI) · T7.5 Red-Team **mittel** (echte Schlüssel, Kosten) · Gate-4-Abnahme **hoch** (Einwegtür: Phasenabschluss)
 - Nächster Task: **T6.5 Umsetzung**, PR 1 Farben, Schrift, Umschalter (Zwischenstand auf `phase-2/design-tokens`), danach T6.6; offen bei Marco: iPhone-Lauf (T7.2), T7.5 Red-Team (Guthaben oder LM Studio); danach Gate 4
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
-- Erinnerungen: **2026-10-01: Marco an den iPhone-Test erinnern** (`docs/testing/iphone-smoke.md`, T7.2; Marco, 2026-09-30); Opus-5-Red-Team-Lauf in T7.5
-- Offen (Marco, 2026-09-30): Das Claude-Abo-Guthaben ist nicht für API-Aufrufe der App nutzbar; der Opus-Red-Team-Lauf und bezahlte Eval-Läufe brauchen Guthaben in der Claude Console (API-Key). Vor T7.5 klären: Console-Guthaben aufladen, lokales Modell oder Lauf verschieben
+- Backlog und offene Owner-Punkte leben jetzt als GitHub-Issues #51–#60 (Labels `backlog`/`erinnerung`, Owner 2026-09-30); der Status hier bleibt schlank
+- Erinnerungen: iPhone-Test → Issue #51 (fällig 01.10.); Opus-5-Red-Team-Lauf in T7.5 → Issue #55
 - Security-Review PR #33 eingearbeitet (Marco, 2026-09-29): Budget „fail closed“ in `transcription`; Aufbewahrung 15 Min für Streams und Extractor-Speicher, Redis ohne AOF/RDB (ADR 0018); nosemgrep im Vorfilter **behalten** (Marco)
 - Beobachten: Ein Redis-Neustart setzt den Tages-Budgetzähler zurück (ADR 0018, von Marco vorerst akzeptiert). Macht das Probleme, nur den Budgetzähler persistieren
 - Feature-Plan Debattier-Modus: ADR 0021 (proposed) + `.ai/plans/feature-debate-mode.md` – Umsetzung nach Launch, verfolgt in Issue #59
-- Nach Phase 2: Distroless-Runtime-Image für `stt-local` (Marco: „definitiv“; 44 HIGH-Befunde im Debian-Basisimage, 0 kritisch)
-- Offen für Marco: CodeQL-Alerts #7–#11; alte Volume `live-factcheck_redis-data` einmal löschen (`docker volume rm`, enthält AOF-Daten)
-- **Beim Phasenwechsel nach Phase 2 (Marco erinnern, 2026-09-29):** Umstieg von Docker Desktop auf **OrbStack** prüfen. Grund: Die Docker-VM (8 GB RAM, 58 GB Platte) ist auf dem 16-GB-Mac knapp – starkes Swapping bei lokalen Modellen, die Platte lief dreimal voll (zuletzt `stt-local` konnte sein Modell nicht laden). Vorher: die Caddy-CA sichern (iPhone-Zertifikat; Redis hält seit ADR 0018 nichts mehr), und `make up`, `make test`, `make up-local` danach einmal komplett prüfen
+- Nach Phase 2: Distroless für `stt-local` → Issue #53; OrbStack-Wechsel → Issue #52
+- Offen für Marco: CodeQL → Issue #54; altes Redis-Volume → Issue #56; Repo-Setting Branch-Löschung → Issue #57
