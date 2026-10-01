@@ -161,6 +161,7 @@ function CheckView({
             setSummaryOpen(false);
             setReturnFocusId(null);
             const token = useSettings.getState().token;
+            // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- null check, not a secret comparison (same as tests/fixtures.ts)
             if (token !== null)
               useConnection.getState().connect(sessionUrl(gatewayUrl, window.location), token);
           }}

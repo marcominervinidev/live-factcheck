@@ -58,6 +58,56 @@ describe('SummaryView (T6.5, Danach)', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('counts the claims in the title and traps Tab in both directions', () => {
+    const two = [
+      ...claims().slice(0, 1),
+      {
+        claimId: OTHER_ID,
+        text: 'b',
+        submittedAt: '2026-09-26T10:05:00.000Z',
+        checked: checked({ claimId: OTHER_ID, claim: 'b' }),
+        explanationMissing: false,
+      },
+    ];
+    render(<SummaryView claims={two} onShow={noop} onNewTalk={noop} onClose={noop} />);
+    expect(screen.getByTestId('summary-view').textContent).toContain(
+      'Ein Gespräch, 2 Behauptungen',
+    );
+
+    // aria-modal promises a trap: Tab on the last focusable wraps to the first and back.
+    screen.getByTestId('summary-new').focus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement?.getAttribute('data-testid')).toBe('summary-close');
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement?.getAttribute('data-testid')).toBe('summary-new');
+  });
+
+  it('returns the focus to the shown claim row, or to back when the row is gone', () => {
+    const { unmount } = render(
+      <SummaryView
+        claims={claims()}
+        onShow={noop}
+        onNewTalk={noop}
+        onClose={noop}
+        focusClaimId={CLAIM_ID}
+      />,
+    );
+    expect(document.activeElement?.getAttribute('data-claim-id')).toBe(CLAIM_ID);
+    unmount();
+
+    // OTHER_ID is never checked, so it has no row: the back button is the safe home.
+    render(
+      <SummaryView
+        claims={claims()}
+        onShow={noop}
+        onNewTalk={noop}
+        onClose={noop}
+        focusClaimId={OTHER_ID}
+      />,
+    );
+    expect(document.activeElement?.getAttribute('data-testid')).toBe('summary-close');
+  });
+
   it('keeps an uncertain verdict neutral in the bar list (brief 11)', () => {
     render(
       <SummaryView

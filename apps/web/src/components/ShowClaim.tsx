@@ -5,6 +5,7 @@ import { t } from '../i18n';
 import { tierLabel, verdictDisplay } from '../lib/format';
 import type { ClaimView } from '../state/claims';
 import { VerdictIcon } from './VerdictIcon';
+import { useOverlayKeys } from './use-overlay-keys';
 
 interface Props {
   claim: ClaimView;
@@ -29,29 +30,7 @@ export function ShowClaim({ claim, checked, onClose }: Readonly<Props>) {
     backRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-      // aria-modal promises a focus trap: cycle Tab inside the overlay.
-      if (event.key === 'Tab' && rootRef.current !== null) {
-        const focusables = rootRef.current.querySelectorAll<HTMLElement>('a[href], button');
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (first === undefined || last === undefined) return;
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
+  useOverlayKeys(rootRef, onClose);
 
   return (
     <div

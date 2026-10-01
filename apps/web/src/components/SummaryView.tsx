@@ -4,6 +4,7 @@ import { t } from '../i18n';
 import { verdictDisplay } from '../lib/format';
 import type { ClaimView } from '../state/claims';
 import { VerdictIcon } from './VerdictIcon';
+import { useOverlayKeys } from './use-overlay-keys';
 
 interface Props {
   claims: readonly ClaimView[];
@@ -42,28 +43,7 @@ export function SummaryView({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only focus; re-renders must not steal it (ShowClaim precedent)
   }, []);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-      if (event.key === 'Tab' && rootRef.current !== null) {
-        const focusables = rootRef.current.querySelectorAll<HTMLElement>('button');
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (first === undefined || last === undefined) return;
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
+  useOverlayKeys(rootRef, onClose);
 
   const checkedClaims = claims.filter(
     (claim): claim is ClaimView & { checked: NonNullable<ClaimView['checked']> } =>
