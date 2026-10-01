@@ -24,7 +24,7 @@ export const DETECTION_QUESTIONS = {
   claim: {
     type: 'bool',
     instructions:
-      'Enthält die neueste Äußerung eine überprüfbare Tatsachenbehauptung – eine Aussage über Fakten, Zahlen, Ereignisse oder Zustände, die sich mit Quellen belegen oder widerlegen lässt? Meinungen, Wertungen, echte Fragen, Prognosen, Versprechen und Aufforderungen sind keine Tatsachenbehauptungen. Eine rhetorische Frage, die einen überprüfbaren Sachverhalt unterstellt (etwa „Waren es nicht Sie, der …?“), behauptet diesen Sachverhalt. Der Verlauf dient nur zum Verständnis von Bezügen.',
+      'Enthält die neueste Äußerung eine überprüfbare Tatsachenbehauptung – eine Aussage über Fakten, Zahlen, Ereignisse oder Zustände, die sich mit Quellen belegen oder widerlegen lässt? Meinungen, Wertungen, echte Fragen, Prognosen, Versprechen und Aufforderungen sind keine Tatsachenbehauptungen. Eine rhetorische Frage, die einen überprüfbaren Sachverhalt unterstellt (etwa „Waren es nicht Sie, der …?“), behauptet diesen Sachverhalt. Eine zugeschriebene Aussage („X hat gesagt, dass Y“) behauptet überprüfbar, dass X dies gesagt hat. Auch ein in einem Meinungssatz eingebetteter Sachverhalt zählt („Ich finde es absurd, dass Berlin eine kostenlose Kita hat“ behauptet die kostenlose Kita). Der Verlauf dient nur zum Verständnis von Bezügen.',
     criteria: {
       true: 'Die neueste Äußerung behauptet oder unterstellt einen überprüfbaren Sachverhalt.',
       false:

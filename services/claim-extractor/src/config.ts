@@ -25,6 +25,10 @@ export const configSchema = baseConfigSchema
     // The standalone formulation and, for DETECTOR_CLASSIFIER_PROVIDER=llm, the classifier.
     ...llmConfigShape('EXTRACTOR'),
     ...classifierConfigShape('DETECTOR'),
+    // Measured on the 161-segment detection set (2026-10-01, evidence in
+    // docs/evidence/phase-2/evals/): 0.6 with the attribution examples reaches recall 0.79 at
+    // precision 0.77; the shared classifier default of 0.75 left two thirds undetected.
+    DETECTOR_CONFIDENCE_HIGH: z.coerce.number().min(0.5).max(0.99).default(0.6),
     ...budgetConfigShape,
     /** Final segments kept per session as context (ADR 0017). */
     DETECTOR_WINDOW_SEGMENTS: z.coerce.number().int().min(1).max(30).default(6),

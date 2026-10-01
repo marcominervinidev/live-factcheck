@@ -45,7 +45,7 @@ describe('claim-extractor config', () => {
       DETECTOR_MIN_WORDS: 5,
       DETECTOR_MIN_SCORE: 3,
       DETECTOR_DEDUP_CANDIDATES: 10,
-      DETECTOR_CONFIDENCE_HIGH: 0.75,
+      DETECTOR_CONFIDENCE_HIGH: 0.6,
     });
   });
 });
