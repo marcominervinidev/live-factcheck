@@ -15,6 +15,8 @@ export class ClaimsPage {
   readonly timelineDots: Locator;
   readonly connection: Locator;
   readonly noToken: Locator;
+  readonly settingsView: Locator;
+  readonly navCheck: Locator;
 
   constructor(private readonly page: Page) {
     this.input = page.getByTestId('claim-input');
@@ -30,6 +32,13 @@ export class ClaimsPage {
     this.emptyFeed = page.getByTestId('claims-empty');
     this.connection = page.getByTestId('connection-status');
     this.noToken = page.getByTestId('no-token');
+    this.settingsView = page.getByTestId('settings');
+    this.navCheck = page.getByTestId('nav-check');
+  }
+
+  /** One of the language choice buttons on the settings page (T6.6). */
+  language(choice: 'system' | 'de' | 'en'): Locator {
+    return this.page.getByTestId(`language-${choice}`);
   }
 
   async open(): Promise<void> {

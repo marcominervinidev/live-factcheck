@@ -94,7 +94,7 @@
   "consent.intro": "The phone listens and checks claims while you talk. Tell the others first – and start only if everyone agrees.",
   "consent.cloud": "These services on the internet receive audio or text excerpts of the conversation for that:",
   "consent.provider": "{role}: {provider}",
-  "consent.local": "Speech recognition and checking run locally on your own machine. Only evidence search queries go to the internet.",
+  "consent.local": "Speech recognition and checking run locally on your own machine. Only evidence search queries and page fetches go to the internet.",
   "consent.loading": "Loading active providers …",
   "consent.error": "The active providers could not be loaded. Without this information no recording is possible.",
   "consent.accept": "Everyone agrees, go",

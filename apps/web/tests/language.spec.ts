@@ -10,12 +10,12 @@ test.describe('English interface (T6.6)', () => {
   });
 
   test('renders the core flows in English and stays accessible', async ({
+    app,
     claims,
-    page,
     a11yViolations,
   }) => {
     await claims.open();
-    await expect(page.getByTestId('app-shell')).toContainText('Check claims live');
+    await expect(app.shell).toContainText('Check claims live');
     await expect(claims.connection).toHaveAttribute('data-status', 'open');
     await expect(claims.connection).toContainText('Connected');
 
@@ -28,11 +28,11 @@ test.describe('English interface (T6.6)', () => {
     expect(await a11yViolations()).toEqual([]);
 
     // The settings switch pins German again without a reload.
-    await page.getByTestId('nav-settings').click();
-    await expect(page.getByTestId('settings')).toContainText('Language');
-    await page.getByTestId('language-de').click();
-    await expect(page.getByTestId('settings')).toContainText('Zugangstoken');
-    await expect(page.getByTestId('nav-check')).toHaveText('Prüfen');
+    await claims.openSettings();
+    await expect(claims.settingsView).toContainText('Language');
+    await claims.language('de').click();
+    await expect(claims.settingsView).toContainText('Zugangstoken');
+    await expect(claims.navCheck).toHaveText('Prüfen');
   });
 
   test('keeps the device default when nothing is pinned', async ({ page, claims }) => {

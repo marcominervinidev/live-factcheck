@@ -39,8 +39,26 @@ describe('language store (T6.6, ADR 0020)', () => {
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('blocked');
     });
-    useLanguage.getState().setPreference('en');
-    expect(useLanguage.getState().language).toBe('en');
+    // The device says English, so only a real in-memory switch can make this German.
+    useLanguage.getState().setPreference('de');
+    expect(useLanguage.getState().language).toBe('de');
     spy.mockRestore();
+  });
+
+  it('follows a device change only while no choice is pinned', () => {
+    Object.defineProperty(window.navigator, 'language', { value: 'de-AT', configurable: true });
+    try {
+      window.dispatchEvent(new Event('languagechange'));
+      expect(useLanguage.getState().language).toBe('de');
+      expect(document.documentElement.lang).toBe('de');
+
+      // A pinned choice must survive any device change.
+      useLanguage.getState().setPreference('en');
+      Object.defineProperty(window.navigator, 'language', { value: 'de-DE', configurable: true });
+      window.dispatchEvent(new Event('languagechange'));
+      expect(useLanguage.getState().language).toBe('en');
+    } finally {
+      Reflect.deleteProperty(window.navigator, 'language');
+    }
   });
 });

@@ -133,6 +133,7 @@ describe('ClaimCard (brief 11)', () => {
   it('shows no percentage prominently, only in the details (brief 7)', () => {
     render(<ClaimCard claim={view({ checked: checked() })} />);
     expect(text(screen.getByTestId('confidence'))).not.toContain('%');
-    expect(text(screen.getByTestId('distribution'))).toContain('Falsch93 %');
+    // Narrow no-break space (U+202F): number and % must never split across lines.
+    expect(text(screen.getByTestId('distribution'))).toContain('Falsch93 %');
   });
 });

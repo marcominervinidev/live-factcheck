@@ -94,7 +94,7 @@
   "consent.intro": "Das Handy hört zu und prüft Behauptungen, während ihr redet. Sag es den anderen vorher – und starte nur, wenn alle einverstanden sind.",
   "consent.cloud": "Diese Dienste im Internet erhalten dafür Ton oder Textstücke des Gesprächs:",
   "consent.provider": "{role}: {provider}",
-  "consent.local": "Spracherkennung und Prüfung laufen lokal auf dem eigenen Rechner. Nur für die Belegsuche gehen Suchanfragen ins Internet.",
+  "consent.local": "Spracherkennung und Prüfung laufen lokal auf dem eigenen Rechner. Nur für die Belegsuche gehen Suchanfragen und Seitenabrufe ins Internet.",
   "consent.loading": "Aktive Anbieter werden geladen …",
   "consent.error": "Die aktiven Anbieter konnten nicht geladen werden. Ohne diese Angabe ist keine Aufnahme möglich.",
   "consent.accept": "Alle sind einverstanden, los",
@@ -123,5 +123,5 @@
   "settings.language.de": "Deutsch",
   "settings.language.en": "English",
   "card.quote": "„{text}“",
-  "card.percent": "{value} %"
+  "card.percent": "{value} %"
 }
