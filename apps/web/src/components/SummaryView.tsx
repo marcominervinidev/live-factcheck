@@ -3,12 +3,15 @@ import { useEffect, useRef } from 'react';
 import { t } from '../i18n';
 import { verdictDisplay } from '../lib/format';
 import type { ClaimView } from '../state/claims';
+import { VerdictIcon } from './VerdictIcon';
 
 interface Props {
   claims: readonly ClaimView[];
   onShow: (claimId: string) => void;
   onNewTalk: () => void;
   onClose: () => void;
+  /** After returning from Zeigen: focus this claim's row instead of the back button. */
+  focusClaimId?: string | null;
 }
 
 /**
@@ -16,12 +19,27 @@ interface Props {
  * its verdict and correction, no scores per person (brief 11). Rendered as an overlay like
  * ShowClaim, so the recording guards underneath stay mounted.
  */
-export function SummaryView({ claims, onShow, onNewTalk, onClose }: Readonly<Props>) {
+export function SummaryView({
+  claims,
+  onShow,
+  onNewTalk,
+  onClose,
+  focusClaimId = null,
+}: Readonly<Props>) {
   const backRef = useRef<HTMLButtonElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (focusClaimId !== null) {
+      const row = rootRef.current?.querySelector<HTMLElement>(`[data-claim-id="${focusClaimId}"]`);
+      if (row !== null && row !== undefined) {
+        row.focus();
+        return;
+      }
+    }
     backRef.current?.focus();
+    // Mount-only on purpose: re-renders must not steal the focus (ShowClaim precedent).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only focus; re-renders must not steal it (ShowClaim precedent)
   }, []);
 
   useEffect(() => {
@@ -104,6 +122,7 @@ export function SummaryView({ claims, onShow, onNewTalk, onClose }: Readonly<Pro
                 <button
                   type="button"
                   data-testid="summary-item"
+                  data-claim-id={claim.claimId}
                   data-verdict={claim.checked.verdict}
                   onClick={() => {
                     onShow(claim.claimId);
@@ -115,7 +134,10 @@ export function SummaryView({ claims, onShow, onNewTalk, onClose }: Readonly<Pro
                     className={`mt-0.5 h-11 w-2.5 shrink-0 rounded-md ${display.solidClassName}`}
                   />
                   <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className={`text-sm font-extrabold ${display.markClassName}`}>
+                    <span
+                      className={`flex items-center gap-1.5 text-sm font-extrabold ${display.markClassName}`}
+                    >
+                      <VerdictIcon name={display.icon} className="h-4 w-4" />
                       {display.label}
                     </span>
                     <span className="leading-snug text-ink">{claim.checked.claim}</span>

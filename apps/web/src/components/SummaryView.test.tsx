@@ -57,4 +57,28 @@ describe('SummaryView (T6.5, Danach)', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps an uncertain verdict neutral in the bar list (brief 11)', () => {
+    render(
+      <SummaryView
+        claims={[
+          {
+            claimId: CLAIM_ID,
+            text: 'a',
+            submittedAt: '2026-09-26T10:00:00.000Z',
+            checked: checked({ confidenceLevel: 'mittel' }),
+            explanationMissing: false,
+          },
+        ]}
+        onShow={noop}
+        onNewTalk={noop}
+        onClose={noop}
+      />,
+    );
+    const item = screen.getByTestId('summary-item');
+    expect(item.textContent).toContain('Unsicher: Falsch');
+    expect(item.querySelector('svg')?.getAttribute('data-icon')).toBe('uncertain');
+    expect(item.innerHTML).toContain('bg-line');
+    expect(item.innerHTML).not.toContain('verdict-false"');
+  });
 });

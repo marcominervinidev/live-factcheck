@@ -6,6 +6,11 @@ export class ClaimsPage {
   readonly submit: Locator;
   readonly cards: Locator;
   readonly showView: Locator;
+  readonly showBack: Locator;
+  readonly summaryView: Locator;
+  readonly summaryItems: Locator;
+  readonly summaryNew: Locator;
+  readonly emptyFeed: Locator;
   readonly timelineDots: Locator;
   readonly connection: Locator;
   readonly noToken: Locator;
@@ -16,6 +21,11 @@ export class ClaimsPage {
     this.cards = page.getByTestId('claim-card');
     this.timelineDots = page.getByTestId('timeline-dot');
     this.showView = page.getByTestId('show-view');
+    this.showBack = page.getByTestId('show-back');
+    this.summaryView = page.getByTestId('summary-view');
+    this.summaryItems = page.getByTestId('summary-item');
+    this.summaryNew = page.getByTestId('summary-new');
+    this.emptyFeed = page.getByTestId('claims-empty');
     this.connection = page.getByTestId('connection-status');
     this.noToken = page.getByTestId('no-token');
   }

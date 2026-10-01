@@ -37,7 +37,6 @@ test.describe('live mode', () => {
     backend,
     claims,
     a11yViolations,
-    page,
   }) => {
     await recording.startRecording();
     await expect(recording.status).toHaveAttribute('data-status', 'recording');
@@ -57,21 +56,21 @@ test.describe('live mode', () => {
 
     await recording.stop.click();
     // The user's own stop opens the Danach summary (T6.5 PR 4); server ends keep their cards.
-    const summary = page.getByTestId('summary-view');
+    const summary = claims.summaryView;
     await expect(summary).toBeVisible();
-    await expect(summary.getByTestId('summary-item')).toHaveCount(1);
+    await expect(claims.summaryItems).toHaveCount(1);
     expect(await a11yViolations()).toEqual([]);
-    await summary.getByTestId('summary-item').first().click();
-    await expect(page.getByTestId('show-view')).toBeVisible();
-    await page.getByTestId('show-back').click();
+    await claims.summaryItems.first().click();
+    await expect(claims.showView).toBeVisible();
+    await claims.showBack.click();
     await expect(summary).toBeVisible();
-    await summary.getByTestId('summary-new').click();
+    await claims.summaryNew.click();
     await expect(summary).toBeHidden();
     // A new talk means a new session id (security review): late events of the old talk can
     // never resurface, and the extractor's dedup memory starts fresh.
     await expect.poll(() => backend.sessions).toBe(2);
     await expect(claims.connection).toHaveAttribute('data-status', 'open');
-    await expect(page.getByTestId('claims-empty')).toBeVisible();
+    await expect(claims.emptyFeed).toBeVisible();
     await expect(recording.start).toBeVisible();
     await expect(recording.end).toHaveCount(0);
     expect(backend.audioControls).toEqual(['audio.start', 'audio.stop']);
@@ -79,11 +78,13 @@ test.describe('live mode', () => {
     await expect.poll(() => backend.frameSizes.length, { timeout: 1_000 }).toBe(framesAtStop);
   });
 
-  test('explains why the server ended the recording', async ({ backend }) => {
+  test('explains why the server ended the recording', async ({ backend, claims }) => {
     await recording.startRecording();
     await expect(recording.status).toHaveAttribute('data-status', 'recording');
     backend.endRecording('budget_exceeded');
     await expect(recording.end).toContainText('Tagesbudget');
+    // A server end never auto-opens the summary (review blocker guard).
+    await expect(claims.summaryView).toHaveCount(0);
     await expect(recording.start).toBeVisible();
   });
 

@@ -51,22 +51,25 @@ function CheckView({
   const [shownId, setShownId] = useState<string | null>(null);
   const showTrigger = useRef<HTMLElement | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const recordingId = useRecording((state) => state.recordingId);
-  const lastEnd = useRecording((state) => state.lastEnd);
-  const hadRecording = useRef(false);
+  const [returnFocusId, setReturnFocusId] = useState<string | null>(null);
 
-  // The summary opens when a recording the user ended ("client") comes back to idle with at
-  // least one checked claim (design board "Danach"); server or error ends keep their cards.
+  // Subscribe to the recording store: the summary opens exactly once per ended talk - the
+  // user's own stop ("client") of a recording that really ran, with at least one checked
+  // claim (design board "Danach"). Server or error ends keep their cards; aborted start
+  // attempts never saw audio.started, so lastEndRecorded stays false.
   useEffect(() => {
-    if (recordingId !== null) {
-      hadRecording.current = true;
-      return;
-    }
-    if (hadRecording.current && lastEnd === 'client') {
-      hadRecording.current = false;
-      setSummaryOpen(true);
-    }
-  }, [recordingId, lastEnd]);
+    let previousEnd = useRecording.getState().lastEnd;
+    return useRecording.subscribe((state) => {
+      const isNewEnd = state.lastEnd !== previousEnd;
+      previousEnd = state.lastEnd;
+      if (!isNewEnd || state.lastEnd !== 'client' || !state.lastEndRecorded) return;
+      const hasChecked = Object.values(useClaims.getState().claims).some(
+        (claim) => claim.checked !== undefined,
+      );
+      if (hasChecked) setSummaryOpen(true);
+    });
+  }, []);
+
   const order = useClaims((state) => state.order);
   const claims = useClaims((state) => state.claims);
   const token = useSettings((state) => state.token);
@@ -128,8 +131,11 @@ function CheckView({
         <SummaryView
           claims={list}
           onShow={(id) => {
+            showTrigger.current =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
             setShownId(id);
           }}
+          focusClaimId={returnFocusId}
           onNewTalk={() => {
             // A fresh session id, not just empty stores: late pipeline events of the old talk
             // must never resurface in front of a new audience, and the extractor's window and
@@ -139,12 +145,16 @@ function CheckView({
             useTranscript.getState().reset();
             useRecording.getState().clearEnd();
             setSummaryOpen(false);
+            setReturnFocusId(null);
             const token = useSettings.getState().token;
             if (token !== null)
               useConnection.getState().connect(sessionUrl(gatewayUrl, window.location), token);
           }}
           onClose={() => {
             setSummaryOpen(false);
+            setReturnFocusId(null);
+            // Auto-opened overlay has no trigger element; the start button is the natural home.
+            document.querySelector<HTMLElement>('[data-testid="record-start"]')?.focus();
           }}
         />
       )}
@@ -155,6 +165,7 @@ function CheckView({
             claim={shown}
             checked={shown.checked}
             onClose={() => {
+              setReturnFocusId(shownId);
               setShownId(null);
               showTrigger.current?.focus();
             }}

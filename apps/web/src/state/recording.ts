@@ -25,6 +25,8 @@ interface RecordingStore {
   status: RecordingStatus;
   recordingId: string | null;
   lastEnd: RecordingEnd | null;
+  /** True when the ended attempt had really started recording (`audio.started` arrived). */
+  lastEndRecorded: boolean;
   start: (microphone: Microphone, send: SessionSender) => Promise<void>;
   /** Ends the recording on the user's request or because the app went to the background. */
   stop: (why?: 'client' | 'background') => void;
@@ -57,13 +59,20 @@ export const useRecording = create<RecordingStore>((set, get) => {
     startSent = false;
     const lastEnd = requestedEnd ?? end;
     requestedEnd = undefined;
-    set({ status: 'idle', recordingId: null, lastEnd });
+    // The store knows whether audio.started ever came - the UI must not reconstruct it.
+    set({
+      status: 'idle',
+      recordingId: null,
+      lastEnd,
+      lastEndRecorded: get().recordingId !== null,
+    });
   };
 
   return {
     status: 'idle',
     recordingId: null,
     lastEnd: null,
+    lastEndRecorded: false,
     start: async (mic, send) => {
       if (get().status !== 'idle') return;
       microphone = mic;
@@ -134,7 +143,7 @@ export const useRecording = create<RecordingStore>((set, get) => {
       }
     },
     clearEnd: () => {
-      set({ lastEnd: null });
+      set({ lastEnd: null, lastEndRecorded: false });
     },
     connectionLost: () => {
       if (get().status !== 'idle') finish('connection_lost');
