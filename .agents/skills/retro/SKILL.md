@@ -36,7 +36,9 @@ The order is the preference: a deterministic check beats a prompt rule beats pro
    line (in the narrowest AGENTS.md) have saved the detour?
 5. **Tool economy:** expensive or repeated tool calls that a script, make target or note could
    replace; token-heavy outputs that could be filtered at the source.
-6. **Bloat and no-ops:** steering files, skills or prompts that grew without effect; rules that
+6. **Next project:** would this finding change how the next project starts (tooling, day-one
+   checks, process)? Then add it to `docs/NEXT_PROJECT.md` with its origin.
+7. **Bloat and no-ops:** steering files, skills or prompts that grew without effect; rules that
    never changed behaviour; duplicated rules across files. Suggest deletions – shorter steering
    is a result, not a loss.
 
