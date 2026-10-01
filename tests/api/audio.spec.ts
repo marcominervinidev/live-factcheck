@@ -47,8 +47,9 @@ test('streams audio and receives interim and final transcript segments', async (
     expect(all[1]?.text).toBe('Guten Abend und willkommen zur Diskussion.');
 
     socket.send(JSON.stringify({ type: 'audio.stop', schemaVersion: 2 }));
+    // Not `messages.at(-1)`: the pipeline may still deliver a claim event after the stop.
     await expect
-      .poll(() => messages.at(-1))
+      .poll(() => messages.find((m) => m.type === 'audio.stopped'))
       .toMatchObject({ type: 'audio.stopped', reason: 'client' });
   } finally {
     socket.close();

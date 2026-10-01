@@ -164,21 +164,14 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - Aktuelles Gate: Gates 0–3 gemergt; TP5 (#33, #35, #37, #41, #43), TP6 (#36), Audio-Robustheit (#42), Zahlwörter (#40), PR-Regeln (#38) gemergt; TP7 (#39) landete auf dem alten TP6-Zweig und kommt mit einem Nachzieh-PR auf `main`. **Gate 4 offen**
 - [x] TP6 T6.1–T6.4 funktionale Basis (PR #36): Einwilligungsdialog mit allen Cloud-Anbietern (ohne Anbieterliste keine Aufnahme), Aufnahme per AudioWorklet (PCM16, 16 kHz, 100 ms), Beenden bei Displaysperre/App-Wechsel und Verbindungsverlust, Live-Transkript mit Markierungen und Sprung zur Karte; Stufe 1 (Stores, Encoder, Komponenten) und Stufe 2b in Chromium und WebKit mit synthetischem Mikrofon (39/39)
 - [x] TP7 T7.1–T7.4 (PR #39, per Nachzieh-PR auf `main`): Stufe-4-Journey Live-Modus grün in drei Browsern, Reconnect in Stufe 2b, iPhone-Checkliste, README und AGENTS, ZAP 0 Befunde, Security-Review ohne Befunde; Nachweis `docs/evidence/phase-2/tp7-e2e.txt`. Offen: `make llm-scan` (LM Studio)
-- Nächster Task: **T6.5 Umsetzung PR 3** (Einwilligung, Zeigen-Modus, Zusammenfassung, Zustände). PR 1 (#47, Farben, Schrift, Umschalter) grün; PR 2 (`phase-2/design-cards`, gestapelt auf #47: SVG-Urteilssymbole, Karten, Zeitleiste als Farbbalken, Transkript, Aufnahme-Knöpfe) offen; danach T6.6; offen bei Marco: iPhone-Lauf (T7.2), T7.5 Red-Team (Guthaben oder LM Studio); danach Gate 4
+- **Prozess-Update (Owner, 2026-09-30, nach dem Pocock-Vortrag „Fixing the PR Bottleneck“):** PR-Beschreibungen beginnen mit dem Merge-Gefahr-Block (Risiko aus Tür + Wirkradius, Nutzen, Review-Tiefe); „Was und warum“ mit Struktur-Skizze; Urteils-Standards in `docs/CODING_STANDARDS.md` (liest das Review, nicht die Implementierung); Skill `retro` an jedem Gate; Plan-Tasks bekommen Risikostufen, hohes Risiko → stärkstes Modell. Umsetzung in #50/#62. Stryker-Ausweitung: PR #66 (gemessene Schwellen); `stt-local`-Mutationstests → Issue #60
+- Risikostufen der offenen Tasks: T6.5 PR 3 **niedrig** (revertibel, nur `apps/web`) · T6.6 englische Oberfläche **niedrig** · T7.5 Red-Team **mittel** (echte Schlüssel, Kosten) · Gate-4-Abnahme **hoch** (nicht revertibel: Phasenabschluss)
+- Nächster Task: **T6.5 PR 3** (`phase-2/design-flows`, gestapelt auf den Carry-PR #64 – PR 2 wartet dort auf `main`); danach T6.6, dann Gate 4 mit Retro
 - Review Gate 1 eingearbeitet: exakter Cache-Treffer-Test für `totalMs` (fact-checker); Audio-Fehlercodes → eigene Integrationstests in TP4 (Erinnerung in T4)
-- Erinnerungen: **2026-10-01: Marco an den iPhone-Test erinnern** (`docs/testing/iphone-smoke.md`, T7.2; Marco, 2026-09-30); Opus-5-Red-Team-Lauf in T7.5
-- Offen (Marco, 2026-09-30): Das Claude-Abo-Guthaben ist nicht für API-Aufrufe der App nutzbar; der Opus-Red-Team-Lauf und bezahlte Eval-Läufe brauchen Guthaben in der Claude Console (API-Key). Vor T7.5 klären: Console-Guthaben aufladen, lokales Modell oder Lauf verschieben
+- Backlog und offene Owner-Punkte leben jetzt als GitHub-Issues #51–#60 (Labels `backlog`/`erinnerung`, Owner 2026-09-30); der Status hier bleibt schlank
+- Erinnerungen: iPhone-Test → Issue #51 (fällig 01.10.); Opus-5-Red-Team-Lauf in T7.5 → Issue #55
 - Security-Review PR #33 eingearbeitet (Marco, 2026-09-29): Budget „fail closed“ in `transcription`; Aufbewahrung 15 Min für Streams und Extractor-Speicher, Redis ohne AOF/RDB (ADR 0018); nosemgrep im Vorfilter **behalten** (Marco)
 - Beobachten: Ein Redis-Neustart setzt den Tages-Budgetzähler zurück (ADR 0018, von Marco vorerst akzeptiert). Macht das Probleme, nur den Budgetzähler persistieren
-- Nach Phase 2: Distroless-Runtime-Image für `stt-local` (Marco: „definitiv“; 44 HIGH-Befunde im Debian-Basisimage, 0 kritisch)
-- Offen für Marco: CodeQL-Alerts #7–#11; alte Volume `live-factcheck_redis-data` einmal löschen (`docker volume rm`, enthält AOF-Daten)
-- **Beim Phasenwechsel nach Phase 2 (Marco erinnern, 2026-09-29):** Umstieg von Docker Desktop auf **OrbStack** prüfen. Grund: Die Docker-VM (8 GB RAM, 58 GB Platte) ist auf dem 16-GB-Mac knapp – starkes Swapping bei lokalen Modellen, die Platte lief dreimal voll (zuletzt `stt-local` konnte sein Modell nicht laden). Vorher: die Caddy-CA sichern (iPhone-Zertifikat; Redis hält seit ADR 0018 nichts mehr), und `make up`, `make test`, `make up-local` danach einmal komplett prüfen
-
-### 2026-09-30T17:37Z – compaction (auto)
-
-- branch: `phase-2/design-cards`, HEAD `4c6448c`
-- uncommitted:
-
-```
- M .ai/plans/phase-2-live-transkription.md
-```
+- Feature-Plan Debattier-Modus: ADR 0021 (proposed) + `.ai/plans/feature-debate-mode.md` – Umsetzung nach Launch, verfolgt in Issue #59
+- Nach Phase 2: Distroless für `stt-local` → Issue #53; OrbStack-Wechsel → Issue #52
+- Offen für Marco: CodeQL → Issue #54; altes Redis-Volume → Issue #56; Repo-Setting Branch-Löschung → Issue #57

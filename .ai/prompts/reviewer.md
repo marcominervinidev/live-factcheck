@@ -11,9 +11,10 @@ A diff, a branch or a list of files, plus the task it belongs to. If no scope is
 ## Read first
 
 1. `AGENTS.md` and the `AGENTS.md` of every package or service the change touches
-2. `docs/PROJECT_BRIEF.md` sections 4 (principles, 4.1 twelve factors, 4.2 boundaries and contracts), 13 (tests) and 15 (security)
-3. The current phase plan in `.ai/plans/` for the task's scope
-4. `.ai/prompts/security-reviewer.md` – the security checklist
+2. `docs/CODING_STANDARDS.md` – the judgement-call standards; cite it in findings
+3. `docs/PROJECT_BRIEF.md` sections 4 (principles, 4.1 twelve factors, 4.2 boundaries and contracts), 13 (tests) and 15 (security)
+4. The current phase plan in `.ai/plans/` for the task's scope
+5. `.ai/prompts/security-reviewer.md` – the security checklist
 
 Never read `.env` files, secret files or the secrets directory.
 
@@ -27,6 +28,8 @@ Agents tend to make tests pass the easy way. Block the change if you find:
 - types weakened after the fact, e.g. a required field made optional (`?`) to silence the compiler
 - silent defaults or fallbacks that swallow bad input or errors instead of failing fast
 - weakened tests: loosened assertions, removed cases, skipped or quarantined tests without a reason
+- tautological or structure-sensitive tests: a test that restates the implementation (asserting a constant against its own literal, reading source files instead of executing behaviour) or that pins internals so any refactor breaks it; tests go through the module's public interface. Scope: stage 1 and pure-logic tests – stages 2b/3/4 replay user behaviour by design (`docs/CODING_STANDARDS.md`, "Tests as behaviour")
+- shallow interfaces: exports, parameters or config added only so tests can reach internals. Behaviour stays behind the existing small interface (deep modules); if the interface makes the behaviour untestable, that is a design finding, not a licence to export internals
 
 ## PRIO 2: Contracts and module boundaries (brief 4.2)
 
@@ -49,6 +52,10 @@ Agents tend to make tests pass the easy way. Block the change if you find:
 - **Behaviour, not mocks:** a test that only checks that a mock was called with certain arguments is useless. Mocks only at system boundaries (LLM, STT, web search; the backend in frontend tests).
 - **Right stage:** new logic has tests in the same change, on the lowest stage that can show the behaviour; error cases belong to stage 1 or 2a, no duplicates across stages (`tests/AGENTS.md`).
 - **Isolation:** tests are deterministic (fake timers, own `sessionId` and key prefixes, no real network). Real LLMs or APIs are never called in unit or integration tests.
+
+## Merge-danger rating
+
+The PR description opens with a self-rating (door, blast radius, risk, value, review depth). Verify it against the diff: contracts or schema changes, migrations or data deletion, secrets/security, CI or branch-protection changes, and outward-visible behaviour make a one-way door; changes beyond one package or service widen the blast radius. An underrated PR is a blocker, an overrated one a minor finding. A missing block is a major finding.
 
 ## Security
 
