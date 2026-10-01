@@ -10,6 +10,7 @@ the result size below is the honest proxy for what eats context.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import sys
 from collections import Counter, defaultdict
@@ -156,7 +157,7 @@ def dashboard(data: dict) -> str:
     for model, b in sorted(data["tokens"].items(), key=lambda kv: -kv[1].get("out", 0)):
         width = max(2, round(100 * b.get("out", 0) / max_out))
         models_rows.append(
-            f'<div class="row"><span class="name">{model}</span>'
+            f'<div class="row"><span class="name">{html.escape(model)}</span>'
             f'<span class="bar"><i style="width:{width}%"></i></span>'
             f'<span class="num">{fmt(b.get("out", 0))} aus · {fmt(b.get("cache_read", 0))} Cache</span></div>')
     days = data.get("daily", {})
@@ -172,7 +173,7 @@ def dashboard(data: dict) -> str:
     for name, c in sorted(data["tools"].items(), key=lambda kv: -kv[1].get("result_chars", 0))[:10]:
         calls = c.get("calls", 0)
         share = 100 * c.get("errors", 0) / calls if calls else 0
-        tool_rows.append(f'<tr><td>{name}</td><td>{calls}</td><td>{share:.0f} %</td>'
+        tool_rows.append(f'<tr><td>{html.escape(name)}</td><td>{calls}</td><td>{share:.0f} %</td>'
                          f'<td>{fmt(c.get("result_chars", 0) / 4)}</td></tr>')
     win = data.get("window") or [None, None]
     return f"""<title>Agenten-Bilanz</title>
@@ -222,6 +223,16 @@ Werkzeugfehler gesamt: {data["tool_errors"]}.</footer>
 </div>"""
 
 
+def resolve_project(base: Path, project: str) -> Path:
+    """The project's folder, required to be a direct child of `base` (Sonar S8707): a crafted
+    slug (`..`, absolute, nested, a symlink pointing outside) must not read elsewhere."""
+    resolved_base = base.resolve()
+    folder = (resolved_base / project).resolve()
+    if folder.parent != resolved_base or not folder.is_dir():
+        raise ValueError(f"not a project folder under {resolved_base}: {project}")
+    return folder
+
+
 def fmt(number: float) -> str:
     return f"{number:,.0f}".replace(",", " ")
 
@@ -236,12 +247,10 @@ def main() -> None:
                         help="also write the dashboard page to this file")
     args = parser.parse_args()
 
-    # The project slug comes from the CLI: resolve it and require it to be a direct child
-    # of ~/.claude/projects, so a crafted value cannot read outside it (Sonar S8707).
-    base = (Path.home() / ".claude" / "projects").resolve()
-    folder = (base / args.project).resolve()
-    if folder.parent != base or not folder.is_dir():
-        sys.exit(f"not a project folder under {base}: {args.project}")
+    try:
+        folder = resolve_project(Path.home() / ".claude" / "projects", args.project)
+    except ValueError as error:
+        sys.exit(str(error))
     data = collect(folder, args.since, args.until)
     if args.html:
         args.html.write_text(dashboard(data), encoding="utf-8")
