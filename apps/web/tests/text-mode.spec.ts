@@ -31,7 +31,7 @@ test.describe('text mode and result cards (brief 11)', () => {
     const show = claims.showView;
     await expect(show).toBeVisible();
     await expect(show.getByTestId('show-claim')).toHaveText(
-      'Der Zweite Weltkrieg endete am 2. September 1945.',
+      'Der Zweite Weltkrieg ist erst 20 Jahre vorbei.',
     );
     await expect(show.getByTestId('show-verdict')).toHaveText(/Falsch/);
     expect(await a11yViolations()).toEqual([]);
