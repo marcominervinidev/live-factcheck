@@ -5,7 +5,9 @@ import { describe, expect, it } from 'vitest';
 
 const ENTRY = fileURLToPath(new URL('./main.ts', import.meta.url));
 
-describe('transcription startup', () => {
+// Child-process starts need headroom when measurement or stack builds saturate the CPU
+// (several hook runs broke the default 20 s on 2026-09-30/10-01); assertions unchanged.
+describe('transcription startup', { timeout: 60_000 }, () => {
   it('exits 1 with a clear message naming every missing required variable', async () => {
     const run = startServiceProcess(ENTRY, { PORT: '8080' });
     expect(await run.exitCode).toBe(1);

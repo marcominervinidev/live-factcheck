@@ -27,9 +27,10 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test:unit": "vitest run --project unit",
+    "test:coverage": "vitest run --coverage",
     "test:int": "vitest run --project int",
-    "test:coverage": "vitest run --coverage"
+    "test:mutation": "stryker run",
+    "test:unit": "vitest run --project unit"
   },
   "dependencies": {
     "@lfc/contracts": "workspace:*",
@@ -40,6 +41,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
     "@testcontainers/redis": "12.1.0",
     "@types/node": "24.13.6",
     "@vitest/coverage-v8": "5.0.1",

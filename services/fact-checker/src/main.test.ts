@@ -1,13 +1,16 @@
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-import { freePort, jsonLines, startServiceProcess } from '@lfc/service-kit/testing';
+import {
+  freePort,
+  jsonLines,
+  repoSourceTiersPath,
+  startServiceProcess,
+} from '@lfc/service-kit/testing';
 import { describe, expect, it } from 'vitest';
 
 const ENTRY = fileURLToPath(new URL('./main.ts', import.meta.url));
-const SOURCE_TIERS_FILE = fileURLToPath(
-  new URL('../../../config/source-tiers.yaml', import.meta.url),
-);
+const SOURCE_TIERS_FILE = repoSourceTiersPath();
 
 /** Everything except Redis and the LLM/classifier, set to local mocks. */
 const MOCK_ENV = {
@@ -28,7 +31,9 @@ const fatalIssues = (output: string) => {
   return (fatal?.['issues'] ?? []) as string[];
 };
 
-describe('fact-checker startup', () => {
+// Child-process starts need headroom when measurement runs saturate the CPU (three hook
+// runs broke at the default 20 s on 2026-09-30/10-01); assertions unchanged.
+describe('fact-checker startup', { timeout: 60_000 }, () => {
   it('exits 1 with a clear message naming every missing required variable', async () => {
     const run = startServiceProcess(ENTRY, { PORT: '8080' });
     expect(await run.exitCode).toBe(1);
