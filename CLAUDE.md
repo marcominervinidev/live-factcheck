@@ -9,3 +9,4 @@ Only rules that apply to Claude Code alone. Everything else lives in `AGENTS.md`
 - Subagents in `.claude/agents/` are thin wrappers around the prompts in `.ai/prompts/`. Change the prompt, not the wrapper.
 - Run subagents in the background for exploration and for reviewer + security-reviewer in parallel before a PR. Every git-touching step (edit, commit, branch switch) stays in the main session, one at a time (AGENTS.md, "Parallel work").
 - Hooks in `.claude/settings.json` are comfort and early warning only. The real guards are lefthook and CI; never rely on a hook being present.
+- State-changing git or gh commands never end in a pipe (`| tail`, `| grep`): the pipe's exit code masks a failed commit or push - twice a commit "ran" that never existed. Judge success by the exit code and the full output; pass quote-heavy bodies via `--body-file`/`-F` files, never inline.

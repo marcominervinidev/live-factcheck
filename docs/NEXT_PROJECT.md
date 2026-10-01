@@ -43,6 +43,15 @@ retro at every gate asks whether a finding belongs here (skill `retro`).
 - Agree the language rules first (German to the owner, English artefacts): learned after three
   corrections (2026-09-30).
 
+- Repo setting "Automatically delete head branches" on day one: four stacked PRs stranded in
+  their already merged base here (#39, #48, #68, #73).
+- Review prompts pin their diff scope from day one (fetch first, `gh pr diff` when a PR
+  exists): three pasted reviews in a row judged a stale `main...HEAD`.
+- Sonar coverage exclusions for host-only tools the moment such a tool is created, not when
+  the quality gate turns red a day later.
+- A `make sast` target mirroring the CI scanner from the first workflow: the gate-3→4 block
+  lost four first CI runs to scanners that never ran locally.
+
 ## Architecture
 
 - `packages/contracts` read-only with the schemaVersion guard from the first event.

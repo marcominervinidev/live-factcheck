@@ -16,6 +16,9 @@ apply one without the owner's approval. Report to the owner in German.
   (filter by date); for each, the review guide and any owner comments (`gh pr view <n> --comments`).
 - `.ai/lessons.md` rows from the period, and which are not promoted yet.
 - The current session, plus session notes in the plan's `## Session-Log` where present.
+- The period's owner decisions (plan `## Status`, PR checkboxes, chat): name the commit that
+  implemented each one. A decided-but-never-landed change is itself a finding (the Sonar
+  coverage exception from 2026-09-30 only landed a day later, as a red quality gate).
 
 ## 2. Look for candidates, in this order
 

@@ -56,6 +56,14 @@ Labels proposed or corrected by an LLM keep `reviewed: false`; only the owner se
 
 Live mode takes only audio through the gateway, so this runner (`eval-detection` in `compose.test.yaml`) runs in the internal network with the services' Redis user instead of acting as a client. Reports: `docs/evidence/phase-2/evals/eval-detection-<label>-<time>.md` and `.json`. With the mock classifier (every segment with a digit is a claim) a dry run checks only the mechanics.
 
+### Extracting from structured sources
+
+When building a set from a structured source (a plenary protocol, an export with element
+classes), list **every** element class of the source first and decide for each one explicitly
+whether it is included. Skipping a class silently loses exactly the content it carries - the
+protocol's quotation paragraphs (class `Z`) were dropped once and several segments lost the
+words they attribute (lesson 2026-09-30).
+
 ### In GitHub Actions
 
 `nightly.yml` → "Run workflow" with `eval: true` runs only the eval (never on the schedule):

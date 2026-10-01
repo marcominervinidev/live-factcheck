@@ -179,6 +179,32 @@ docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./lfc-root.cr
 
 Use a dedicated API key in its own [Claude Console](https://console.anthropic.com) workspace with a spending limit, and do the same for the speech-to-text and search providers. Put keys only into the files in `~/.config/live-factcheck/secrets/`, never into `.env`. Rotation and the procedure for a leaked key: [docs/SECURITY.md](docs/SECURITY.md).
 
+### From mock to real providers
+
+A fresh checkout runs with **mock providers** (`.env` copied from `.env.example`): detection
+marks only segments containing a digit, every verdict is `nicht_pruefbar` with a
+"Testerklärung", and no request leaves the machine. That is intentional - CI, the test stages
+and "try the app without keys or internet" all run this way. For real checking, set in
+`.env` (lowercase values, no quotes):
+
+```bash
+DETECTOR_CLASSIFIER_PROVIDER=llm
+EXTRACTOR_LLM_PROVIDER=anthropic
+EXTRACTOR_LLM_MODEL=claude-haiku-4-5
+CHECKER_CLASSIFIER_PROVIDER=llm
+CHECKER_LLM_PROVIDER=anthropic
+CHECKER_LLM_MODEL=claude-opus-5
+EXPLAINER_LLM_PROVIDER=anthropic
+EXPLAINER_LLM_MODEL=claude-haiku-4-5
+CHECKER_RESEARCH_SOURCES=live
+```
+
+Fill `anthropic_api_key` in the secrets directory with a funded Console key, then recreate the
+affected services: `docker compose up -d --force-recreate claim-extractor fact-checker explainer`
+(running containers keep old secrets and environment). The settings page and the consent dialog
+always list what is active. Cloud spending is capped by `CLOUD_DAILY_BUDGET_USD` (default 2 USD
+a day); recording stops at the cap.
+
 ## Recommended branch protection
 
 `main` is protected by a ruleset: changes only via pull request, no force pushes or deletions, and the required checks `ci passed` and `pr passed` must be green. Merges happen only after a file-by-file review by the owner.
