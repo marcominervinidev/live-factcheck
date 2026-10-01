@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { ClaimCard } from '../components/ClaimCard';
 import { ShowClaim } from '../components/ShowClaim';
+import { SummaryView } from '../components/SummaryView';
 import { LiveTranscript } from '../components/LiveTranscript';
 import { RecordPanel } from '../components/RecordPanel';
 import { SettingsPage } from '../components/SettingsPage';
@@ -10,6 +11,8 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { Timeline } from '../components/Timeline';
 import { t } from '../i18n';
 import { useClaims } from '../state/claims';
+import { useRecording } from '../state/recording';
+import { useTranscript } from '../state/transcript';
 import type { ConnectionStatus } from '../state/connection';
 import { sessionUrl, useConnection } from '../state/connection';
 import { useSettings } from '../state/settings';
@@ -47,6 +50,23 @@ function CheckView({
 }: Readonly<{ gatewayUrl: string; onOpenSettings: () => void }>) {
   const [shownId, setShownId] = useState<string | null>(null);
   const showTrigger = useRef<HTMLElement | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const recordingId = useRecording((state) => state.recordingId);
+  const lastEnd = useRecording((state) => state.lastEnd);
+  const hadRecording = useRef(false);
+
+  // The summary opens when a recording the user ended ("client") comes back to idle with at
+  // least one checked claim (design board "Danach"); server or error ends keep their cards.
+  useEffect(() => {
+    if (recordingId !== null) {
+      hadRecording.current = true;
+      return;
+    }
+    if (hadRecording.current && lastEnd === 'client') {
+      hadRecording.current = false;
+      setSummaryOpen(true);
+    }
+  }, [recordingId, lastEnd]);
   const order = useClaims((state) => state.order);
   const claims = useClaims((state) => state.claims);
   const token = useSettings((state) => state.token);
@@ -103,6 +123,23 @@ function CheckView({
             />
           ))}
         </section>
+      )}
+      {summaryOpen && shownId === null && (
+        <SummaryView
+          claims={list}
+          onShow={(id) => {
+            setShownId(id);
+          }}
+          onNewTalk={() => {
+            useClaims.getState().reset();
+            useTranscript.getState().reset();
+            useRecording.getState().clearEnd();
+            setSummaryOpen(false);
+          }}
+          onClose={() => {
+            setSummaryOpen(false);
+          }}
+        />
       )}
       {(() => {
         const shown = shownId === null ? undefined : claims[shownId];
