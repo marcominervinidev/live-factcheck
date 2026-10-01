@@ -51,12 +51,6 @@ const ORDINAL = /^\d{1,3}\.$/;
 
 const endsSentence = (word: string) => SENTENCE_END.test(word) && !ORDINAL.test(word);
 
-/**
- * Own silence detection (T2.5): Deepgram finalized 13.6 s of speech with two speakers in one
- * block although the audio had 1 s pauses. After this much quiet audio following speech, the
- * adapter sends `Finalize`, so the words so far become final at once.
- */
-export const FINALIZE_AFTER_SILENCE_MS = 500;
 /** RMS of a 16-bit frame below which it counts as silence (about −40 dBFS). */
 export const SILENCE_RMS = 330;
 
@@ -149,12 +143,21 @@ export function createDeepgramProvider(
         { authorization: `Token ${config.DEEPGRAM_API_KEY}` },
         config.STT_CONNECT_TIMEOUT_MS,
       );
-      return deepgramSession(socket, handlers);
+      return deepgramSession(socket, handlers, config.STT_FINALIZE_SILENCE_MS);
     },
   };
 }
 
-function deepgramSession(socket: WebSocket, handlers: SttHandlers): SttSession {
+/**
+ * Own silence detection (T2.5): Deepgram finalized 13.6 s of speech with two speakers in one
+ * block although the audio had 1 s pauses. After `finalizeSilenceMs` of quiet audio following
+ * speech, the session sends `Finalize`, so the words so far become final at once.
+ */
+function deepgramSession(
+  socket: WebSocket,
+  handlers: SttHandlers,
+  finalizeSilenceMs: number,
+): SttSession {
   const label = speakerLabels();
   // Finalized words not yet delivered as a final segment (the tail of an unfinished sentence).
   let pending: TimedWord[] = [];
@@ -250,7 +253,7 @@ function deepgramSession(socket: WebSocket, handlers: SttHandlers): SttSession {
       lastSentAt = Date.now();
       if (rms(frame) < SILENCE_RMS) {
         silentMs += (frame.byteLength / 32_000) * 1_000;
-        if (speechSinceFinalize && silentMs >= FINALIZE_AFTER_SILENCE_MS) {
+        if (speechSinceFinalize && silentMs >= finalizeSilenceMs) {
           speechSinceFinalize = false;
           socket.send(JSON.stringify({ type: 'Finalize' }));
         }

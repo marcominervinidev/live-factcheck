@@ -123,6 +123,7 @@ services:
       STT_REGION: ${STT_REGION:-eu}
       LOCAL_STT_URL: ${LOCAL_STT_URL:-}
       STT_ENDPOINTING_MS: ${STT_ENDPOINTING_MS:-}
+      STT_FINALIZE_SILENCE_MS: ${STT_FINALIZE_SILENCE_MS:-}
       DEEPGRAM_API_KEY_FILE: /run/secrets/deepgram_api_key
       ASSEMBLYAI_API_KEY_FILE: /run/secrets/assemblyai_api_key
       CLOUD_DAILY_BUDGET_USD: ${CLOUD_DAILY_BUDGET_USD:-2}
