@@ -2,13 +2,15 @@
 // not just run it. Runs nightly, not on every push. Command runner instead of the vitest
 // runner: see packages/providers/stryker.config.mjs (runner 10.0.0 under Vitest 5 reports
 // zero tests after the first run).
+// main.ts is process wiring (integration + stage 3); config.ts has its own unit test
+// and is mutated.
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
   testRunner: 'command',
   commandRunner: { command: 'node_modules/.bin/vitest run --project unit' },
   coverageAnalysis: 'off',
   timeoutMS: 60_000,
-  mutate: ['src/explain.ts'],
+  mutate: ['src/explain.ts', 'src/config.ts'],
   reporters: ['clear-text', 'progress', 'html', 'json'],
   htmlReporter: { fileName: 'reports/mutation/index.html' },
   jsonReporter: { fileName: 'reports/mutation/mutation.json' },

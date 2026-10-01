@@ -2,7 +2,8 @@
 // not just run it. Runs nightly, not on every push. Command runner instead of the vitest
 // runner: see packages/providers/stryker.config.mjs (runner 10.0.0 under Vitest 5 reports
 // zero tests after the first run).
-// cache.ts is the Redis wrapper, proven at stage 2a.
+// cache.ts is the Redis wrapper (proven through the fact-checker integration run); its
+// sha256 helper rides along unmeasured for now - survivor work in issue #60.
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
   testRunner: 'command',

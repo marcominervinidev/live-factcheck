@@ -3,6 +3,8 @@
 // runner: see packages/providers/stryker.config.mjs (runner 10.0.0 under Vitest 5 reports
 // zero tests after the first run).
 // api.ts, ws.ts and main.ts are wiring, proven by integration tests and stage 3.
+// config.ts has no in-process unit test yet - mutating it would only restate that gap;
+// tracked as a survivor-work candidate in issue #60.
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
   testRunner: 'command',

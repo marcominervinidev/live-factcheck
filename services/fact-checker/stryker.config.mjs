@@ -2,7 +2,8 @@
 // not just run it. Runs nightly, not on every push. Command runner instead of the vitest
 // runner: see packages/providers/stryker.config.mjs (runner 10.0.0 under Vitest 5 reports
 // zero tests after the first run).
-// wiring.ts, questions.ts and main.ts are wiring and prompts, proven at stage 3.
+// questions.ts and main.ts are prompt plumbing and process wiring, proven at stage 3;
+// config.ts and wiring.ts have their own unit tests and are mutated.
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
   testRunner: 'command',
@@ -14,7 +15,7 @@ export default {
   },
   coverageAnalysis: 'off',
   timeoutMS: 60_000,
-  mutate: ['src/pipeline.ts'],
+  mutate: ['src/pipeline.ts', 'src/config.ts', 'src/wiring.ts'],
   reporters: ['clear-text', 'progress', 'html', 'json'],
   htmlReporter: { fileName: 'reports/mutation/index.html' },
   jsonReporter: { fileName: 'reports/mutation/mutation.json' },

@@ -2,8 +2,9 @@
 // not just run it. Runs nightly, not on every push. Command runner instead of the vitest
 // runner: see packages/providers/stryker.config.mjs (runner 10.0.0 under Vitest 5 reports
 // zero tests after the first run).
-// Components are render-tested at stages 1/2b; worklet and microphone are the browser
-// boundary (apps/web/AGENTS.md).
+// Components are render-tested at stages 1/2b and stay out; worklet and microphone are
+// the browser boundary (apps/web/AGENTS.md). Mutated: every unit-tested logic file - the
+// stores, the REST client and the runtime-config validation included.
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
   testRunner: 'command',
