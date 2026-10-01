@@ -1,0 +1,1129 @@
+[
+  {
+    "id": "bt20-213-r05-01",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 52.84237500000006
+  },
+  {
+    "id": "bt20-213-r05-02",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1521.3150840000003
+  },
+  {
+    "id": "bt20-213-r05-03",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1878.2396679999997
+  },
+  {
+    "id": "bt20-213-r05-04",
+    "expected": true,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 320.0965839999999
+  },
+  {
+    "id": "bt20-213-r05-05",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 262.04954199999975
+  },
+  {
+    "id": "bt20-213-r05-06",
+    "expected": true,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 55.584374999999454
+  },
+  {
+    "id": "bt20-213-r05-07",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1645.1642089999996
+  },
+  {
+    "id": "bt20-213-r05-08",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 415.8618750000005
+  },
+  {
+    "id": "bt20-213-r05-09",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 366.6650410000002
+  },
+  {
+    "id": "bt20-213-r05-10",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1775.719541999999
+  },
+  {
+    "id": "bt20-213-r05-11",
+    "expected": true,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 265.0025000000005
+  },
+  {
+    "id": "bt20-213-r05-12",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1623.3362089999991
+  },
+  {
+    "id": "bt20-213-r05-13",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 52.70833300000049
+  },
+  {
+    "id": "bt20-213-r05-14",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1469.7566670000015
+  },
+  {
+    "id": "bt20-213-r05-15",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1619.468375999999
+  },
+  {
+    "id": "bt20-213-r05-16",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1648.492209
+  },
+  {
+    "id": "bt20-213-r05-17",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 421.2983749999985
+  },
+  {
+    "id": "bt20-213-r05-18",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 306.0419580000016
+  },
+  {
+    "id": "bt20-213-r05-19",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 312.63833400000294
+  },
+  {
+    "id": "bt20-213-r05-20",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 56.04854200000045
+  },
+  {
+    "id": "bt20-213-r05-21",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1313.1465419999986
+  },
+  {
+    "id": "bt20-213-r05-22",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 374.4334170000002
+  },
+  {
+    "id": "bt20-213-r05-23",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 317.2763750000013
+  },
+  {
+    "id": "bt20-213-r05-24",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 310.95958299999984
+  },
+  {
+    "id": "bt20-213-r08-01",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 52.25837500000125
+  },
+  {
+    "id": "bt20-213-r08-02",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1476.0596670000014
+  },
+  {
+    "id": "bt20-213-r08-03",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 319.0549580000006
+  },
+  {
+    "id": "bt20-213-r08-04",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 309.6602920000005
+  },
+  {
+    "id": "bt20-213-r08-05",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1632.112835
+  },
+  {
+    "id": "bt20-213-r08-06",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 286.4366250000021
+  },
+  {
+    "id": "bt20-213-r08-07",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 268.9047500000015
+  },
+  {
+    "id": "bt20-213-r08-08",
+    "expected": true,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 255.90691700000025
+  },
+  {
+    "id": "bt20-213-r08-09",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 2042.8915009999982
+  },
+  {
+    "id": "bt20-213-r08-10",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 319.56208400000105
+  },
+  {
+    "id": "bt20-213-r08-11",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 313.26800000000003
+  },
+  {
+    "id": "bt20-213-r08-12",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 311.8687499999942
+  },
+  {
+    "id": "bt20-213-r08-13",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1766.6865430000034
+  },
+  {
+    "id": "bt20-213-r08-14",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 323.1339999999982
+  },
+  {
+    "id": "bt20-213-r08-15",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 55.555749999999534
+  },
+  {
+    "id": "bt20-213-r08-16",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 2109.5701259999987
+  },
+  {
+    "id": "bt20-213-r08-17",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 368.2272079999966
+  },
+  {
+    "id": "bt20-213-r08-18",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 263.56700000000274
+  },
+  {
+    "id": "bt20-213-r08-19",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 309.9782500000001
+  },
+  {
+    "id": "bt20-213-r08-20",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1879.5983339999948
+  },
+  {
+    "id": "bt20-213-r08-21",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 316.3792500000054
+  },
+  {
+    "id": "bt20-213-r08-22",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 262.0845000000045
+  },
+  {
+    "id": "bt20-213-r08-23",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 260.15470799999457
+  },
+  {
+    "id": "bt20-213-r08-24",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 265.01283399999375
+  },
+  {
+    "id": "bt20-213-r08-25",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 363.08308399999805
+  },
+  {
+    "id": "bt20-213-r08-26",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 263.577959000002
+  },
+  {
+    "id": "bt20-213-r08-27",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 259.5954169999968
+  },
+  {
+    "id": "bt20-213-r08-28",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 264.5164169999989
+  },
+  {
+    "id": "bt20-213-r08-29",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 257.98683300000266
+  },
+  {
+    "id": "bt20-213-r08-30",
+    "expected": true,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 308.6491670000032
+  },
+  {
+    "id": "bt20-213-r16-01",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 262.25316600000224
+  },
+  {
+    "id": "bt20-213-r16-02",
+    "expected": true,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 356.794084000001
+  },
+  {
+    "id": "bt20-213-r16-03",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 260.87016700000095
+  },
+  {
+    "id": "bt20-213-r16-04",
+    "expected": true,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 468.76233299999876
+  },
+  {
+    "id": "bt20-213-r16-05",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 263.6848339999997
+  },
+  {
+    "id": "bt20-213-r16-06",
+    "expected": true,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 413.0527499999953
+  },
+  {
+    "id": "bt20-213-r16-07",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1976.6880419999943
+  },
+  {
+    "id": "bt20-213-r16-08",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1397.4557920000007
+  },
+  {
+    "id": "bt20-213-r16-09",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 259.03800000000047
+  },
+  {
+    "id": "bt20-213-r16-10",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1466.019917000005
+  },
+  {
+    "id": "bt20-213-r16-11",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 2005.6498340000035
+  },
+  {
+    "id": "bt20-213-r16-12",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 3695.506626000002
+  },
+  {
+    "id": "bt20-213-r16-13",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 311.65350000000035
+  },
+  {
+    "id": "bt20-213-r16-14",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 318.0843329999989
+  },
+  {
+    "id": "bt20-213-r16-15",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 311.88612500000454
+  },
+  {
+    "id": "bt20-213-r16-16",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 3800.4402100000007
+  },
+  {
+    "id": "bt20-213-r16-17",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1960.9564600000012
+  },
+  {
+    "id": "bt20-213-r16-18",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 261.8242089999985
+  },
+  {
+    "id": "bt20-213-r16-19",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 263.7635420000006
+  },
+  {
+    "id": "bt20-213-r16-20",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 260.7584579999966
+  },
+  {
+    "id": "bt20-213-r16-21",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1674.5610000000015
+  },
+  {
+    "id": "bt20-213-r16-22",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1659.123041999992
+  },
+  {
+    "id": "bt20-213-r16-23",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1860.5589179999952
+  },
+  {
+    "id": "bt20-213-r16-24",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 52.72750000000815
+  },
+  {
+    "id": "bt20-213-r16-25",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1538.327376000001
+  },
+  {
+    "id": "bt20-213-r16-26",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1890.8744179999921
+  },
+  {
+    "id": "bt20-213-r16-27",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 52.75991700000304
+  },
+  {
+    "id": "bt20-213-r16-28",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1665.7114589999983
+  },
+  {
+    "id": "bt20-213-r16-29",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 54.36412499999278
+  },
+  {
+    "id": "bt20-213-r16-30",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 260.9485010000062
+  },
+  {
+    "id": "bt20-213-r10-01",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 53.005082999996375
+  },
+  {
+    "id": "bt20-213-r10-02",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 54.93529200000921
+  },
+  {
+    "id": "bt20-213-r10-03",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1567.0475429999933
+  },
+  {
+    "id": "bt20-213-r10-04",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 361.7263340000063
+  },
+  {
+    "id": "bt20-213-r10-05",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 2226.4594170000055
+  },
+  {
+    "id": "bt20-213-r10-06",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 264.2306249999965
+  },
+  {
+    "id": "bt20-213-r10-07",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 52.03049999999348
+  },
+  {
+    "id": "bt20-213-r10-08",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 267.10483399999794
+  },
+  {
+    "id": "bt20-213-r10-09",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 315.778250000003
+  },
+  {
+    "id": "bt20-213-r10-10",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1626.372292
+  },
+  {
+    "id": "bt20-213-r10-11",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 316.0439170000027
+  },
+  {
+    "id": "bt20-213-r10-12",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 325.9413760000025
+  },
+  {
+    "id": "bt20-213-r10-13",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 310.5097919999971
+  },
+  {
+    "id": "bt20-213-r10-14",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 262.29716700001154
+  },
+  {
+    "id": "bt20-213-r10-15",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 310.1019579999993
+  },
+  {
+    "id": "bt20-213-r10-16",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 262.22025000001304
+  },
+  {
+    "id": "bt20-213-r10-17",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 379.9627499999915
+  },
+  {
+    "id": "bt20-213-r10-18",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 264.61633400000574
+  },
+  {
+    "id": "bt20-213-r10-19",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 320.0422499999986
+  },
+  {
+    "id": "bt20-213-r10-20",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1694.0600010000053
+  },
+  {
+    "id": "bt20-213-r10-21",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 270.4310839999962
+  },
+  {
+    "id": "bt20-213-r10-22",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 256.5077089999977
+  },
+  {
+    "id": "bt20-213-r10-23",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 261.73899999998685
+  },
+  {
+    "id": "bt20-213-r10-24",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 373.5741249999992
+  },
+  {
+    "id": "bt20-213-r10-25",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 260.7007919999887
+  },
+  {
+    "id": "bt20-213-r10-26",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1833.1673759999976
+  },
+  {
+    "id": "bt20-213-r10-27",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 363.47158299999137
+  },
+  {
+    "id": "bt20-213-r11-01",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 53.17445799999405
+  },
+  {
+    "id": "bt20-213-r11-02",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 317.8639169999951
+  },
+  {
+    "id": "bt20-213-r11-03",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 257.69100000000617
+  },
+  {
+    "id": "bt20-213-r11-04",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 2012.6157090000052
+  },
+  {
+    "id": "bt20-213-r11-05",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1331.5506670000032
+  },
+  {
+    "id": "bt20-213-r11-06",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 54.91937499999767
+  },
+  {
+    "id": "bt20-213-r11-07",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 52.286624999993364
+  },
+  {
+    "id": "bt20-213-r11-08",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 52.83474999999453
+  },
+  {
+    "id": "bt20-213-r11-09",
+    "expected": true,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 258.87504199999967
+  },
+  {
+    "id": "bt20-213-r11-10",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1617.6292509999912
+  },
+  {
+    "id": "bt20-213-r11-11",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 384.09233299999323
+  },
+  {
+    "id": "bt20-213-r11-12",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1733.9007929999934
+  },
+  {
+    "id": "bt20-213-r11-13",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 309.4328749999986
+  },
+  {
+    "id": "bt20-213-r11-14",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 418.0451669999893
+  },
+  {
+    "id": "bt20-213-r11-15",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1856.4598339999939
+  },
+  {
+    "id": "bt20-213-r11-16",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 304.7998329999973
+  },
+  {
+    "id": "bt20-213-r11-17",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 363.93666700000176
+  },
+  {
+    "id": "bt20-213-r11-18",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 2085.9614180000062
+  },
+  {
+    "id": "bt20-213-r11-19",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1787.7856259999971
+  },
+  {
+    "id": "bt20-213-r11-20",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 3530.873835000006
+  },
+  {
+    "id": "bt20-213-r11-21",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1659.9152089999989
+  },
+  {
+    "id": "bt20-213-r11-22",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1621.6748760000046
+  },
+  {
+    "id": "bt20-213-r11-23",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 269.41908300001523
+  },
+  {
+    "id": "bt20-213-r11-24",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1975.5275010000041
+  },
+  {
+    "id": "bt20-213-r11-25",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 309.4457499999844
+  },
+  {
+    "id": "bt20-213-r18-01",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 409.6847499999858
+  },
+  {
+    "id": "bt20-213-r18-02",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 56.28687499999069
+  },
+  {
+    "id": "bt20-213-r18-03",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 54.61829100002069
+  },
+  {
+    "id": "bt20-213-r18-04",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 52.78154200001154
+  },
+  {
+    "id": "bt20-213-r18-05",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 316.2492510000011
+  },
+  {
+    "id": "bt20-213-r18-06",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 261.6680000000051
+  },
+  {
+    "id": "bt20-213-r18-07",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1448.085500999994
+  },
+  {
+    "id": "bt20-213-r18-08",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1379.0195010000025
+  },
+  {
+    "id": "bt20-213-r18-09",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1394.7460009999922
+  },
+  {
+    "id": "bt20-213-r18-10",
+    "expected": true,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 1628.6899169999815
+  },
+  {
+    "id": "bt20-213-r18-11",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 264.0999170000141
+  },
+  {
+    "id": "bt20-213-r18-12",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 312.9916250000242
+  },
+  {
+    "id": "bt20-213-r18-13",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 264.2536250000121
+  },
+  {
+    "id": "bt20-213-r18-14",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 263.349916999985
+  },
+  {
+    "id": "bt20-213-r18-15",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 256.1096250000119
+  },
+  {
+    "id": "bt20-213-r18-16",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 55.44062499998836
+  },
+  {
+    "id": "bt20-213-r18-17",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 55.64504100001068
+  },
+  {
+    "id": "bt20-213-r18-18",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 55.016124999994645
+  },
+  {
+    "id": "bt20-213-r18-19",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 359.34204100002535
+  },
+  {
+    "id": "bt20-213-r18-20",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 413.9423329999845
+  },
+  {
+    "id": "bt20-213-r18-21",
+    "expected": false,
+    "processed": true,
+    "detected": true,
+    "latencyMs": 2155.33404300001
+  },
+  {
+    "id": "bt20-213-r18-22",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 264.1728329999896
+  },
+  {
+    "id": "bt20-213-r18-23",
+    "expected": true,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 309.18299999999
+  },
+  {
+    "id": "bt20-213-r18-24",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 310.7013750000042
+  },
+  {
+    "id": "bt20-213-r18-25",
+    "expected": false,
+    "processed": true,
+    "detected": false,
+    "latencyMs": 263.3325000000186
+  }
+]
