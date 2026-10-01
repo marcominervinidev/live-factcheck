@@ -393,6 +393,9 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
+      '@lfc/service-kit':
+        specifier: workspace:*
+        version: link:../service-kit
       '@stryker-mutator/core':
         specifier: 10.0.0
         version: 10.0.0(@types/node@24.13.6)

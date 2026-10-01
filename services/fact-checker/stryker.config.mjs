@@ -6,7 +6,12 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
   testRunner: 'command',
-  commandRunner: { command: 'node_modules/.bin/vitest run --project unit' },
+  // Only the fast logic tests: main.test.ts spawns five child processes (~60 s under load)
+  // and proves startup, not pipeline.ts - it would slow every mutant without killing one.
+  commandRunner: {
+    command:
+      'node_modules/.bin/vitest run --project unit src/pipeline.test.ts src/config.test.ts src/wiring.test.ts',
+  },
   coverageAnalysis: 'off',
   timeoutMS: 60_000,
   mutate: ['src/pipeline.ts'],

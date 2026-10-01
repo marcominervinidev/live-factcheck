@@ -30,6 +30,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@lfc/service-kit": "workspace:*",
     "@stryker-mutator/core": "10.0.0",
     "@types/jsdom": "30.0.0",
     "@types/node": "24.13.6",

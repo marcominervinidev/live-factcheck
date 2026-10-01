@@ -2,6 +2,8 @@ import type { SearchProvider } from '@lfc/providers';
 import { createEmbeddingProvider } from '@lfc/providers';
 import { describe, expect, it } from 'vitest';
 
+import { readRepoSourceTiers } from '@lfc/service-kit/testing';
+
 import type { TextCache } from './cache.js';
 import type { RobotsPolicy } from './fetch/robots.js';
 import type { FetchTextOptions, SafeFetcher } from './fetch/safe-fetch.js';
@@ -13,7 +15,6 @@ import { createFactCheckSource } from './sources/factcheck.js';
 import { createWebSource } from './sources/web.js';
 import { createWikidataSource, createWikipediaSource, formatWikidataTime } from './sources/wiki.js';
 import { createTierResolver } from './tiers.js';
-import { readRepoSourceTiers } from './testing/repo-config.js';
 
 const tiers = createTierResolver(parseSourceTiers(readRepoSourceTiers()));
 const now = () => new Date('2026-09-26T10:00:00.000Z');

@@ -1,5 +1,5 @@
 // Shared by the config and wiring unit tests: a valid all-mock environment.
-import { fileURLToPath } from 'node:url';
+import { repoSourceTiersPath } from '@lfc/service-kit/testing';
 
 export const MOCK_CONFIG_ENV = {
   PORT: '8080',
@@ -12,8 +12,7 @@ export const MOCK_CONFIG_ENV = {
   EMBEDDINGS_PROVIDER: 'mock',
   EMBEDDINGS_MODEL: 'mock',
   CHECKER_RESEARCH_SOURCES: 'mock',
-  SOURCE_TIERS_FILE: fileURLToPath(
-    new URL('../../../../config/source-tiers.yaml', import.meta.url),
-  ),
+  // Walks up to the repo root, so Stryker's sandbox (two levels deeper) works too.
+  SOURCE_TIERS_FILE: repoSourceTiersPath(),
   CHECKER_USER_AGENT_URL: 'https://github.com/marcominervinidev/live-factcheck',
 } as const;

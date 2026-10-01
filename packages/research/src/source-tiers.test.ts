@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { readRepoSourceTiers } from '@lfc/service-kit/testing';
+
 import { SourceTiersError, parseSourceTiers } from './source-tiers.js';
-import { readRepoSourceTiers } from './testing/repo-config.js';
 
 const valid = `
 schemaVersion: 1
