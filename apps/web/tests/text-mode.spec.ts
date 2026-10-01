@@ -123,6 +123,10 @@ test.describe('without a token', () => {
     await claims.open();
     await expect(claims.noToken).toBeVisible();
     await expect(claims.submit).toBeDisabled();
+    // The hint's own button leads into the settings (T6.5 state design).
+    await page.getByTestId('no-token-settings').click();
+    await expect(page.getByTestId('token-input')).toBeVisible();
+    await page.getByTestId('nav-check').click();
 
     await claims.openSettings();
     await claims.saveToken(TEST_TOKEN);
