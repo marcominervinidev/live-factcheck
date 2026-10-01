@@ -1,6 +1,7 @@
 import type { ClaimChecked, ConfidenceLevel, SourceTier, Verdict } from '@lfc/contracts';
 
 import { t } from '../i18n';
+import { useLanguage } from '../state/language';
 
 /** Names of the icons in `components/VerdictIcon.tsx`; one per verdict, plus uncertain. */
 export type VerdictIconName = 'true' | 'mostly' | 'exaggerated' | 'false' | 'open' | 'uncertain';
@@ -71,15 +72,33 @@ export const tierLabel = (tier: SourceTier) => t(`tier.${tier}`);
 export const confidenceWidth = (confidence: number) =>
   `${String(Math.round(Math.min(1, Math.max(0, confidence)) * 100))}%`;
 
-const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
-const dateFormat = new Intl.DateTimeFormat('de-DE', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
+// Date and time follow the UI language (ADR 0020); English uses the British day-first order,
+// closer to the German reading of the same conversation.
+const LOCALES = { de: 'de-DE', en: 'en-GB' } as const;
+const timeFormats = new Map<string, Intl.DateTimeFormat>();
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
 
-export const formatTime = (iso: string) => timeFormat.format(new Date(iso));
-export const formatDate = (iso: string) => dateFormat.format(new Date(iso));
+const timeFormat = () => {
+  const locale = LOCALES[useLanguage.getState().language];
+  let format = timeFormats.get(locale);
+  if (format === undefined) {
+    format = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' });
+    timeFormats.set(locale, format);
+  }
+  return format;
+};
+const dateFormat = () => {
+  const locale = LOCALES[useLanguage.getState().language];
+  let format = dateFormats.get(locale);
+  if (format === undefined) {
+    format = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+    dateFormats.set(locale, format);
+  }
+  return format;
+};
+
+export const formatTime = (iso: string) => timeFormat().format(new Date(iso));
+export const formatDate = (iso: string) => dateFormat().format(new Date(iso));
 
 /** Probabilities for the detail view, most probable first, as whole percent. */
 export function distribution(probabilities: ClaimChecked['probabilities']) {

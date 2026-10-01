@@ -37,7 +37,9 @@ function Evidence({ checked }: { checked: ClaimChecked }) {
           <figcaption className="text-sm font-semibold text-muted">
             {t('card.bestEvidence')}
           </figcaption>
-          <blockquote className="mt-1 leading-relaxed text-ink">„{best.snippet}“</blockquote>
+          <blockquote className="mt-1 leading-relaxed text-ink">
+            {t('card.quote', { text: best.snippet })}
+          </blockquote>
           <p className="mt-1 text-sm text-muted">
             {best.publisher}
             {best.publishedAt === undefined ? '' : ` · ${formatDate(best.publishedAt)}`} ·{' '}
@@ -115,7 +117,7 @@ export function ClaimCard({
         claim.detected.originalText !== claim.detected.standaloneText && (
           <details className="text-sm text-muted">
             <summary>{t('card.original')}</summary>
-            <p className="mt-1">„{claim.detected.originalText}“</p>
+            <p className="mt-1">{t('card.quote', { text: claim.detected.originalText })}</p>
           </details>
         )}
 
@@ -183,7 +185,9 @@ export function ClaimCard({
               {distribution(checked.probabilities).map((row) => (
                 <li key={row.verdict} className="flex justify-between">
                   <span>{row.label}</span>
-                  <span className="tabular-nums">{row.percent} %</span>
+                  <span className="tabular-nums">
+                    {t('card.percent', { value: String(row.percent) })}
+                  </span>
                 </li>
               ))}
             </ul>

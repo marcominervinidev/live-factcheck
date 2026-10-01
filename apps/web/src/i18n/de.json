@@ -116,5 +116,12 @@
   "summary.subtitle": "Die Aufnahme selbst wurde nicht gespeichert. In einer Viertelstunde ist auch der Text weg.",
   "summary.noScores": "Keine Punkte pro Person. Es ging um die Behauptungen, nicht um Recht haben.",
   "summary.newTalk": "Neues Gespräch",
-  "summary.back": "Zurück zu den Karten"
+  "summary.back": "Zurück zu den Karten",
+  "settings.language.title": "Sprache",
+  "settings.language.help": "Gespräche werden weiterhin auf Deutsch verstanden; hier wechselt nur die Oberfläche.",
+  "settings.language.system": "Wie das Gerät",
+  "settings.language.de": "Deutsch",
+  "settings.language.en": "English",
+  "card.quote": "„{text}“",
+  "card.percent": "{value} %"
 }
