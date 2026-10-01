@@ -10,6 +10,7 @@ the result size below is the honest proxy for what eats context.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import sys
 from collections import Counter, defaultdict
@@ -30,84 +31,123 @@ def result_chars(content: object) -> int:
     return 0
 
 
-def collect(folder: Path, since: datetime | None, until: datetime | None) -> dict:
-    tokens: dict[str, Counter] = defaultdict(Counter)
-    tools: dict[str, Counter] = defaultdict(Counter)
-    sessions: set[str] = set()
-    turns = 0
-    last_call: dict[str, tuple[str, str]] = {}  # session -> (name, input json)
-    call_names: dict[str, str] = {}  # tool_use id -> name
-    repeats = errors = 0
-    first = last = None
-    daily: dict[str, Counter] = defaultdict(Counter)
+class Collector:
+    """Aggregates one log row at a time; each method stays simple (Sonar S3776)."""
 
+    def __init__(self) -> None:
+        self.tokens: dict[str, Counter] = defaultdict(Counter)
+        self.tools: dict[str, Counter] = defaultdict(Counter)
+        self.daily: dict[str, Counter] = defaultdict(Counter)
+        self.sessions: set[str] = set()
+        self.turns = 0
+        self.repeats = self.errors = 0
+        self.first: datetime | None = None
+        self.last: datetime | None = None
+        self._last_call: dict[str, tuple[str, str]] = {}  # session -> (name, input json)
+        self._call_names: dict[str, str] = {}  # tool_use id -> name
+
+    def feed(self, row: dict, session: str, when: datetime) -> None:
+        self.first = min(self.first or when, when)
+        self.last = max(self.last or when, when)
+        message = row.get("message")
+        if not isinstance(message, dict):
+            return
+        if row.get("type") == "assistant":
+            self._usage(message, session, when)
+            self._calls(message.get("content"), session)
+        elif row.get("type") == "user":
+            self._results(message.get("content"), when)
+
+    def _usage(self, message: dict, session: str, when: datetime) -> None:
+        usage = message.get("usage")
+        model = str(message.get("model", "?"))
+        if not isinstance(usage, dict) or model == "<synthetic>":
+            return
+        self.sessions.add(session)
+        self.turns += 1
+        bucket = self.tokens[model]
+        bucket["fresh"] += usage.get("input_tokens", 0) or 0
+        bucket["cache_read"] += usage.get("cache_read_input_tokens", 0) or 0
+        bucket["cache_write"] += usage.get("cache_creation_input_tokens", 0) or 0
+        out = usage.get("output_tokens", 0) or 0
+        bucket["out"] += out
+        details = usage.get("output_tokens_details") or {}
+        bucket["thinking"] += details.get("thinking_tokens", 0) or 0
+        day = self.daily[when.date().isoformat()]
+        day["out"] += out
+        day["turns"] += 1
+
+    def _calls(self, content: object, session: str) -> None:
+        if not isinstance(content, list):
+            return
+        for part in content:
+            if not (isinstance(part, dict) and part.get("type") == "tool_use"):
+                continue
+            name = str(part.get("name", "?"))
+            self._call_names[str(part.get("id"))] = name
+            self.tools[name]["calls"] += 1
+            key = (name, json.dumps(part.get("input"), sort_keys=True, default=str))
+            if self._last_call.get(session) == key:
+                self.repeats += 1
+                self.tools[name]["repeats"] += 1
+            self._last_call[session] = key
+
+    def _results(self, content: object, when: datetime) -> None:
+        if not isinstance(content, list):
+            return
+        for part in content:
+            if not (isinstance(part, dict) and part.get("type") == "tool_result"):
+                continue
+            name = self._call_names.get(str(part.get("tool_use_id")), "?")
+            self.tools[name]["result_chars"] += result_chars(part.get("content"))
+            if part.get("is_error"):
+                self.errors += 1
+                self.tools[name]["errors"] += 1
+                self.daily[when.date().isoformat()]["errors"] += 1
+
+    def data(self) -> dict:
+        return {
+            "window": [
+                self.first.isoformat() if self.first else None,
+                self.last.isoformat() if self.last else None,
+            ],
+            "sessions": len(self.sessions),
+            "turns": self.turns,
+            "tokens": {model: dict(counter) for model, counter in self.tokens.items()},
+            "tools": {name: dict(counter) for name, counter in self.tools.items()},
+            "identical_repeats": self.repeats,
+            "tool_errors": self.errors,
+            "daily": {day: dict(counter) for day, counter in sorted(self.daily.items())},
+        }
+
+
+def row_time(line: str) -> tuple[dict, datetime] | None:
+    """The parsed row and its timestamp, or None for anything unusable."""
+    try:
+        row = json.loads(line)
+    except json.JSONDecodeError:
+        return None
+    stamp = row.get("timestamp")
+    if not isinstance(stamp, str):
+        return None
+    try:
+        return row, parse_when(stamp)
+    except ValueError:
+        return None
+
+
+def collect(folder: Path, since: datetime | None, until: datetime | None) -> dict:
+    collector = Collector()
     for path in sorted(folder.glob("*.jsonl")):
         for line in path.open(encoding="utf-8", errors="replace"):
-            try:
-                row = json.loads(line)
-            except json.JSONDecodeError:
+            parsed = row_time(line)
+            if parsed is None:
                 continue
-            stamp = row.get("timestamp")
-            if not isinstance(stamp, str):
-                continue
-            try:
-                when = parse_when(stamp)
-            except ValueError:
-                continue
+            row, when = parsed
             if (since and when < since) or (until and when > until):
                 continue
-            first = min(first or when, when)
-            last = max(last or when, when)
-            message = row.get("message")
-            if not isinstance(message, dict):
-                continue
-            content = message.get("content")
-            if row.get("type") == "assistant":
-                usage = message.get("usage")
-                model = str(message.get("model", "?"))
-                if isinstance(usage, dict) and model != "<synthetic>":
-                    sessions.add(path.stem)
-                    turns += 1
-                    bucket = tokens[model]
-                    bucket["fresh"] += usage.get("input_tokens", 0) or 0
-                    bucket["cache_read"] += usage.get("cache_read_input_tokens", 0) or 0
-                    bucket["cache_write"] += usage.get("cache_creation_input_tokens", 0) or 0
-                    bucket["out"] += usage.get("output_tokens", 0) or 0
-                    details = usage.get("output_tokens_details") or {}
-                    bucket["thinking"] += details.get("thinking_tokens", 0) or 0
-                    day = daily[when.date().isoformat()]
-                    day["out"] += usage.get("output_tokens", 0) or 0
-                    day["turns"] += 1
-                if isinstance(content, list):
-                    for part in content:
-                        if isinstance(part, dict) and part.get("type") == "tool_use":
-                            name = str(part.get("name", "?"))
-                            call_names[str(part.get("id"))] = name
-                            tools[name]["calls"] += 1
-                            key = (name, json.dumps(part.get("input"), sort_keys=True, default=str))
-                            if last_call.get(path.stem) == key:
-                                repeats += 1
-                                tools[name]["repeats"] += 1
-                            last_call[path.stem] = key
-            elif row.get("type") == "user" and isinstance(content, list):
-                for part in content:
-                    if isinstance(part, dict) and part.get("type") == "tool_result":
-                        name = call_names.get(str(part.get("tool_use_id")), "?")
-                        tools[name]["result_chars"] += result_chars(part.get("content"))
-                        if part.get("is_error"):
-                            errors += 1
-                            tools[name]["errors"] += 1
-                            daily[when.date().isoformat()]["errors"] += 1
-    return {
-        "window": [first.isoformat() if first else None, last.isoformat() if last else None],
-        "sessions": len(sessions),
-        "turns": turns,
-        "tokens": {model: dict(counter) for model, counter in tokens.items()},
-        "tools": {name: dict(counter) for name, counter in tools.items()},
-        "identical_repeats": repeats,
-        "tool_errors": errors,
-        "daily": {day: dict(counter) for day, counter in sorted(daily.items())},
-    }
+            collector.feed(row, path.stem, when)
+    return collector.data()
 
 
 def dashboard(data: dict) -> str:
@@ -117,7 +157,7 @@ def dashboard(data: dict) -> str:
     for model, b in sorted(data["tokens"].items(), key=lambda kv: -kv[1].get("out", 0)):
         width = max(2, round(100 * b.get("out", 0) / max_out))
         models_rows.append(
-            f'<div class="row"><span class="name">{model}</span>'
+            f'<div class="row"><span class="name">{html.escape(model)}</span>'
             f'<span class="bar"><i style="width:{width}%"></i></span>'
             f'<span class="num">{fmt(b.get("out", 0))} aus · {fmt(b.get("cache_read", 0))} Cache</span></div>')
     days = data.get("daily", {})
@@ -133,7 +173,7 @@ def dashboard(data: dict) -> str:
     for name, c in sorted(data["tools"].items(), key=lambda kv: -kv[1].get("result_chars", 0))[:10]:
         calls = c.get("calls", 0)
         share = 100 * c.get("errors", 0) / calls if calls else 0
-        tool_rows.append(f'<tr><td>{name}</td><td>{calls}</td><td>{share:.0f} %</td>'
+        tool_rows.append(f'<tr><td>{html.escape(name)}</td><td>{calls}</td><td>{share:.0f} %</td>'
                          f'<td>{fmt(c.get("result_chars", 0) / 4)}</td></tr>')
     win = data.get("window") or [None, None]
     return f"""<title>Agenten-Bilanz</title>
@@ -183,6 +223,16 @@ Werkzeugfehler gesamt: {data["tool_errors"]}.</footer>
 </div>"""
 
 
+def resolve_project(base: Path, project: str) -> Path:
+    """The project's folder, required to be a direct child of `base` (Sonar S8707): a crafted
+    slug (`..`, absolute, nested, a symlink pointing outside) must not read elsewhere."""
+    resolved_base = base.resolve()
+    folder = (resolved_base / project).resolve()
+    if folder.parent != resolved_base or not folder.is_dir():
+        raise ValueError(f"not a project folder under {resolved_base}: {project}")
+    return folder
+
+
 def fmt(number: float) -> str:
     return f"{number:,.0f}".replace(",", " ")
 
@@ -197,9 +247,10 @@ def main() -> None:
                         help="also write the dashboard page to this file")
     args = parser.parse_args()
 
-    folder = Path.home() / ".claude" / "projects" / args.project
-    if not folder.is_dir():
-        sys.exit(f"no session folder: {folder}")
+    try:
+        folder = resolve_project(Path.home() / ".claude" / "projects", args.project)
+    except ValueError as error:
+        sys.exit(str(error))
     data = collect(folder, args.since, args.until)
     if args.html:
         args.html.write_text(dashboard(data), encoding="utf-8")
