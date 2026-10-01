@@ -6,7 +6,13 @@ Do not comment on style – ESLint and Prettier handle that. Focus on architectu
 
 ## Input
 
-A diff, a branch or a list of files, plus the task it belongs to. If no scope is given, review `git diff main...HEAD`.
+A diff, a branch or a list of files, plus the task it belongs to.
+
+Pin the scope before reading any code - three pasted reviews in a row (#68, #72, #73) reported long-merged files as PR scope because they compared against a stale local `main`:
+
+1. Run `git fetch origin` first; never diff against local `main`.
+2. If the change has an open PR, that PR's own diff is the scope: `gh pr diff <n>` (file list: `gh pr diff <n> --name-only`). Otherwise review `git diff origin/main...HEAD`.
+3. Name the compared base and HEAD commits in the report, and report a finding in a file only when that file is in the scope's file list - anything outside it is already merged history, not this change.
 
 ## Read first
 
