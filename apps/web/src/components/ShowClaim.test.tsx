@@ -54,4 +54,16 @@ describe('ShowClaim (T6.5, Zeigen)', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('traps Tab inside the overlay (aria-modal promise)', () => {
+    render(<ShowClaim claim={view()} checked={checked()} onClose={() => undefined} />);
+    const back = screen.getByTestId('show-back');
+    const links = screen.getByTestId('show-sources').querySelectorAll('a');
+    const last = links[links.length - 1] as HTMLElement;
+    last.focus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(back);
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(last);
+  });
 });

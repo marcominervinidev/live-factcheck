@@ -104,7 +104,7 @@
   "theme.toDark": "Dunkles Design",
   "theme.toLight": "Helles Design",
   "consent.what": "Was mit dem Gesagten passiert",
-  "consent.noRecord": "Es wird nichts aufgezeichnet. Der Text bleibt eine Viertelstunde und ist dann weg.",
+  "consent.noRecord": "Die Aufnahme selbst wird nicht gespeichert – es entsteht nur Text. Der ist spätestens eine Viertelstunde nach dem letzten Wort weg.",
   "consent.retry": "Noch einmal versuchen",
   "connection.openSettings": "Zu den Einstellungen",
   "show.back": "Zurück zum Gespräch",
