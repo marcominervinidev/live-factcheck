@@ -15,6 +15,7 @@ import { useRecording } from '../state/recording';
 import { useTranscript } from '../state/transcript';
 import type { ConnectionStatus } from '../state/connection';
 import { sessionUrl, useConnection } from '../state/connection';
+import { useLanguage } from '../state/language';
 import { useSettings } from '../state/settings';
 import { useRuntimeConfig } from './runtime-config';
 
@@ -194,6 +195,14 @@ function CheckView({
 }
 
 export function App() {
+  // One subscription re-renders the whole tree on a language switch - no component memoises,
+  // so every t() call below picks up the new catalogue (T6.6).
+  const language = useLanguage((state) => state.language);
+
+  // The tab title follows the language too (index.html can only carry the German default).
+  useEffect(() => {
+    document.title = t('app.title');
+  }, [language]);
   const state = useRuntimeConfig((store) => store.state);
   const load = useRuntimeConfig((store) => store.load);
   const token = useSettings((store) => store.token);

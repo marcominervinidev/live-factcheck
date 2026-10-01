@@ -19,6 +19,9 @@ export default defineConfig({
     : [['list'], ['html', { open: 'never', outputFolder: '../playwright-report' }]],
   outputDir: '../test-results',
   use: {
+    // The UI follows the device language (T6.6); the suites assert German texts, the
+    // dedicated English spec overrides per test.
+    locale: 'de-DE',
     baseURL: 'http://127.0.0.1:4173',
     // CI records every test (trace, video, screenshot) so the owner can review the run from the
     // HTML report attached to each PR; locally only what is needed to debug a retry.
