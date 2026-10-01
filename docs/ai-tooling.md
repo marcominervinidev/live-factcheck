@@ -8,7 +8,7 @@ This repo is built with a coding agent: Claude Code as the primary tool and Goog
 |---|---|---|---|
 | Rules | `AGENTS.md` (root, per package) | `CLAUDE.md` imports `@AGENTS.md` | reads root `AGENTS.md`; nested ones via `.agents/rules/*.md` |
 | Roles (reviewer, security-reviewer, platform-engineer) | `.ai/prompts/` | `.claude/agents/` | `.agents/agents/` |
-| Skills (`new-service`, `new-event-contract`, `adr`, `evidence`, `security-scan`) | `.agents/skills/` | `.claude/skills` (symlink) | `.agents/skills/` |
+| Skills (`new-service`, `new-event-contract`, `adr`, `evidence`, `security-scan`, `retro`, `grilling`) | `.agents/skills/` | `.claude/skills` (symlink) | `.agents/skills/` |
 | MCP servers | GitHub, Context7, Redis, Playwright, SonarQube (from phase 1b) | `.mcp.json` | `.agents/mcp_config.json` |
 | Hooks | – | `.claude/settings.json` (comfort only) | – |
 | Real guards | `lefthook.yml`, `.github/workflows/`, branch ruleset, `CODEOWNERS` | same | same |
