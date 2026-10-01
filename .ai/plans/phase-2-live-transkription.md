@@ -175,3 +175,12 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - Feature-Plan Debattier-Modus: ADR 0021 (proposed) + `.ai/plans/feature-debate-mode.md` – Umsetzung nach Launch, verfolgt in Issue #59
 - Nach Phase 2: Distroless für `stt-local` → Issue #53; OrbStack-Wechsel → Issue #52
 - Offen für Marco: CodeQL → Issue #54; altes Redis-Volume → Issue #56; Repo-Setting Branch-Löschung → Issue #57
+
+### 2026-10-01T09:52Z – compaction (manual)
+
+- branch: `phase-2/t66-english`, HEAD `b8dbcbf`
+- uncommitted:
+
+```
+ M .ai/plans/phase-2-live-transkription.md
+```
