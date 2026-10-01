@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { EventEnvelope, STREAMS, sessionEventsChannel } from '@lfc/contracts';
-import { freePort, startServiceProcess } from '@lfc/service-kit/testing';
+import { freePort, repoSourceTiersPath, startServiceProcess } from '@lfc/service-kit/testing';
 import type { ServiceProcess } from '@lfc/service-kit/testing';
 import { RedisContainer } from '@testcontainers/redis';
 import type { StartedRedisContainer } from '@testcontainers/redis';
@@ -39,9 +39,7 @@ describe('fact-checker with a secret file against a real Redis', () => {
       EMBEDDINGS_PROVIDER: 'mock',
       EMBEDDINGS_MODEL: 'mock',
       CHECKER_RESEARCH_SOURCES: 'mock',
-      SOURCE_TIERS_FILE: fileURLToPath(
-        new URL('../../../config/source-tiers.yaml', import.meta.url),
-      ),
+      SOURCE_TIERS_FILE: repoSourceTiersPath(),
       CHECKER_USER_AGENT_URL: 'https://github.com/marcominervinidev/live-factcheck',
     });
     await run.waitFor('service started');

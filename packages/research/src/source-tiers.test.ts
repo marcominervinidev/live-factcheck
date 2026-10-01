@@ -1,10 +1,8 @@
-import { readFileSync } from 'node:fs';
-
 import { describe, expect, it } from 'vitest';
 
-import { SourceTiersError, parseSourceTiers } from './source-tiers.js';
+import { readRepoSourceTiers } from '@lfc/service-kit/testing';
 
-const REPO_FILE = new URL('../../../config/source-tiers.yaml', import.meta.url);
+import { SourceTiersError, parseSourceTiers } from './source-tiers.js';
 
 const valid = `
 schemaVersion: 1
@@ -28,7 +26,7 @@ const issuesOf = (yamlText: string): readonly string[] => {
 
 describe('source tiers', () => {
   it('accepts the committed config/source-tiers.yaml', () => {
-    const tiers = parseSourceTiers(readFileSync(REPO_FILE, 'utf8'));
+    const tiers = parseSourceTiers(readRepoSourceTiers());
     expect(tiers.tiers.referenz.domains).toContain('wikipedia.org');
   });
 

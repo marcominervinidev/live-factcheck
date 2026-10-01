@@ -5,13 +5,14 @@
   "type": "module",
   "description": "Mobile-first PWA frontend, served by nginx (brief 5, 11).",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "lighthouse": "lhci autorun --config=lighthouserc.json",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test:unit": "vitest run --project unit",
     "test:int": "playwright test -c tests/playwright.config.ts",
-    "lighthouse": "lhci autorun --config=lighthouserc.json"
+    "test:mutation": "stryker run",
+    "test:unit": "vitest run --project unit",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "5.3.0",
@@ -25,6 +26,7 @@
     "@axe-core/playwright": "4.13.0",
     "@lhci/cli": "0.15.1",
     "@playwright/test": "1.63.0",
+    "@stryker-mutator/core": "10.0.0",
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",

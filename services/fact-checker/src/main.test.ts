@@ -1,13 +1,16 @@
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-import { freePort, jsonLines, startServiceProcess } from '@lfc/service-kit/testing';
+import {
+  freePort,
+  jsonLines,
+  repoSourceTiersPath,
+  startServiceProcess,
+} from '@lfc/service-kit/testing';
 import { describe, expect, it } from 'vitest';
 
 const ENTRY = fileURLToPath(new URL('./main.ts', import.meta.url));
-const SOURCE_TIERS_FILE = fileURLToPath(
-  new URL('../../../config/source-tiers.yaml', import.meta.url),
-);
+const SOURCE_TIERS_FILE = repoSourceTiersPath();
 
 /** Everything except Redis and the LLM/classifier, set to local mocks. */
 const MOCK_ENV = {
