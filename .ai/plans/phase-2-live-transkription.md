@@ -172,5 +172,6 @@ Jede Anforderung hat genau einen belegenden Test auf der niedrigsten passenden S
 - Erinnerungen: iPhone-Test → Issue #51 (fällig 01.10.); Opus-5-Red-Team-Lauf in T7.5 → Issue #55
 - Security-Review PR #33 eingearbeitet (Marco, 2026-09-29): Budget „fail closed“ in `transcription`; Aufbewahrung 15 Min für Streams und Extractor-Speicher, Redis ohne AOF/RDB (ADR 0018); nosemgrep im Vorfilter **behalten** (Marco)
 - Beobachten: Ein Redis-Neustart setzt den Tages-Budgetzähler zurück (ADR 0018, von Marco vorerst akzeptiert). Macht das Probleme, nur den Budgetzähler persistieren
+- Feature-Plan Debattier-Modus: ADR 0021 (proposed) + `.ai/plans/feature-debate-mode.md` – Umsetzung nach Launch, verfolgt in Issue #59
 - Nach Phase 2: Distroless für `stt-local` → Issue #53; OrbStack-Wechsel → Issue #52
 - Offen für Marco: CodeQL → Issue #54; altes Redis-Volume → Issue #56; Repo-Setting Branch-Löschung → Issue #57
