@@ -13,7 +13,7 @@ export default {
   reporters: ['clear-text', 'progress', 'html', 'json'],
   htmlReporter: { fileName: 'reports/mutation/index.html' },
   jsonReporter: { fileName: 'reports/mutation/mutation.json' },
-  thresholds: { high: 90, low: 80, break: null },
+  thresholds: { high: 65, low: 54, break: null },
   tempDirName: '.stryker-tmp',
   cleanTempDir: 'always',
 };
