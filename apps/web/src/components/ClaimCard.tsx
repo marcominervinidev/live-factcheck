@@ -73,7 +73,10 @@ function Evidence({ checked }: { checked: ClaimChecked }) {
  * One claim as a card (brief 11). Deliberately neutral: no score per person, medium confidence
  * shown as "unsicher", and every card says it is an automatic assessment.
  */
-export function ClaimCard({ claim }: { claim: ClaimView }) {
+export function ClaimCard({
+  claim,
+  onShow,
+}: Readonly<{ claim: ClaimView; onShow?: (claimId: string) => void }>) {
   const { checked } = claim;
   const speaker = checked?.speaker ?? claim.detected?.speaker;
   return (
@@ -187,6 +190,33 @@ export function ClaimCard({ claim }: { claim: ClaimView }) {
           </details>
 
           <Evidence checked={checked} />
+
+          {onShow !== undefined && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                data-testid="card-show"
+                onClick={() => {
+                  onShow(claim.claimId);
+                }}
+                className="flex min-h-11 items-center gap-2 rounded-lg bg-action px-4 font-bold text-on-action hover:bg-action-strong"
+              >
+                {t('show.label')}
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                >
+                  <path d="M3 8h10M9 4l4 4-4 4" />
+                </svg>
+              </button>
+            </div>
+          )}
         </>
       )}
 

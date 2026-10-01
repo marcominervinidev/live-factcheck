@@ -1,5 +1,5 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimView } from '../state/claims';
 import { CLAIM_ID, checked, detected, explained } from '../testing/fixtures';
@@ -115,6 +115,19 @@ describe('ClaimCard (brief 11)', () => {
     );
     expect(text(screen.getByTestId('badge-cached'))).toContain('Aus früherer Prüfung');
     expect(screen.getByText('„Der ist doch erst 20 Jahre vorbei.“')).toBeTruthy();
+  });
+
+  it('offers "Zeigen" only for checked claims and reports the claim id', () => {
+    const onShow = vi.fn();
+    const { rerender } = render(
+      <ClaimCard claim={view({ detected: detected() })} onShow={onShow} />,
+    );
+    expect(screen.queryByTestId('card-show')).toBeNull();
+    rerender(
+      <ClaimCard claim={view({ detected: detected(), checked: checked() })} onShow={onShow} />,
+    );
+    fireEvent.click(screen.getByTestId('card-show'));
+    expect(onShow).toHaveBeenCalledWith(CLAIM_ID);
   });
 
   it('shows no percentage prominently, only in the details (brief 7)', () => {
