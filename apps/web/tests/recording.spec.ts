@@ -67,6 +67,10 @@ test.describe('live mode', () => {
     await expect(summary).toBeVisible();
     await summary.getByTestId('summary-new').click();
     await expect(summary).toBeHidden();
+    // A new talk means a new session id (security review): late events of the old talk can
+    // never resurface, and the extractor's dedup memory starts fresh.
+    await expect.poll(() => backend.sessions).toBe(2);
+    await expect(claims.connection).toHaveAttribute('data-status', 'open');
     await expect(page.getByTestId('claims-empty')).toBeVisible();
     await expect(recording.start).toBeVisible();
     await expect(recording.end).toHaveCount(0);

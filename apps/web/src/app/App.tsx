@@ -131,10 +131,17 @@ function CheckView({
             setShownId(id);
           }}
           onNewTalk={() => {
+            // A fresh session id, not just empty stores: late pipeline events of the old talk
+            // must never resurface in front of a new audience, and the extractor's window and
+            // dedup memory are keyed by session (security review on this PR).
+            useConnection.getState().disconnect();
             useClaims.getState().reset();
             useTranscript.getState().reset();
             useRecording.getState().clearEnd();
             setSummaryOpen(false);
+            const token = useSettings.getState().token;
+            if (token !== null)
+              useConnection.getState().connect(sessionUrl(gatewayUrl, window.location), token);
           }}
           onClose={() => {
             setSummaryOpen(false);
