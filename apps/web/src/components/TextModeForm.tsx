@@ -55,6 +55,8 @@ export function TextModeForm({ gatewayUrl }: { gatewayUrl: string }) {
       <textarea
         id="claim-input"
         data-testid="claim-input"
+        aria-invalid={error !== null}
+        aria-describedby={error === null ? undefined : 'claim-error'}
         value={text}
         maxLength={1_000}
         rows={2}
@@ -62,7 +64,7 @@ export function TextModeForm({ gatewayUrl }: { gatewayUrl: string }) {
         onChange={(event) => {
           setText(event.target.value);
         }}
-        className="rounded-lg border border-line bg-surface p-3 text-base text-ink placeholder:text-faint focus:border-action focus:ring-2 focus:ring-line focus:outline-none"
+        className={`rounded-lg border bg-surface p-3 text-base text-ink placeholder:text-faint focus:ring-2 focus:outline-none ${error === null ? 'border-line focus:border-action focus:ring-line' : 'border-verdict-false focus:border-verdict-false focus:ring-verdict-false-soft'}`}
       />
       <button
         type="submit"
@@ -74,10 +76,23 @@ export function TextModeForm({ gatewayUrl }: { gatewayUrl: string }) {
       </button>
       {error !== null && (
         <p
+          id="claim-error"
           role="alert"
           data-testid="claim-error"
-          className="rounded-md bg-lilac-soft p-2 text-sm text-muted"
+          className="flex items-center gap-2 text-sm font-semibold text-verdict-false"
         >
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+            className="h-4 w-4 shrink-0"
+          >
+            <circle cx="10" cy="10" r="8" />
+            <path d="M10 6v5M10 14v.1" />
+          </svg>
           {t(error)}
         </p>
       )}

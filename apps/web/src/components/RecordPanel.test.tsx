@@ -208,3 +208,29 @@ describe('RecordPanel (T6.1, T6.2)', () => {
     expect(screen.getByTestId('recording-end').dataset['reason']).toBe('background');
   });
 });
+describe('end reason cards (T6.5)', () => {
+  const renderWithEnd = (end: 'microphone_denied' | 'background') => {
+    useRecording.setState({ status: 'idle', lastEnd: end });
+    render(
+      <RecordPanel
+        gatewayUrl=""
+        token="t"
+        createMicrophone={microphone}
+        fetchImpl={respond(cloudStatus)}
+      />,
+    );
+    return screen.getByTestId('recording-end');
+  };
+
+  it('paints a failure end red and a benign end lilac, each with an icon', () => {
+    const failed = renderWithEnd('microphone_denied');
+    expect(failed.className).toContain('bg-verdict-false-soft');
+    expect(failed.querySelector('svg')).not.toBeNull();
+    expect(failed.textContent).toContain('Mikrofon');
+    cleanup();
+    const benign = renderWithEnd('background');
+    expect(benign.className).toContain('bg-lilac-soft');
+    expect(benign.className).not.toContain('bg-verdict-false-soft');
+    expect(benign.textContent).toContain('Hintergrund');
+  });
+});

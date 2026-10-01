@@ -5,6 +5,7 @@ export class ClaimsPage {
   readonly input: Locator;
   readonly submit: Locator;
   readonly cards: Locator;
+  readonly showView: Locator;
   readonly timelineDots: Locator;
   readonly connection: Locator;
   readonly noToken: Locator;
@@ -14,6 +15,7 @@ export class ClaimsPage {
     this.submit = page.getByTestId('claim-submit');
     this.cards = page.getByTestId('claim-card');
     this.timelineDots = page.getByTestId('timeline-dot');
+    this.showView = page.getByTestId('show-view');
     this.connection = page.getByTestId('connection-status');
     this.noToken = page.getByTestId('no-token');
   }
