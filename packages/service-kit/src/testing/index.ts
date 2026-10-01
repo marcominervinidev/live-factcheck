@@ -2,3 +2,4 @@
 export { freePort, jsonLines, startServiceProcess } from './process.js';
 export type { ServiceProcess } from './process.js';
 export { silentLogger } from './silent-logger.js';
+export { readRepoSourceTiers, repoSourceTiersPath } from './repo-config.js';

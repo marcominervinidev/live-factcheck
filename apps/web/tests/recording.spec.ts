@@ -78,6 +78,35 @@ test.describe('live mode', () => {
     await expect.poll(() => backend.frameSizes.length, { timeout: 1_000 }).toBe(framesAtStop);
   });
 
+  test('the summary waits for a verdict that lands only after the stop', async ({
+    backend,
+    claims,
+  }) => {
+    backend.holdVerdicts = true;
+    await recording.startRecording();
+    await expect(recording.claimMarks.first()).toHaveAttribute('data-state', 'checking');
+    await recording.stop.click();
+    await expect(recording.start).toBeVisible();
+    // Nothing has a verdict yet, so there is nothing to summarise.
+    await expect(claims.summaryView).toHaveCount(0);
+
+    // The late verdict arrives: now the talk has a result and the summary opens.
+    backend.releaseVerdicts();
+    await expect(claims.summaryView).toBeVisible();
+    await expect(claims.summaryItems).toHaveCount(1);
+
+    // Closed stays closed: a further late verdict must not reopen the seen summary.
+    await claims.summaryClose.click();
+    await expect(claims.summaryView).toBeHidden();
+    await claims.check('Berlin hat 3,9 Millionen Einwohner.');
+    const berlin = claims.card('Berlin hat 3,9 Millionen Einwohner.');
+    // Wait for the card before releasing: the verdict is only queued once the claim arrived.
+    await expect(berlin).toBeVisible();
+    backend.releaseVerdicts();
+    await expect(berlin.getByTestId('verdict-chip')).toContainText('Größtenteils');
+    await expect(claims.summaryView).toHaveCount(0);
+  });
+
   test('explains why the server ended the recording', async ({ backend, claims }) => {
     await recording.startRecording();
     await expect(recording.status).toHaveAttribute('data-status', 'recording');

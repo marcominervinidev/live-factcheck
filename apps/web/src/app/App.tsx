@@ -54,21 +54,34 @@ function CheckView({
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [returnFocusId, setReturnFocusId] = useState<string | null>(null);
 
-  // Subscribe to the recording store: the summary opens exactly once per ended talk - the
-  // user's own stop ("client") of a recording that really ran, with at least one checked
-  // claim (design board "Danach"). Server or error ends keep their cards; aborted start
-  // attempts never saw audio.started, so lastEndRecorded stays false.
+  // The summary opens exactly once per ended talk - the user's own stop ("client") of a
+  // recording that really ran, as soon as at least one claim has a verdict (design board
+  // "Danach"). Server or error ends keep their cards; aborted start attempts never saw
+  // audio.started, so lastEndRecorded stays false. The talk's last verdict often lands only
+  // after the stop, so claim updates re-run the check (third review on this PR), and
+  // lastEndSummaryShown keeps a summary the user already saw from reopening.
   useEffect(() => {
-    let previousEnd = useRecording.getState().lastEnd;
-    return useRecording.subscribe((state) => {
-      const isNewEnd = state.lastEnd !== previousEnd;
-      previousEnd = state.lastEnd;
-      if (!isNewEnd || state.lastEnd !== 'client' || !state.lastEndRecorded) return;
+    const maybeOpen = () => {
+      const recording = useRecording.getState();
+      if (
+        recording.lastEnd !== 'client' ||
+        !recording.lastEndRecorded ||
+        recording.lastEndSummaryShown
+      )
+        return;
       const hasChecked = Object.values(useClaims.getState().claims).some(
         (claim) => claim.checked !== undefined,
       );
-      if (hasChecked) setSummaryOpen(true);
-    });
+      if (!hasChecked) return;
+      recording.markSummaryShown();
+      setSummaryOpen(true);
+    };
+    const unsubscribeRecording = useRecording.subscribe(maybeOpen);
+    const unsubscribeClaims = useClaims.subscribe(maybeOpen);
+    return () => {
+      unsubscribeRecording();
+      unsubscribeClaims();
+    };
   }, []);
 
   const order = useClaims((state) => state.order);
@@ -152,6 +165,9 @@ function CheckView({
               useConnection.getState().connect(sessionUrl(gatewayUrl, window.location), token);
           }}
           onClose={() => {
+            // "Zurück" continues the same talk on purpose: the cards stay and the session
+            // stays open, so late verdicts for this talk still arrive. Only "Neues Gespräch"
+            // ends it and rotates the session for a new audience.
             setSummaryOpen(false);
             setReturnFocusId(null);
             // Auto-opened overlay has no trigger element; the start button is the natural home.

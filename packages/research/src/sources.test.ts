@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs';
-
 import type { SearchProvider } from '@lfc/providers';
 import { createEmbeddingProvider } from '@lfc/providers';
 import { describe, expect, it } from 'vitest';
+
+import { readRepoSourceTiers } from '@lfc/service-kit/testing';
 
 import type { TextCache } from './cache.js';
 import type { RobotsPolicy } from './fetch/robots.js';
@@ -16,11 +16,7 @@ import { createWebSource } from './sources/web.js';
 import { createWikidataSource, createWikipediaSource, formatWikidataTime } from './sources/wiki.js';
 import { createTierResolver } from './tiers.js';
 
-const tiers = createTierResolver(
-  parseSourceTiers(
-    readFileSync(new URL('../../../config/source-tiers.yaml', import.meta.url), 'utf8'),
-  ),
-);
+const tiers = createTierResolver(parseSourceTiers(readRepoSourceTiers()));
 const now = () => new Date('2026-09-26T10:00:00.000Z');
 
 type Answer = { contentType: string; text: string } | Error;

@@ -56,6 +56,10 @@ export class MockBackend {
   sessions = 0;
   /** Explanations are sent only when true; tests switch it off to see the timeout text. */
   sendExplanations = true;
+  /** When true, claim.checked waits until releaseVerdicts() - a talk's last verdict can
+   * then land after the stop, like a slow fact check. */
+  holdVerdicts = false;
+  private heldVerdicts: (() => void)[] = [];
   /** Control messages of live mode the client sent (`audio.start`, `audio.stop`). */
   readonly audioControls: string[] = [];
   /** Sizes of the binary audio frames received. */
@@ -244,7 +248,7 @@ export class MockBackend {
     });
     const evidenceId = uuid();
     const uncheckable = scenario.verdict === 'nicht_pruefbar';
-    setTimeout(() => {
+    const deliver = () => {
       this.send({
         type: 'claim.checked',
         schemaVersion: 2,
@@ -303,6 +307,15 @@ export class MockBackend {
           });
         }, 300);
       }
-    }, 300);
+    };
+    if (this.holdVerdicts) this.heldVerdicts.push(deliver);
+    else setTimeout(deliver, 300);
+  }
+
+  /** Sends every held claim.checked (and its explanation) now. */
+  releaseVerdicts(): void {
+    const held = this.heldVerdicts;
+    this.heldVerdicts = [];
+    for (const deliver of held) deliver();
   }
 }

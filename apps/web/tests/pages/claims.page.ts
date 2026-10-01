@@ -10,6 +10,7 @@ export class ClaimsPage {
   readonly summaryView: Locator;
   readonly summaryItems: Locator;
   readonly summaryNew: Locator;
+  readonly summaryClose: Locator;
   readonly emptyFeed: Locator;
   readonly timelineDots: Locator;
   readonly connection: Locator;
@@ -25,6 +26,7 @@ export class ClaimsPage {
     this.summaryView = page.getByTestId('summary-view');
     this.summaryItems = page.getByTestId('summary-item');
     this.summaryNew = page.getByTestId('summary-new');
+    this.summaryClose = page.getByTestId('summary-close');
     this.emptyFeed = page.getByTestId('claims-empty');
     this.connection = page.getByTestId('connection-status');
     this.noToken = page.getByTestId('no-token');
