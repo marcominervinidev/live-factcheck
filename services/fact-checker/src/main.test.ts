@@ -28,7 +28,9 @@ const fatalIssues = (output: string) => {
   return (fatal?.['issues'] ?? []) as string[];
 };
 
-describe('fact-checker startup', () => {
+// Child-process starts need headroom when measurement runs saturate the CPU (three hook
+// runs broke at the default 20 s on 2026-09-30/10-01); assertions unchanged.
+describe('fact-checker startup', { timeout: 60_000 }, () => {
   it('exits 1 with a clear message naming every missing required variable', async () => {
     const run = startServiceProcess(ENTRY, { PORT: '8080' });
     expect(await run.exitCode).toBe(1);
