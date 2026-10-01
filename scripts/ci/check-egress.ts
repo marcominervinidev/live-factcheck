@@ -1,21 +1,21 @@
 // A service whose configuration can select a cloud provider must sit on the egress network,
 // or the configured provider is unreachable at runtime (lesson 2026-09-29: the claim-extractor
 // was internal-only while its config offered cloud LLMs; nothing failed until a real key).
-// Reads `docker compose config` (or a pre-rendered JSON passed as the first argument).
-import { execFileSync } from 'node:child_process';
+// Usage: docker compose config --format json | node scripts/ci/check-egress.ts
+// The config arrives only on stdin. A file path argument or spawning docker from here brings
+// back Sonar's path traversal (tssecurity:S8707) and PATH lookup (S4036) findings.
 import { readFileSync } from 'node:fs';
 
 import { object } from './json.ts';
 
-const rendered = process.argv[2];
-const output =
-  rendered !== undefined
-    ? readFileSync(rendered, 'utf8')
-    : execFileSync('docker', ['compose', 'config', '--format', 'json'], {
-        encoding: 'utf8',
-        maxBuffer: 32 * 1024 * 1024,
-      });
-const config = object(JSON.parse(output), 'compose config');
+const input = readFileSync(0, 'utf8');
+if (input.trim() === '') {
+  console.error(
+    'no compose config on stdin: docker compose config --format json | node scripts/ci/check-egress.ts',
+  );
+  process.exit(1);
+}
+const config = object(JSON.parse(input), 'compose config');
 const services = object(config['services'], 'services');
 
 function names(value: unknown): string[] {
