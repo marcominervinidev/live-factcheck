@@ -39,7 +39,7 @@ retro at every gate asks whether a finding belongs here (skill `retro`).
 - For foggy, multi-session planning, start from the **wayfinder skill** ([mattpocock/skills](https://github.com/mattpocock/skills), MIT): a map of decision tickets (research / prototype / clarify / task) with blockers and a frontier, worked off one session per ticket. Here we rebuilt its core as plan-file task types late (2026-10-01); next time adopt or adapt it on day one.
 - The plan file in the repo stays the tool-neutral source of truth; GitHub issues hold only the
   backlog and the owner's open items (decision 2026-09-30, after the Wayfinder comparison).
-- `\.ai/lessons.md` with the promotion rule (second occurrence → check or rule) from day one.
+- `.ai/lessons.md` with the promotion rule (second occurrence → check or rule) from day one.
 - Agree the language rules first (German to the owner, English artefacts): learned after three
   corrections (2026-09-30).
 
