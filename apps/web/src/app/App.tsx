@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { ClaimCard } from '../components/ClaimCard';
+import { ShowClaim } from '../components/ShowClaim';
 import { LiveTranscript } from '../components/LiveTranscript';
 import { RecordPanel } from '../components/RecordPanel';
 import { SettingsPage } from '../components/SettingsPage';
@@ -40,7 +41,11 @@ function ConnectionBadge() {
   );
 }
 
-function CheckView({ gatewayUrl }: { gatewayUrl: string }) {
+function CheckView({
+  gatewayUrl,
+  onOpenSettings,
+}: Readonly<{ gatewayUrl: string; onOpenSettings: () => void }>) {
+  const [shownId, setShownId] = useState<string | null>(null);
   const order = useClaims((state) => state.order);
   const claims = useClaims((state) => state.claims);
   const token = useSettings((state) => state.token);
@@ -49,9 +54,31 @@ function CheckView({ gatewayUrl }: { gatewayUrl: string }) {
     <>
       <Timeline claims={list} />
       {token === null ? (
-        <p data-testid="no-token" className="rounded-md bg-lilac-soft p-3 text-muted">
-          {t('connection.noToken')}
-        </p>
+        <div data-testid="no-token" className="flex flex-col gap-3 rounded-xl bg-lilac-soft p-4">
+          <p className="flex gap-3 leading-relaxed text-ink">
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+              className="mt-0.5 h-5 w-5 shrink-0 text-action"
+            >
+              <circle cx="10" cy="10" r="8" />
+              <path d="M10 9v5M10 6v.1" />
+            </svg>
+            <span className="min-w-0">{t('connection.noToken')}</span>
+          </p>
+          <button
+            type="button"
+            data-testid="no-token-settings"
+            onClick={onOpenSettings}
+            className="self-start rounded-lg border-2 border-ink px-4 py-2 font-bold text-ink"
+          >
+            {t('connection.openSettings')}
+          </button>
+        </div>
       ) : (
         <RecordPanel gatewayUrl={gatewayUrl} token={token} />
       )}
@@ -64,10 +91,22 @@ function CheckView({ gatewayUrl }: { gatewayUrl: string }) {
       ) : (
         <section data-testid="claims" className="flex flex-col gap-4">
           {list.map((claim) => (
-            <ClaimCard key={claim.claimId} claim={claim} />
+            <ClaimCard key={claim.claimId} claim={claim} onShow={setShownId} />
           ))}
         </section>
       )}
+      {(() => {
+        const shown = shownId === null ? undefined : claims[shownId];
+        return shown?.checked === undefined ? null : (
+          <ShowClaim
+            claim={shown}
+            checked={shown.checked}
+            onClose={() => {
+              setShownId(null);
+            }}
+          />
+        );
+      })()}
     </>
   );
 }
@@ -140,7 +179,12 @@ export function App() {
       ) : view === 'settings' ? (
         <SettingsPage gatewayUrl={gatewayUrl} />
       ) : (
-        <CheckView gatewayUrl={gatewayUrl} />
+        <CheckView
+          gatewayUrl={gatewayUrl}
+          onOpenSettings={() => {
+            setView('settings');
+          }}
+        />
       )}
     </main>
   );

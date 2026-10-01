@@ -16,6 +16,16 @@ interface Props {
   fetchImpl?: typeof fetch;
 }
 
+/** Ends that mean something broke (red card); the rest is calm information (brief 11). */
+const FAILED_ENDS = new Set<string>([
+  'microphone_denied',
+  'microphone_error',
+  'provider_error',
+  'rejected',
+  'overloaded',
+  'connection_lost',
+]);
+
 /** Red dot while the microphone is live, a pulsing ring while it starts or stops. */
 function StatusDot({ status }: Readonly<{ status: Exclude<RecordingStatus, 'idle'> }>) {
   return status === 'recording' ? (
@@ -102,8 +112,34 @@ export function RecordPanel({
         <p className="text-sm text-faint">{t('recording.needsConnection')}</p>
       )}
       {status === 'idle' && lastEnd !== null && lastEnd !== 'client' && (
-        <p role="alert" data-testid="recording-end" data-reason={lastEnd} className="text-muted">
-          {t(`recording.end.${lastEnd}`)}
+        <p
+          role="alert"
+          data-testid="recording-end"
+          data-reason={lastEnd}
+          className={`flex gap-3 rounded-xl p-3.5 leading-relaxed text-ink ${FAILED_ENDS.has(lastEnd) ? 'bg-verdict-false-soft' : 'bg-lilac-soft'}`}
+        >
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+            className={`mt-0.5 h-5 w-5 shrink-0 ${FAILED_ENDS.has(lastEnd) ? 'text-verdict-false' : 'text-action'}`}
+          >
+            {FAILED_ENDS.has(lastEnd) ? (
+              <>
+                <path d="M10 3l8 14H2z" />
+                <path d="M10 8v4M10 15v.1" />
+              </>
+            ) : (
+              <>
+                <circle cx="10" cy="10" r="8" />
+                <path d="M10 9v5M10 6v.1" />
+              </>
+            )}
+          </svg>
+          <span className="min-w-0">{t(`recording.end.${lastEnd}`)}</span>
         </p>
       )}
       {asking && (
