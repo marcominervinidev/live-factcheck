@@ -4,6 +4,7 @@ import type { SyntheticEvent } from 'react';
 
 import { fetchProviderStatus } from '../api';
 import { t } from '../i18n';
+import { useLanguage } from '../state/language';
 import { useSettings } from '../state/settings';
 
 type Status =
@@ -62,6 +63,8 @@ function Providers({ gatewayUrl, token }: { gatewayUrl: string; token: string })
 
 /** Token entry and a read-only view of the active providers (brief 11, 15.6; ADR 0011). */
 export function SettingsPage({ gatewayUrl }: { gatewayUrl: string }) {
+  const preference = useLanguage((state) => state.preference);
+  const setLanguagePreference = useLanguage((state) => state.setPreference);
   const token = useSettings((state) => state.token);
   const setToken = useSettings((state) => state.setToken);
   const clearToken = useSettings((state) => state.clearToken);
@@ -121,6 +124,31 @@ export function SettingsPage({ gatewayUrl }: { gatewayUrl: string }) {
           </p>
         )}
       </form>
+      <section className="flex flex-col gap-2">
+        <h3 className="font-semibold text-ink">{t('settings.language.title')}</h3>
+        <p className="text-sm text-muted">{t('settings.language.help')}</p>
+        <div
+          className="flex flex-wrap gap-2"
+          role="group"
+          aria-label={t('settings.language.title')}
+        >
+          {(['system', 'de', 'en'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              data-testid={`language-${option}`}
+              aria-pressed={preference === option}
+              onClick={() => {
+                setLanguagePreference(option);
+              }}
+              className={`rounded-md px-3 py-1.5 ${preference === option ? 'bg-action font-semibold text-on-action' : 'text-muted ring-1 ring-line'}`}
+            >
+              {t(`settings.language.${option}`)}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="flex flex-col gap-2">
         <h3 className="font-semibold text-ink">{t('settings.providers.title')}</h3>
         {token === null ? (
