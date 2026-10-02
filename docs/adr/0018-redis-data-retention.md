@@ -12,7 +12,7 @@ The pipeline handles a stream entry within seconds (`claimIdleMs` and the dead-l
 ## Decision
 
 - **Streams:** every `publishEvent` trims its stream to entries younger than 15 minutes (`XADD … MINID <now − 15 min>`, exact trimming, `STREAM_RETENTION_MS` in `@lfc/service-kit`). Exact, not `~`, because approximate trimming leaves small streams untouched.
-- **claim-extractor memory:** window, claim set and recent claims of a session expire 15 minutes after the session's last final segment (`EXTRACTOR_MEMORY_TTL_MS`, default 15 min, replaces `SESSION_TTL_MS` = 2 h). Every segment refreshes all three keys, so a long conversation keeps its duplicate check.
+- **claim-extractor memory:** window, claim set, recent claims and, since 2026-10-02, the marks of private segments (ADR 0017, round 3b) of a session expire 15 minutes after the session's last final segment (`EXTRACTOR_MEMORY_TTL_MS`, default 15 min, replaces `SESSION_TTL_MS` = 2 h). Every segment refreshes all four keys, so a long conversation keeps its duplicate check and its masks; a new mark sets its own expiry.
 - **No persistence:** Redis runs with `--appendonly no --save ''` and `--dir /tmp` (tmpfs); the `redis-data` volume is removed. A restart starts empty.
 - Unchanged and why:
   - **Verdict cache** (`verdict:v1:<sha256>`, `CHECKER_VERDICT_CACHE_TTL_S`, 7 days): the key is a hash of the normalised claim, the value holds the verdict, probabilities and web evidence, no transcript, speaker or session id.

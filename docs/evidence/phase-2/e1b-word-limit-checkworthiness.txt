@@ -31,18 +31,22 @@ masked in every later state.
 2. Green
    $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
      Test Files  4 passed (4)
-          Tests  74 passed (74)
+          Tests  76 passed (76)
      with the privacy question of round 3b (owner, 2026-10-02, decision 19):
        "drops a private matter of a non-public person before any text is formulated (owner 2026-10-02)"
        "drops a private matter at 0.5 | before not_a_claim | before uncertain | on a malformed probability"
        "keeps a public matter just below the privacy threshold"
-       "shows a private segment to later states only as a placeholder, also to the formulation"
+       "shows a private segment, even a non-claim, to later states only as a placeholder"
+         (no later classifier state or LLM request contains the private text)
+       "never asks again about a redelivered segment already judged private"
+       "names the placeholder in the privacy question and in the formulation rules"
    $ docker compose -f compose.toolbox.yaml --profile docker run --rm toolbox-docker \
        pnpm --filter @lfc/claim-extractor -r --if-present test:int
      Test Files  2 passed (2)
           Tests  9 passed (9)
-     new: "marks a segment private for every later window of its session, and only there (round 3b)";
-     the TTL test now covers the private marks too
+     new: "marks a segment private for every later window of its session, and only there (round 3b)"
+     (own expiry right after the mark, idempotent, scoped to the session); the TTL test covers
+     the private marks too
      exit 0
    $ scripts/tb pnpm typecheck                                          exit 0
    $ scripts/tb pnpm exec eslint --max-warnings 0 <changed .ts files>  exit 0
