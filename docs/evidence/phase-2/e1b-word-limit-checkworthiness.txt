@@ -29,7 +29,11 @@ stay configurable, and Compose now passes DETECTOR_MIN_WORDS through like DETECT
 2. Green
    $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
      Test Files  4 passed (4)
-          Tests  67 passed (67)
+          Tests  70 passed (70)
+     with the privacy question of round 3b (owner, 2026-10-02):
+       "drops a private matter of a non-public person before any text is formulated (owner 2026-10-02)"
+       "drops a private matter from a probability of 0.5 on, and keeps public matters below it"
+       "asks claim, privacy and checkworthiness in one classifier call"
    $ scripts/tb pnpm typecheck                                          exit 0
    $ scripts/tb pnpm exec eslint --max-warnings 0 <changed .ts files>  exit 0
    $ scripts/tb pnpm exec prettier --check <changed .ts files> docker-compose.yml
