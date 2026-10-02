@@ -8,14 +8,19 @@ import { loadClaims, loadDetection } from './dataset.js';
 
 const FILE = new URL('../claims.de.jsonl', import.meta.url).pathname;
 
-/** The `sourceId`s with a row in SOURCES.md: every item must name one of them (brief 13.5). */
-const DOCUMENTED_SOURCES = new Set(
+/**
+ * SOURCES.md rows as `sourceId` → their "Used for" cell. An item must name a source documented
+ * for its own set (brief 13.5), so a row written for one set cannot carry items into another.
+ */
+const SOURCE_USES = new Map(
   [
     ...readFileSync(new URL('../SOURCES.md', import.meta.url), 'utf8').matchAll(
-      /^\| `([a-z0-9-]+)` \|/gm,
+      /^\| `([a-z0-9-]+)` \| [^|]* \| ([^|]*) \|/gm,
     ),
-  ].map((match) => match[1]),
+  ].map((match) => [match[1], match[2]] as const),
 );
+const undocumentedFor = (set: string, items: readonly { id: string; sourceId: string }[]) =>
+  items.filter((i) => SOURCE_USES.get(i.sourceId)?.includes(set) !== true).map((i) => i.id);
 
 describe('claims.de.jsonl', () => {
   const items = loadClaims(FILE);
@@ -34,7 +39,7 @@ describe('claims.de.jsonl', () => {
   });
 
   it('names a documented source for every item', () => {
-    expect([...new Set(items.map((i) => i.sourceId))]).toEqual(['agent-seed']);
+    expect(undocumentedFor('`claims.de.jsonl`', items)).toEqual([]);
   });
 });
 
@@ -46,7 +51,7 @@ describe('detection.de.jsonl', () => {
     const positives = items.filter((i) => i.expected).length;
     expect(positives).toBeGreaterThanOrEqual(30);
     expect(items.length - positives).toBeGreaterThanOrEqual(100);
-    expect(items.filter((i) => !DOCUMENTED_SOURCES.has(i.sourceId)).map((i) => i.id)).toEqual([]);
+    expect(undocumentedFor('`detection.de.jsonl`', items)).toEqual([]);
   });
 
   it('keeps the segments of one conversation together, so the replay order is the file order', () => {
