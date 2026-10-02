@@ -49,7 +49,7 @@ Security is part of the definition of done from phase 0 (brief 15). This documen
 - **Retention (ADR 0018):** transcript and claim streams are trimmed to 15 minutes on every publish, the claim-extractor's session memory expires 15 minutes after the last segment, and Redis writes nothing to disk.
 - **No endless retries:** a stream message whose handler keeps failing is dropped as a dead letter after three deliveries, so one bad input cannot spend the budget in a loop. Third-party data (fact-check fields, page dates) is cut to the contract limits where it enters.
 - **Privacy mode:** `PRIVACY_MODE=local` makes every worker refuse to start if a configured provider would send data to a cloud service. Unknown hosts count as cloud (fail closed).
-- **Jev (TypeSafe):** runs in the USA. Only the claim and snippets are sent, no speaker names; the settings page says so. It is off in local mode.
+- **Jev (TypeSafe):** runs in the USA. Depending on the configuration it receives the last six transcript segments as context (detection, `DETECTOR_CLASSIFIER_PROVIDER=typesafe`) and claims with source snippets (checking, `CHECKER_CLASSIFIER_PROVIDER=typesafe`). Speaker names never leave the services, only letters; names spoken in the conversation can be part of the text. The settings page and the consent dialog say so (#90). It is off in local mode.
 - **Logs:** claim text, snippets and tokens are never logged; logs carry ids, verdicts, confidence, reasons and timings.
 
 ## Rotating a key

@@ -68,7 +68,7 @@
   "settings.providers.local": "stays local",
   "settings.privacy.cloud": "Cloud providers are allowed.",
   "settings.privacy.local": "Local mode: only search queries and page fetches leave your own network.",
-  "settings.privacy.jev": "Jev (TypeSafe) runs in the USA. Only claims and text excerpts go there, never names.",
+  "settings.privacy.jev": "Jev (TypeSafe) runs in the USA. Depending on the settings it receives the last six sentences of the conversation (to detect claims) and claims with source excerpts (to check them). Speakers appear only as letters, but names mentioned in the conversation can be part of the text.",
   "role.llm": "Language model",
   "role.classifier": "Classifier",
   "role.embeddings": "Embeddings",
