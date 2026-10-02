@@ -128,13 +128,14 @@ const segment = (text: string, speaker = 'A', startMs = 0): TranscriptSegment =>
   language: 'de',
 });
 
-/** Classifier answers: claim probability and checkworthiness level (0–4). */
+/** Classifier answers: claim probability, checkworthiness level (0–4), privacy probability. */
 const answering =
-  (claim: number, level: number): MockClassifierHandler =>
+  (claim: number, level: number, privateMatter = 0.02): MockClassifierHandler =>
   (_state, questions) => {
     const answers: Record<string, RawAnswer> = {};
     if ('claim' in questions) {
       answers['claim'] = claim;
+      answers['private'] = privateMatter;
       answers['checkworthiness'] = Object.fromEntries(
         [0, 1, 2, 3, 4].map((i) => [String(i), i === level ? 1 : 0]),
       );
@@ -247,6 +248,37 @@ describe('detectClaim (ADR 0017)', () => {
     const { deps: d } = deps({ classifier: answering(0.97, 0) });
     const outcome = await detectClaim(segment('Helmut Kohl ist eine Frau.'), d);
     expect(outcome).toMatchObject({ kind: 'claim', claim: { checkworthiness: 0 } });
+  });
+
+  it('drops a private matter of a non-public person before any text is formulated (owner 2026-10-02)', async () => {
+    const { deps: d, llmRequests } = deps({ classifier: answering(0.97, 1, 0.9) });
+    const outcome = await detectClaim(segment('Meine Schwester ist seit 2019 arbeitslos.'), d);
+    expect(outcome).toEqual({ kind: 'dropped', reason: 'private' });
+    expect(llmRequests).toHaveLength(0);
+  });
+
+  it('drops a private matter from a probability of 0.5 on, and keeps public matters below it', async () => {
+    const at = async (privateMatter: number) =>
+      (
+        await detectClaim(
+          segment('Helmut Kohl ist eine Frau.'),
+          deps({ classifier: answering(0.97, 0, privateMatter) }).deps,
+        )
+      ).kind;
+    expect(await at(0.5)).toBe('dropped');
+    expect(await at(0.49)).toBe('claim');
+  });
+
+  it('asks claim, privacy and checkworthiness in one classifier call', async () => {
+    const asked: string[][] = [];
+    const { deps: d } = deps({
+      classifier: (state, questions) => {
+        asked.push(Object.keys(questions));
+        return answering(0.97, 3)(state, questions);
+      },
+    });
+    await detectClaim(segment('Der Zweite Weltkrieg endete im Jahr 1965.'), d);
+    expect(asked[0]).toEqual(['claim', 'private', 'checkworthiness']);
   });
 
   it('lets a rhetorical question that insinuates a fact reach the classifier and become a claim', async () => {

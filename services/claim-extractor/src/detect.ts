@@ -18,7 +18,7 @@ import type { PrefilterReason } from './prefilter.js';
 import { prefilter } from './prefilter.js';
 import type { SessionStore, WindowSegment } from './store.js';
 
-/** The two questions of ADR 0017, asked together in one classifier call. */
+/** The questions of ADR 0017 (claim, privacy, checkworthiness), asked together in one classifier call. */
 // LANG-EN: the classifier questions are German, like prompts/standalone.md; per language or answer in the conversation language (ADR 0020)
 export const DETECTION_QUESTIONS = {
   claim: {
@@ -29,6 +29,18 @@ export const DETECTION_QUESTIONS = {
       true: 'Die neueste Äußerung behauptet oder unterstellt einen überprüfbaren Sachverhalt.',
       false:
         'Die neueste Äußerung ist Meinung, echte Frage, Prognose, Smalltalk oder unverständlich.',
+    },
+  } satisfies BoolQuestion,
+  // Owner decision 2026-10-02 (round 3b): without a checkworthiness minimum, private matters need
+  // their own question, so they never reach search engines or the checker models.
+  private: {
+    type: 'bool',
+    instructions:
+      'Geht es in der neuesten Äußerung um das Privatleben einer nicht öffentlich bekannten Person – etwa um jemanden am Tisch, aus der Familie, dem Freundeskreis oder der Nachbarschaft (Gesundheit, Geld, Arbeit, Beziehungen, Wohnung)? Personen des öffentlichen Lebens (Politik, Wirtschaft, Kultur, Sport) und ihr öffentliches Wirken zählen nicht dazu, Orte, Zahlen und allgemeine Sachverhalte ebenso wenig.',
+    criteria: {
+      true: 'Die neueste Äußerung handelt vom Privatleben einer nicht öffentlich bekannten Person.',
+      false:
+        'Die neueste Äußerung handelt von öffentlichen Personen, Orten, Zahlen oder allgemeinen Sachverhalten.',
     },
   } satisfies BoolQuestion,
   checkworthiness: {
@@ -69,6 +81,7 @@ export type DropReason =
   | 'not_a_claim'
   | 'uncertain'
   | 'low_checkworthiness'
+  | 'private'
   | 'duplicate'
   | 'invalid_llm_output'
   | 'refused'
@@ -147,6 +160,9 @@ export async function detectClaim(
     if (claim.probability < 0.5) return { kind: 'dropped', reason: 'not_a_claim' };
     // Precision first (ADR 0017): an uncertain "yes" is dropped, not shown.
     if (claim.confidence < deps.thresholds.high) return { kind: 'dropped', reason: 'uncertain' };
+    // Privacy first: a private matter is dropped from a probability of 0.5 on, whatever the
+    // confidence, before any text leaves for the formulation, search or checking.
+    if (detection.answers.private.probability >= 0.5) return { kind: 'dropped', reason: 'private' };
     const levels = DETECTION_QUESTIONS.checkworthiness.levels.length;
     if (checkworthiness.score + 1 < deps.minScore) {
       return { kind: 'dropped', reason: 'low_checkworthiness' };
