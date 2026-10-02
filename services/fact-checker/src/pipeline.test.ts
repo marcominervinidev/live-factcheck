@@ -7,6 +7,7 @@ import type {
   DailyBudget,
   LlmProvider,
   MockClassifierHandler,
+  RawAnswer,
 } from '@lfc/providers';
 import {
   BudgetExceededError,
@@ -249,7 +250,7 @@ describe('checkClaim (brief 9.6)', () => {
 
   it('answers nicht_pruefbar (no_evidence) when nothing was found', async () => {
     const empty = (): Promise<ResearchResult> =>
-      Promise.resolve({ documents: [], factChecks: [], failures: [] });
+      Promise.resolve({ documents: [], factChecks: [], failures: [], perSource: {} });
     const result = await checkClaim(
       claim('Der Zweite Weltkrieg endete 1945.'),
       deps({ research: empty }),
@@ -514,27 +515,85 @@ describe('checkClaim (brief 9.6)', () => {
 
 describe('research summary for the diagnose log (plan D1)', () => {
   const collect = () => {
-    const summaries: { claimId: string; summary: ResearchSummary }[] = [];
-    const onResearch = (detected: ClaimDetected, summary: ResearchSummary) => {
-      summaries.push({ claimId: detected.claimId, summary });
+    const summaries: { ids: object; summary: ResearchSummary }[] = [];
+    const onResearch = (
+      ids: { readonly sessionId: string; readonly claimId: string },
+      summary: ResearchSummary,
+    ) => {
+      summaries.push({ ids, summary });
     };
     return { summaries, onResearch };
   };
+  /** The mock classifier, but only the given snippets are relevant. */
+  const relevantOnly =
+    (keys: readonly string[]): MockClassifierHandler =>
+    (state, questions) => {
+      const answers: Record<string, RawAnswer> = { ...mockClassifier(state, questions) };
+      for (const key of Object.keys(questions)) {
+        if (/^S\d+$/.test(key)) answers[key] = keys.includes(key) ? 0.9 : 0.1;
+      }
+      return answers;
+    };
+  const failingClassifier: ClassifierProvider = {
+    name: 'llm',
+    model: 'm',
+    ask: () => Promise.reject(new ClassifierError('provider_error', 'boom')),
+  };
+  const brokenEmbeddings = (): PipelineDeps['embeddings'] => {
+    const embeddings = deps().embeddings;
+    return {
+      ...embeddings,
+      embedQuery: () => Promise.reject(new EmbeddingError('LM Studio is not running')),
+    };
+  };
 
-  it('counts what a judged check found and kept, without any text', async () => {
+  it.each([
+    ['a judged check', {}, { verdict: 'stimmt', snippets: 2, relevant: 2 }],
+    [
+      'a check whose snippets were all irrelevant',
+      { classifier: classifierWith(relevantOnly([])) },
+      { verdict: 'nicht_pruefbar', reason: 'no_evidence', snippets: 2, relevant: 0 },
+    ],
+    [
+      'a check whose classifier failed',
+      { classifier: failingClassifier },
+      { verdict: 'nicht_pruefbar', reason: 'provider_error', snippets: 2 },
+    ],
+    [
+      'a check whose embeddings failed',
+      { embeddings: brokenEmbeddings() },
+      { verdict: 'nicht_pruefbar', reason: 'provider_error', snippets: 0 },
+    ],
+  ] as const)('reports %s once, with its counts', async (_name, overrides, expected) => {
     const { summaries, onResearch } = collect();
     const detected = claim('Der Zweite Weltkrieg endete 1945.');
-    await checkClaim(detected, deps({ onResearch }));
+    await checkClaim(detected, deps({ ...overrides, onResearch }));
 
     expect(summaries).toHaveLength(1);
-    const { claimId, summary } = summaries[0] ?? {};
-    expect(claimId).toBe(detected.claimId);
-    expect(summary).toMatchObject({ fallbackQueries: false, factChecks: 0, failedSources: [] });
-    expect(summary?.queries).toBeGreaterThan(0);
-    expect(summary?.snippets).toBeGreaterThan(0);
-    expect(summary?.relevant).toBeGreaterThan(0);
-    expect(summary?.sufficient).toBeGreaterThanOrEqual(0.5);
+    const { ids, summary } = summaries[0] ?? {};
+    expect(ids).toEqual({ sessionId: detected.sessionId, claimId: detected.claimId });
+    expect(summary).toMatchObject({
+      queries: 1,
+      fallbackQueries: false,
+      longNumberQueries: 0,
+      documents: { mock: 2 },
+      factChecks: 0,
+      failedSources: [],
+      retrieveMs: 10,
+      ...expected,
+    });
+    if (!('relevant' in expected)) expect(summary).not.toHaveProperty('relevant');
+    if (!('reason' in expected)) expect(summary).not.toHaveProperty('reason');
     expect(JSON.stringify(summary)).not.toMatch(/Weltkrieg|https?:/);
+  });
+
+  it('tells snippets from relevant snippets', async () => {
+    const { summaries, onResearch } = collect();
+    await checkClaim(
+      claim('Der Zweite Weltkrieg endete 1945.'),
+      deps({ classifier: classifierWith(relevantOnly(['S1'])), onResearch }),
+    );
+    expect(summaries[0]?.summary).toMatchObject({ snippets: 2, relevant: 1 });
   });
 
   it('shows where a check without evidence lost it: tiers, failures and skipped pages', async () => {
@@ -562,15 +621,17 @@ describe('research summary for the diagnose log (plan D1)', () => {
     expect(result.reason).toBe('no_evidence');
     expect(summaries.map((s) => s.summary)).toEqual([
       {
-        queries: expect.any(Number) as number,
+        queries: 1,
         fallbackQueries: false,
         longNumberQueries: 0,
         documents: { wikipedia: 0, web: 0 },
         factChecks: 0,
-        failedSources: ['wikidata: FetchFailedError 429'],
+        failedSources: [{ source: 'wikidata', error: 'FetchFailedError', status: 429 }],
         web: { queries: 2, failedQueries: 0, results: 8, pages: 5, skipped: { http_403: 5 } },
         snippets: 0,
-        retrieveMs: expect.any(Number) as number,
+        verdict: 'nicht_pruefbar',
+        reason: 'no_evidence',
+        retrieveMs: 10,
         classifyMs: 0,
       },
     ]);
@@ -610,11 +671,28 @@ describe('research summary for the diagnose log (plan D1)', () => {
     expect(summaries[0]?.summary).toMatchObject({ queries: 2, longNumberQueries: 1 });
   });
 
-  it('reports nothing for a cached verdict, which does no research', async () => {
+  it('reports nothing for a cached verdict or a budget stop, which do no research', async () => {
     const { summaries, onResearch } = collect();
     const d = deps({ onResearch });
     await checkClaim(claim('Der Zweite Weltkrieg endete 1945.'), d);
     await checkClaim(claim('Der Zweite Weltkrieg endete 1945.'), d);
+    const budget: DailyBudget = {
+      ensureAvailable: () => Promise.reject(new BudgetExceededError(2, 2)),
+      record: () => Promise.resolve(),
+      recordUsd: () => Promise.resolve(),
+    };
+    await checkClaim(claim('Berlin hat 3,9 Millionen Einwohner.'), deps({ budget, onResearch }));
     expect(summaries).toHaveLength(1);
+  });
+
+  it('keeps the answer when the diagnose hook throws', async () => {
+    const onResearch = () => {
+      throw new Error('logger down');
+    };
+    const result = await checkClaim(
+      claim('Der Zweite Weltkrieg endete 1945.'),
+      deps({ onResearch }),
+    );
+    expect(result.verdict).toBe('stimmt');
   });
 });

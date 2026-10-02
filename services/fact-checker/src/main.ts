@@ -1,6 +1,5 @@
 import { hostname } from 'node:os';
 
-import type { ClaimDetected } from '@lfc/contracts';
 import { STREAMS } from '@lfc/contracts';
 import {
   describeClassifierConfig,
@@ -60,11 +59,11 @@ await runService({
     const deps = {
       ...createPipelineDeps(config, redis.client),
       // Diagnose log (plan D1): where a check found or lost its evidence, counts only.
-      onResearch: (detected: ClaimDetected, summary: ResearchSummary) => {
-        logger.info(
-          { sessionId: detected.sessionId, claimId: detected.claimId, ...summary },
-          'research summary',
-        );
+      onResearch: (
+        claim: { readonly sessionId: string; readonly claimId: string },
+        summary: ResearchSummary,
+      ) => {
+        logger.info({ ...claim, ...summary }, 'research summary');
       },
     };
     const marker = processedMarker(redis.client, 'fact-checker', 7 * 24 * 3600);

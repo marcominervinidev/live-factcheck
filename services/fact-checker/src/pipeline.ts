@@ -57,8 +57,21 @@ export interface PipelineDeps {
   readonly questions: QuestionTexts;
   readonly now: () => Date;
   readonly clock: () => number;
-  /** Called once per check that researched, for the diagnose log (plan D1). */
-  readonly onResearch?: (detected: ClaimDetected, summary: ResearchSummary) => void;
+  /**
+   * Called once per check that researched, for the diagnose log (plan D1). Gets ids, never the
+   * claim; an error in it never changes the answer.
+   */
+  readonly onResearch?: (
+    claim: { readonly sessionId: string; readonly claimId: string },
+    summary: ResearchSummary,
+  ) => void;
+}
+
+/** A research tier that failed: its error class (or `timeout`) and the HTTP status if any. */
+export interface FailedSource {
+  readonly source: string;
+  readonly error: string;
+  readonly status?: number;
 }
 
 /**
@@ -74,8 +87,7 @@ export interface ResearchSummary {
   /** Documents per research tier before deduplication. */
   readonly documents: Readonly<Record<string, number>>;
   readonly factChecks: number;
-  /** Tiers that failed or timed out: `tier: ErrorName` plus the HTTP status if there was one. */
-  readonly failedSources: readonly string[];
+  readonly failedSources: readonly FailedSource[];
   readonly web?: WebSearchStats;
   /** Ranked snippets shown to the relevance question. */
   readonly snippets: number;
@@ -83,6 +95,9 @@ export interface ResearchSummary {
   readonly relevant?: number;
   /** Probability that the relevant evidence suffices; absent when no verdict was asked. */
   readonly sufficient?: number;
+  /** The answer, so a summary line shows which `no_evidence` exit fired. */
+  readonly verdict: Verdict;
+  readonly reason?: UncheckableReason;
   readonly retrieveMs: number;
   readonly classifyMs: number;
 }
@@ -94,7 +109,7 @@ interface ResearchNotes {
   longNumberQueries: number;
   documents: Readonly<Record<string, number>>;
   factChecks: number;
-  failedSources: readonly string[];
+  failedSources: readonly FailedSource[];
   web?: WebSearchStats;
   snippets: number;
   relevant?: number;
@@ -340,14 +355,18 @@ async function gatherFindings(
   signal: AbortSignal | undefined,
 ): Promise<Findings> {
   const research = await deps.research({ claim, queries }, signal);
-  notes.documents = research.perSource ?? {};
+  // Copied field by field: anything the research package adds later stays out of the log.
+  notes.documents = { ...research.perSource };
   notes.factChecks = research.factChecks.length;
-  notes.failedSources = research.failures.map(
-    (failure) =>
-      `${failure.source}: ${failure.error ?? 'Error'}` +
-      (failure.status === undefined ? '' : ` ${String(failure.status)}`),
-  );
-  if (research.web !== undefined) notes.web = research.web;
+  notes.failedSources = research.failures.map(({ source, error, status }) => ({
+    source,
+    error,
+    ...(status === undefined ? {} : { status }),
+  }));
+  if (research.web !== undefined) {
+    const { queries: webQueries, failedQueries, results, pages, skipped } = research.web;
+    notes.web = { queries: webQueries, failedQueries, results, pages, skipped: { ...skipped } };
+  }
   const ranked = await rankChunks(claim, research.documents, deps.embeddings, {
     topK: deps.topK,
     maxChunksPerDocument: MAX_CHUNKS_PER_DOCUMENT,
@@ -621,11 +640,20 @@ export async function checkClaim(
     snippets: 0,
   };
   const reported = (checked: ClaimChecked): ClaimChecked => {
-    deps.onResearch?.(detected, {
-      ...notes,
-      retrieveMs: Math.round(timings.retrieveMs),
-      classifyMs: Math.round(timings.classifyMs),
-    });
+    try {
+      deps.onResearch?.(
+        { sessionId: detected.sessionId, claimId: detected.claimId },
+        {
+          ...notes,
+          verdict: checked.verdict,
+          ...(checked.reason === undefined ? {} : { reason: checked.reason }),
+          retrieveMs: Math.round(timings.retrieveMs),
+          classifyMs: Math.round(timings.classifyMs),
+        },
+      );
+    } catch {
+      // A diagnose line must never turn a finished check into a retry.
+    }
     return checked;
   };
   const retrieveStart = deps.clock();
