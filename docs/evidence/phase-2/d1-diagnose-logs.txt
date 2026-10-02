@@ -16,7 +16,7 @@ What the logs now say (never segment text, claim text, queries or URLs):
      "failure":{"source":"classifier","kind":"provider_error","status":401,"error":"AuthenticationError"}}   (warn)
 - fact-checker, one line per researched check, msg "research summary" (shape asserted by the unit
   test "shows where a check without evidence lost it"):
-    {"sessionId":…,"claimId":…,"queries":3,"fallbackQueries":false,
+    {"sessionId":…,"claimId":…,"queries":3,"fallbackQueries":false,"longNumberQueries":0,
      "documents":{"wikipedia":0,"web":0},"factChecks":0,
      "failedSources":["wikidata: FetchFailedError 429"],
      "web":{"queries":2,"failedQueries":0,"results":8,"pages":5,"skipped":{"http_403":5}},
@@ -33,10 +33,11 @@ What the logs now say (never segment text, claim text, queries or URLs):
           web tier and researchClaim tests assert the counts
    $ cd services/fact-checker && ../../scripts/tb pnpm exec vitest run --project unit
      Test Files  4 passed (4)
-     Tests  43 passed (43)
+     Tests  44 passed (44)
      new: "counts what a judged check found and kept, without any text"
           "shows where a check without evidence lost it: tiers, failures and skipped pages"
           "marks heuristic queries after a failed query step"
+          "counts queries with long digit runs, which search engines rarely match (#80)"
           "reports nothing for a cached verdict, which does no research"
    $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
      Test Files  4 passed (4)
@@ -51,7 +52,8 @@ What the logs now say (never segment text, claim text, queries or URLs):
      All matched files use Prettier code style!
    $ scripts/tb pnpm depcruise
      ✔ no dependency violations found (315 modules, 938 dependencies cruised)
-   $ make sast   (see the PR)
+   $ make sast
+     Ran 244 rules on 513 files: 0 findings.
 
 3. Not done here: a live run. The owner's next test run (milestone after E1b and D1) reads the
    new lines with `docker logs live-factcheck-fact-checker-1 | grep 'research summary'`; task R1

@@ -564,6 +564,7 @@ describe('research summary for the diagnose log (plan D1)', () => {
       {
         queries: expect.any(Number) as number,
         fallbackQueries: false,
+        longNumberQueries: 0,
         documents: { wikipedia: 0, web: 0 },
         factChecks: 0,
         failedSources: ['wikidata: FetchFailedError 429'],
@@ -586,6 +587,27 @@ describe('research summary for the diagnose log (plan D1)', () => {
       deps({ llm: brokenLlm, onResearch }),
     );
     expect(summaries[0]?.summary).toMatchObject({ queries: 2, fallbackQueries: true });
+  });
+
+  it('counts queries with long digit runs, which search engines rarely match (#80)', async () => {
+    const { summaries, onResearch } = collect();
+    const digitLlm: LlmProvider = {
+      ...llm,
+      generateStructured: (request) =>
+        Promise.resolve({
+          value: request.schema.parse({
+            queries: ['Bayern zahlt 11660000000 Euro', 'Länderfinanzausgleich Bayern 2025'],
+          }),
+          usage: { inputTokens: 0, outputTokens: 0 },
+          model: 'mock',
+          provider: 'mock',
+        }),
+    };
+    await checkClaim(
+      claim('Bayern zahlt 11660000000 Euro in den Länderfinanzausgleich.'),
+      deps({ llm: digitLlm, onResearch }),
+    );
+    expect(summaries[0]?.summary).toMatchObject({ queries: 2, longNumberQueries: 1 });
   });
 
   it('reports nothing for a cached verdict, which does no research', async () => {

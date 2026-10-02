@@ -69,6 +69,8 @@ export interface ResearchSummary {
   readonly queries: number;
   /** The LLM query step failed and the heuristic queries ran instead. */
   readonly fallbackQueries: boolean;
+  /** Queries with a run of six or more digits, which search engines rarely match (#80). */
+  readonly longNumberQueries: number;
   /** Documents per research tier before deduplication. */
   readonly documents: Readonly<Record<string, number>>;
   readonly factChecks: number;
@@ -89,6 +91,7 @@ export interface ResearchSummary {
 interface ResearchNotes {
   queries: number;
   fallbackQueries: boolean;
+  longNumberQueries: number;
   documents: Readonly<Record<string, number>>;
   factChecks: number;
   failedSources: readonly string[];
@@ -284,6 +287,16 @@ export function fallbackQueries(claim: string): readonly string[] {
   return keywords !== '' && keywords !== claim ? [claim, keywords] : [claim];
 }
 
+/** "11660000000": a character scan instead of a regex over claim-derived text (Semgrep regex_dos). */
+function hasLongNumber(query: string): boolean {
+  let run = 0;
+  for (const char of query) {
+    run = char >= '0' && char <= '9' ? run + 1 : 0;
+    if (run >= 6) return true;
+  }
+  return false;
+}
+
 /** Step 3: search queries from the LLM; if it fails, the claim itself is the query. */
 async function generateQueries(
   claim: string,
@@ -305,6 +318,7 @@ async function generateQueries(
     );
     await spending.add(result.model, result.usage);
     notes.queries = result.value.queries.length;
+    notes.longNumberQueries = result.value.queries.filter(hasLongNumber).length;
     return result.value.queries;
   } catch (error) {
     if (!(error instanceof LlmError)) throw error;
@@ -312,6 +326,7 @@ async function generateQueries(
     const fallback = fallbackQueries(claim);
     notes.queries = fallback.length;
     notes.fallbackQueries = true;
+    notes.longNumberQueries = fallback.filter(hasLongNumber).length;
     return fallback;
   }
 }
@@ -599,6 +614,7 @@ export async function checkClaim(
   const notes: ResearchNotes = {
     queries: 0,
     fallbackQueries: false,
+    longNumberQueries: 0,
     documents: {},
     factChecks: 0,
     failedSources: [],
