@@ -1,0 +1,158 @@
+# Feature: Erkennung im Gespräch – Plan
+
+> Entwurf nach Grilling-Runde 1 (Marco, 2026-10-02), **Freigabe steht aus**. Auslöser: Live-Test
+> am 2026-10-01 mit einer Talkshow – 131 s, 25 Segmente, **0 Behauptungen** erkannt.
+> Reihenfolge danach: #76 Kosten-Monitoring, T7.5 Red-Team, Phase 3.
+
+## Context
+
+- Die Erkennung (ADR 0017) prüft Segment für Segment: Vorfilter → Klassifikator Jev (Fenster von
+  6 Segmenten als Kontext) → eigenständige Formulierung (LLM) → Deduplizierung →
+  `claims.detected`. Auf Bundestagsreden misst sie F1 0,779 bei p50 0,3 s (T5.6, Jev@0,6).
+- Im Gespräch zerfällt Sprache in Fetzen. Verluste im Live-Test laut Drop-Zählern: 8 × zu kurz
+  (unter 5 Wörtern), 8 × unsicher (Behauptung, aber Konfidenz unter der Schwelle), 8 × keine
+  Behauptung, 1 × wenig prüfwürdig.
+- Das Eval-Set `evals/detection.de.jsonl` enthält nur Bundestagsreden (161 Segmente) und sieht
+  diesen Fall nicht.
+- Der Vorfilter verwirft mehr als gewollt (deterministisch nachgezählt, ohne Modell): Im Eval-Set
+  verliert er eine echte Behauptung („Was uns ebenfalls empört, …“, Fragewort am Anfang). Im
+  Gespräch kommen Muster dazu, die Bundestagsreden kaum haben. Alle vier Sätze verwirft er heute,
+  bevor der Klassifikator sie sieht:
+  - „Also die Mieten in Berlin sind explodiert.“ (Füllwort am Anfang, keine Zahl)
+  - „Nein, die Regierung hat das Gesetz nie beschlossen.“ (ebenso)
+  - „Wer hat denn die Mieten verdoppelt?“ (rhetorische Frage)
+  - „Ich finde es absurd, dass Berlin eine kostenlose Kita hat.“ (Meinungsmarker – genau das
+    Beispiel, das der Klassifikator-Prompt seit PR #84 als Behauptung zählt)
+- Research: Zero-Shot-NLI verworfen (beste F1 0,56), externe Datensätze bewertet →
+  `.ai/research/claim-detection-zero-shot.md`. Die Absatz-Idee entspricht Microsofts Claimify
+  (ACL 2025). Verwandt: #79 (Erkennung nachschärfen), #82 (Audio-Eval-Bank).
+
+## Geklärte Entscheidungen (Marco, 2026-10-02)
+
+1. **Vorfilter verwirft so wenig wie möglich** (Q3): Rhetorische Fragen und Einleitungen wie
+   „Was uns empört, ist …“ bleiben in der Prüfung, der Klassifikator entscheidet.
+2. **Erst messen, dann bauen** (Q1 a): Vor jeder Änderung am Pfad kommen rund 100
+   Gesprächssegmente ins Erkennungs-Set: frei nutzbare Protokolle (Fragestunden mit
+   Zwischenrufen, Landtage) und selbst eingesprochene Talkshow-Szenen. TV-Mitschnitte misst der
+   Agent nur lokal, sie kommen nicht ins Repo (Urheberrecht). Labels schlägt der Agent vor,
+   Marco nimmt sie ab. Die Audio-Eval-Bank #82 folgt danach.
+3. **Hybrid** (Q2 b): Der schnelle Satz-Pfad bleibt für klare Fälle. Am Ende eines Redebeitrags
+   liest ein Absatz-Pfad den ganzen Absatz und holt nach, was als „zu kurz“ oder „unsicher“
+   hängen blieb.
+4. **Kein eigenes Modell jetzt** (Q4): Erst messen, ob E1–E3 reichen. Bleibt die Erkennung danach
+   unter F1 0,85, wird Phase 7 (eigenes Modell, Trainingsdaten mit Lizenzprüfung) eine eigene
+   Entscheidung.
+5. **Reihenfolge** (Q5): Vorfilter → Gesprächs-Eval → Absatz-Pfad, danach #76, T7.5, Phase 3.
+   Schritte, bei denen nichts zu tun ist, entfallen.
+
+## Aufgaben
+
+**E1 – Vorfilter: nur noch Satzfetzen verwerfen** · Risiko: **niedrig** (revertibel, nur
+`claim-extractor`, kein Vertrag) · Typ: implement
+
+- `prefilter.ts` verwirft nur noch `too_short` (unter `DETECTOR_MIN_WORDS` = 5 Wörtern); diese
+  Fetzen holt E3 nach. Fragen, Füllwort-Anfänge und Meinungsmarker gehen an den Klassifikator,
+  dessen Prompt rhetorische und echte Fragen schon unterscheidet. Die Wortlisten entfallen und
+  mit ihnen der `nosemgrep`-Kommentar (2026-09-29 behalten; ohne Regex gibt es nichts zu
+  unterdrücken); die Regel „verneinte Frage geht durch“ (2026-09-30) geht in der neuen auf.
+- Kosten: ein Jev-Aufruf mehr je durchgelassenem Satz (0,042 $ pro 1 Mio. Input-Tokens).
+- Unit-Tests mit den vier Sätzen oben und „Was uns empört, ist …“; Nachweis: Zählung über das
+  Eval-Set vorher/nachher (deterministisch, kostenlos). Die Wirkung auf die Präzision misst der
+  Baseline-Lauf in E2.
+- Datierter Nachtrag in ADR 0017 (Umfang des Vorfilters).
+
+**E2 – Gesprächs-Eval: rund 100 Segmente und Baseline** · Risiko: **niedrig** (nur Eval-Daten,
+revertibel; die Labels tragen jede spätere Entscheidung, daher nimmt Marco jedes ab) · Typ:
+research → implement
+
+- Protokolle (Zeile in `evals/SOURCES.md` vor dem ersten Eintrag): eine Fragestunde oder
+  Regierungsbefragung des Bundestags mit Zwischenrufen (amtliches Werk, § 5 UrhG) und ein bis zwei
+  Landtagsprotokolle (Lizenz je Landtag prüfen). Zwischenrufe bleiben als eigene Sprecher drin.
+- Talkshow-Szenen: Der Agent schreibt 4–5 Skripte (je 2–3 min, zwei bis drei Rollen, typische
+  Muster: Unterbrechungen, halbe Sätze, „Was uns empört …“, rhetorische Fragen, Zitate), Marco
+  spricht sie ein (etwa 15–20 min). Die Aufnahmen laufen durch die Spracherkennung des Live-Tests
+  (gleicher Anbieter, gleiches Finalisierungs-Fenster), die echten Fetzen gehen als Text ins Set.
+  Die Audiodateien bleiben lokal bis #82.
+- Labels: Vorschlag vom Agent (`reviewed: false`), Abnahme durch Marco (etwa 30 min). Regel aus
+  `evals/README.md`; neu ist nur, welches Segment eine über mehrere Fetzen verteilte Behauptung
+  trägt. Vorschlag: das Segment, mit dem sie vollständig wird (Regel 4, „Kontext entscheidet“).
+- Eval-Bericht getrennt nach Quelle (Bundestag / Gespräch), damit ein Gewinn im Gespräch keinen
+  Verlust im Bundestag verdeckt.
+- Baseline: bezahlter Lauf Jev@0,6 mit E1 über das ganze Set (Kostenschätzung vorher, Start nur
+  nach Marcos OK).
+
+**Gate E1** – Marco: Labels abgenommen, Baseline gesehen. Danach E3.
+
+**E3 – Prototyp Absatz-Pfad, zwei Varianten gemessen** · Risiko: **mittel** (neuer LLM-Aufruf
+kostet Geld, neuer Zustand im Extractor; revertibel per Konfiguration, kein Vertrag) · Typ:
+prototype (Marco wählt nach Zahlen)
+
+- Redebeitrag = Segmente eines Sprechers bis Sprecherwechsel, Pause ab etwa 2 s (aus
+  `startMs`/`endMs`), höchstens etwa 20 s oder Aufnahme-Ende. Ohne Sprechertrennung (heute
+  `stt-local`, Diarization ist Phase 3) zählen nur Pause, Höchstdauer und Ende.
+- Der Absatz-Pfad läuft nur, wenn im Redebeitrag ein Segment als `too_short` oder `uncertain`
+  hängen blieb.
+- **Variante A „Zusammenfügen“:** Die hängen gebliebenen Fetzen werden mit ihren Nachbarn zu
+  ganzen Sätzen verbunden und laufen noch einmal durch den bestehenden Pfad. Wenig neuer Code,
+  kaum Kosten.
+- **Variante B „Extraktion“:** Ein LLM liest den ganzen Redebeitrag und listet alle Behauptungen
+  mit den Segmenten, aus denen sie stammen (Claimify-Muster). Jev prüft jede mit dem Absatz als
+  Kontext gegen, danach Deduplizierung. Ein LLM-Aufruf je Redebeitrag.
+- Eine Behauptung aus mehreren Segmenten nennt alle in `sourceSegmentIds` (der Vertrag erlaubt
+  bis zu 100, **keine Vertragsänderung**); `detectMs` zählt ab dem letzten Segment.
+- Eval-Zählung: Präzision über Behauptungen (richtig, wenn eines ihrer Segmente
+  `expected: true` ist), Ausbeute über Segmente (gefunden, wenn eine Behauptung es nennt). Für
+  Behauptungen aus einem Segment ist das dieselbe Zahl wie heute.
+- Messung je Variante (bezahlt, Kostenschätzung vorher, Marcos OK): F1 getrennt nach Quelle,
+  Zeit bis zur Karte je Pfad, Kosten pro Gesprächsminute.
+
+**Gate E2** – Marco wählt Variante A, B oder keine.
+
+**E4 – Absatz-Pfad umsetzen** · Risiko: **mittel** (Kosten je Gespräch, neuer Zustand in Redis;
+Wirkradius `claim-extractor` und Eval-Runner; revertibel per Konfiguration) · Typ: implement
+
+- ADR 0022 „Absatz-Pfad in der Erkennung“ (ergänzt ADR 0017: zwei Pfade, Grenzen des
+  Redebeitrags, Kosten).
+- PRs mit je höchstens etwa 400 Zeilen Produktionscode: Redebeitrag-Puffer im Extractor-Speicher
+  (Aufbewahrung nach ADR 0018) mit Grenzlogik → Absatz-Prüfung der gewählten Variante und
+  Konfiguration (zod, `.env.example`) → Eval-Zählung.
+- Messlauf mit der finalen Konfiguration (bezahlt, Freigabe); Nachweise in
+  `docs/evidence/phase-2/`.
+
+**Gate E3** – Marco testet live mit einer Talkshow wie am 2026-10-01; Retro (Skill `retro`).
+Danach #76.
+
+## DoD → Tests
+
+| Anforderung | Stufe | Test / Nachweis | Status |
+|---|---|---|---|
+| Vorfilter verwirft nur Fetzen unter 5 Wörtern; die vier Sätze oben und „Was uns empört, ist …“ erreichen den Klassifikator | 1 | `prefilter.test.ts` | geplant |
+| Rund 100 Gesprächssegmente im Set, jedes Label von Marco abgenommen, Quelle in `SOURCES.md` | – | `evals/detection.de.jsonl` | geplant |
+| Eval-Bericht getrennt nach Quelle | 5 | `make eval EVAL_SET=detection` | geplant |
+| Grenzen des Redebeitrags (Sprecherwechsel, Pause, Höchstdauer, Aufnahme-Ende) | 1 | Unit-Tests mit Fake-Timern | geplant |
+| Behauptung aus mehreren Segmenten nennt alle; keine doppelte Karte zwischen den Pfaden | 1 + 2a | `detect.test.ts`, `main.int.test.ts` | geplant |
+| Gespräch besser als die Baseline, Bundestag nicht schlechter | 5 | Messlauf (bezahlt, Freigabe) | geplant |
+| Kosten pro Gesprächsminute gemessen | 5 | Eval-Bericht | geplant |
+
+## Risiken
+
+- **Verzögerung:** Karten aus dem Absatz-Pfad kommen erst am Ende des Redebeitrags (bis etwa 20 s
+  plus Modellzeit). Klare Behauptungen kommen weiter sofort.
+- **Kosten ohne Anzeige:** #76 kommt erst danach. Das Tagesbudget (fail closed) deckelt, E3 misst
+  die Kosten pro Gesprächsminute.
+- **Präzision:** Mehr Sätze erreichen den Klassifikator (E1), der Absatz-Pfad findet mehr; falsche
+  Karten sind möglich. Baseline (E2) und Messung (E3) zeigen es, bevor etwas Standard wird.
+- **Kleines Set:** Bei rund 100 Gesprächssegmenten sind wenige F1-Punkte Rauschen; Berichte nennen
+  Trefferzahlen, nicht nur Prozent.
+- **Eingesprochen ist nicht echt:** Gegenprobe mit einem echten Mitschnitt, nur lokal.
+- **Mehrere Extractor-Instanzen:** Der Puffer liegt in Redis; ein Redebeitrag wird genau einmal
+  abgeschlossen (Marker wie `processedMarker`).
+- **Prompt-Injection:** Der Absatz geht als Daten mit Nonce in den Prompt (wie die Formulierung);
+  T7.5 nimmt den neuen Prompt mit auf.
+
+## Status
+
+- [ ] Plan freigegeben
+- Grilling-Runde 1 entschieden (Marco, 2026-10-02), Entscheidungen oben
+- **Frontier:** Freigabe → E1 (sofort machbar) → E2 braucht Marco: Szenen einsprechen (etwa
+  15–20 min), Labels abnehmen (etwa 30 min), OK für den bezahlten Baseline-Lauf
