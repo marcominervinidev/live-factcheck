@@ -54,7 +54,7 @@ Every paid run needs the owner's go-ahead with a cost estimate first.
 
 Labels proposed or corrected by an LLM keep `reviewed: false`; only the owner sets `true`.
 
-Live mode takes only audio through the gateway, so this runner (`eval-detection` in `compose.test.yaml`) runs in the internal network with the services' Redis user instead of acting as a client. Reports: `docs/evidence/phase-2/evals/eval-detection-<label>-<time>.md` and `.json`. With the mock classifier (every segment with a digit is a claim) a dry run checks only the mechanics.
+Live mode takes only audio through the gateway, so this runner (`eval-detection` in `compose.test.yaml`) runs in the internal network with the services' Redis user instead of acting as a client. Reports: `docs/evidence/phase-2/evals/eval-detection-<label>-<time>.md` and `.json`. The report shows the whole set and one row per `sourceId`, so a gain on one kind of speech cannot hide a loss on another. With the mock classifier (every segment with a digit is a claim) a dry run checks only the mechanics.
 
 ### Extracting from structured sources
 

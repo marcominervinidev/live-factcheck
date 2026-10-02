@@ -156,7 +156,7 @@ writeFileSync(
       includesUnreviewed: INCLUDE_UNREVIEWED,
       providers,
     },
-    summary,
+    outcomes,
   ),
 );
 // Raw results for later analysis; the segments are public protocol text, no secrets.
@@ -165,6 +165,7 @@ writeFileSync(
   JSON.stringify(
     outcomes.map((o) => ({
       id: o.item.id,
+      sourceId: o.item.sourceId,
       expected: o.item.expected,
       processed: o.processed,
       detected: o.detected,
