@@ -317,10 +317,10 @@ Danach #76.
 | Anforderung | Stufe | Test / Nachweis | Status |
 |---|---|---|---|
 | Fragen und Meinungen erreichen den Klassifikator („Was uns empört, ist …“, rhetorische, echte und mit Füllwort vorn, „Ich finde es absurd, dass …“); Aussagen mit Füllwort vorn ohne Zahl weiter verworfen | 1 | `prefilter.test.ts`, `detect.test.ts` | in #92 |
-| Kurze Behauptungen und Fetzen erreichen den Klassifikator; jede erkannte Behauptung wird ohne Prüfwürdigkeits-Grenze geprüft (Standard); beide Grenzen bleiben einstellbar | 1 | `prefilter.test.ts`, `detect.test.ts`, `config.test.ts` | geplant (E1b) |
-| Private Angelegenheiten nicht öffentlich bekannter Personen werden ab Wahrscheinlichkeit 0,5 verworfen, bevor Text Formulierung, Suche oder Prüfmodelle erreicht; die Frage steht im selben Aufruf | 1 | `detect.test.ts` | geplant (E1b) |
+| Kurze Behauptungen und Fetzen erreichen den Klassifikator; jede erkannte Behauptung wird ohne Prüfwürdigkeits-Grenze geprüft (Standard); beide Grenzen bleiben einstellbar | 1 | `prefilter.test.ts`, `detect.test.ts`, `config.test.ts` | in #98 |
+| Private Angelegenheiten nicht öffentlich bekannter Personen werden ab Wahrscheinlichkeit 0,5 verworfen, bevor Text Formulierung, Suche oder Prüfmodelle erreicht; die Frage steht im selben Aufruf | 1 | `detect.test.ts` | in #98 |
 | Label-Regel 2 neu, geänderte Labels von Marco abgenommen | – | `evals/README.md`, `evals/detection.de.jsonl` | geplant (E2a2) |
-| Verworfene Segmente mit Grund und Anbieterfehler mit Quelle und HTTP-Status im Log der Erkennung; je Prüfung eine Recherche-Zusammenfassung; nur Zahlen, nie Text oder URLs | 1 | Tests in `packages/research`, `fact-checker` und `claim-extractor` | geplant (D1) |
+| Verworfene Segmente mit Grund und Anbieterfehler mit Quelle und HTTP-Status im Log der Erkennung; je Prüfung eine Recherche-Zusammenfassung; nur Zahlen, nie Text oder URLs | 1 | Tests in `packages/research`, `fact-checker` und `claim-extractor` | in #96 |
 | Die Owner-Fälle (Berlin-Mieten) bekommen Belege | 5 | Marcos Testlauf, `evals/claims.de.jsonl` | geplant (R1) |
 | Gesprächssegmente aus Protokollen, jedes Label von Marco abgenommen, Quelle in `SOURCES.md` | – | `evals/detection.de.jsonl` | in #93 |
 | 8–10 Audio-Clips (2–3 min, Querschnitt nach Entscheidung 10), Lizenz und Metadaten je Clip, Labels von Marco abgenommen | – | `tests/fixtures/audio/regression/` | geplant |
@@ -391,7 +391,9 @@ Danach #76.
   Behauptung, 4 × wenig prüfwürdig, 2 × zu kurz.
 - Grilling-Runde 3 entschieden (Marco, 2026-10-02): Entscheidungen 14–18, Plan-Änderung
   freigegeben („Ja, mach das so“).
-- Grilling-Runde 3b entschieden (Marco, 2026-10-02): Entscheidungen 19 und 20. D1 in **PR #96**
-  (alle Prüfungen grün).
-- **Frontier:** Marco: Plan-PR, E1b und #96 mergen · Gate D (Testlauf nach Anleitung) · R1 ·
+- Grilling-Runde 3b entschieden (Marco, 2026-10-02): Entscheidungen 19 und 20. D1 in **PR #96**,
+  E1b in **PR #98** (drei Reviews eingearbeitet, Privat-Frage mit Maske), Plan in **PR #97**; alle
+  grün, Probe-Merge der drei konfliktfrei. Testanleitung als Artifact „Testlauf Gate D“.
+- **Frontier:** Marco: #97, #98 und #96 mergen · Gate D (Testlauf nach Anleitung) · E1c, Zeitpunkt
+  offen · R1 · Gate R · E2a2 · danach E2b (Clips auswählen, Kostenschätzung für Deepgram)
   Gate R · E2a2 · danach E2b (Clips auswählen, Kostenschätzung für den ersten Deepgram-Lauf)
