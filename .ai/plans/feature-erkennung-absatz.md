@@ -78,14 +78,27 @@
 Eval-Daten, revertibel; die Labels tragen jede spätere Entscheidung, daher nimmt Marco jedes ab) ·
 Typ: research → implement
 
-- Research zuerst: frei lizenzierte Aufnahmen echter Gespräche mit verschiedenen Stimmen (etwa
-  CC-lizenzierte Videos, Vorträge mit Fragerunden, Parlaments-Mediatheken), Protokolle mit
-  Zwischenrufen (Bundestag-Fragestunde, Landtage) und der rechtliche Rahmen für Talkshows →
-  `.ai/research/conversation-audio-sources.md`.
-- Ins Repo (Set plus Zeile in `evals/SOURCES.md`) kommt nur, was die Lizenz erlaubt. Talkshows aus
-  YouTube oder der Mediathek misst der Agent nur lokal: Audio und Transkript liegen in
-  `evals/local/` (per `.gitignore` ausgeschlossen, ebenso `tests/fixtures/audio/local-*`), ins
-  Repo kommen nur Zahlen.
+- Research erledigt (2026-10-02) → `.ai/research/conversation-audio-sources.md`. Vorgeschlagene
+  Mischung für das Repo-Set:
+  - Bundestag: Regierungsbefragung und Fragestunde. Die ersten 73 Segmente aus Protokoll 21/95
+    liegen schon zur Abnahme vor (Branch `feat/eval-per-source`).
+  - Etwa 15 Segmente aus Landtagsprotokollen (Baden-Württemberg, Bayern, Berlin; amtliche Werke
+    mit Zurufen und Zusatzfragen).
+  - Etwa 30 Segmente aus Podien und Debatten unter CC BY oder BY-SA (Wikimedia Commons,
+    media.ccc.de).
+  - Etwa 15 Segmente aus Interviews als realistische Gegenbeispiele.
+  - Etwa 10 Segmente von Jugendlichen, nur als Text („Jugend und Parlament“).
+  - Pro Quelle Ausgewogenheit prüfen (politische Lager, Männer und Frauen).
+- Ins Repo (Set plus Zeile in `evals/SOURCES.md`) kommt nur, was die Lizenz erlaubt. Talkshows misst
+  der Agent nur lokal: Audio und Transkript liegen in `evals/local/` (per `.gitignore`
+  ausgeschlossen, ebenso `tests/fixtures/audio/local-*`), werden nach der Messung gelöscht, und ins
+  Repo kommen nur Zahlen. Laut Research:
+  - ZDF und phoenix haben keinen TDM-Vorbehalt (§ 44b UrhG).
+  - Die ARD hat Text und Data Mining in der robots.txt vorbehalten, ARD-Sendungen gehen deshalb
+    nur per Live-Wiedergabe in die App.
+  - YouTube nie: Die Nutzungsbedingungen verbieten den Download, und laut OLG Hamburg (2024) ist
+    die Verschlüsselung ein wirksamer Kopierschutz.
+  - Den Weg entscheidet Marco (Grilling-Runde 2).
 - Die Aufnahmen laufen durch die Spracherkennung des Live-Tests (gleicher Anbieter, gleiches
   Finalisierungs-Fenster); die echten Fetzen gehen als Text ins Set, Zwischenrufe als eigene
   Sprecher. Die Kosten der Spracherkennung schätzt der Agent vorher.
@@ -98,6 +111,10 @@ Typ: research → implement
   nach Marcos OK).
 - `tests/fixtures/audio/conversation.de.wav` (synthetisch, macOS-Stimmen) wird durch einen frei
   lizenzierten echten Ausschnitt ersetzt (Entscheidung 3).
+- Minderjährige: Frei lizenzierte deutsche Gespräche mit Kindern unter etwa 12 Jahren gibt es laut
+  Research nicht. Kinderstimmen sind außerdem besonders schutzwürdig (DSGVO, Erwägungsgrund 38).
+  Vorschlag: Jugendliche nur als Text und kein Audio von Minderjährigen im Repo. Das entscheidet
+  Marco (Grilling-Runde 2).
 
 **Gate E1** – Marco: Labels abgenommen, Baseline gesehen. Danach E3.
 
@@ -180,6 +197,14 @@ Danach #76.
 - E1 umgesetzt in PR #92 (Reviewer und Security-Reviewer ohne Blocker, Befunde eingearbeitet);
   ältere Befunde aus dem Security-Review als Issues #90 (Datenschutz-Text zu Jev) und #91 (Budget
   bei Jev ohne Token-Angabe); lokale Aufnahmen per `.gitignore` geschützt
-- **Frontier:** #89, dann #92 mergen (Marco) · E2-Research zu Quellen und Rechtslage läuft ·
-  danach braucht E2 Marco: Labels abnehmen (etwa 30 min), OK für die Kosten von Spracherkennung
-  und Baseline-Lauf, Antwort auf die offene Frage zu Fragen mit Füllwort-Anfang (#92)
+- E2 begonnen (Branch `feat/eval-per-source`): Eval-Bericht mit einer Zeile pro Quelle, 73
+  Gesprächssegmente aus der Regierungsbefragung 21/95 mit Label-Vorschlägen (18 Behauptungen, 9
+  Grenzfälle). In diesem Block verwirft der Vorfilter nur den Satzrest „und mit der
+  Bereichsausnahme.“ (zu kurz, Fall für E3); die Regeln für Füllwörter und Meinungen kosten keine
+  Behauptung. Quellen-Research erledigt.
+- Grilling-Runde 2 (E2-Quellen, 2026-10-02) wartet auf Marco: Spracherkennung und Kosten für die
+  Aufnahmen, Weg für die Talkshows (ZDF/phoenix lokal, ARD nur live, nie YouTube), Minderjährige
+  (nur Text), Audio-Ausschnitte im Repo
+- **Frontier:** #89, dann #92 mergen (Marco) · Grilling-Runde 2 beantworten · E2-Labels abnehmen
+  (etwa 30 min) · OK für die Kosten von Spracherkennung und Baseline-Lauf · offene Frage zu
+  Fragen mit Füllwort-Anfang (#92)
