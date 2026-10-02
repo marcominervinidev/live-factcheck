@@ -29,10 +29,12 @@
 
 ## Geklärte Entscheidungen (Marco, 2026-10-02)
 
-1. **Fragen bleiben in der Prüfung** (Q3): Rhetorische Fragen und Einleitungen wie „Was uns
-   empört, ist …“ gehen an den Klassifikator, auch mit Füllwort vorn („Also wer hat denn …?“,
-   Nachtrag aus #92). Aussagen mit Füllwort-Anfang („Also …“, „Nein, …“) oder Meinungsmarker
-   („Ich finde …“) ohne Zahl verwirft der Vorfilter weiter.
+1. **Fragen und Meinungen bleiben in der Prüfung** (Q3): Rhetorische Fragen und Einleitungen wie
+   „Was uns empört, ist …“ gehen an den Klassifikator, auch mit Füllwort vorn („Also wer hat denn
+   …?“, Nachtrag aus #92). Meinungssätze („Ich finde es absurd, dass …“) ebenfalls: Der
+   Absatz-Pfad prüft solche Vorfilter-Fälle nicht nach, und der Klassifikator soll Tatsachen in
+   Meinungen finden (PR #84). Nur Aussagen mit Füllwort-Anfang („Also …“, „Nein, …“) ohne Zahl
+   verwirft der Vorfilter weiter.
 2. **Erst messen, mit echten Aufnahmen** (Q1 a, am selben Tag geändert): Vor jeder Änderung am
    Pfad kommen echte Gespräche ins Erkennungs-Set: Protokolle und echte Aufnahmen echter Menschen
    (Talkshows, Diskussionen, Debatten). Nichts wird eingesprochen. Labels schlägt der Agent vor,
@@ -66,6 +68,10 @@ Grilling-Runde 2 (E2-Quellen, Marco, 2026-10-02):
     ihre Herausgeber frei lizenziert veröffentlicht haben.
 12. **Datenschutz-Text zu Jev präzisieren** (#90): Er nennt das Fenster aus sechs Sätzen und
     dass im Gespräch genannte Namen mitgehen.
+13. **Erst die Erkennung abschließen, dann Features:** Bevor weitere Features entstehen, sollen
+    Erkennung und Klassifizierung wirklich gut funktionieren (E1–E4). Marcos neue Idee, bei
+    „keine Belege“ und nach einem Themenwechsel nachzurecherchieren, wartet als #94 und wird
+    danach geplant (Grilling).
 
 ## Aufgaben
 
@@ -74,15 +80,16 @@ Grilling-Runde 2 (E2-Quellen, Marco, 2026-10-02):
 
 - Umgesetzt in **PR #92**: Eine Frage ist kein Grund mehr zum Verwerfen, weder mit Fragewort am
   Anfang („Was uns empört, ist …“) noch mit „?“ („Wer hat denn die Mieten verdoppelt?“) noch mit
-  Füllwort vorn („Also wer hat denn …?“; erkannt am Fragezeichen). Der Klassifikator unterscheidet
+  Füllwort vorn („Also wer hat denn …?“; erkannt am Fragezeichen). Eine Meinung ebenso wenig
+  („Ich finde es absurd, dass …“). Der Klassifikator unterscheidet
   rhetorische und echte Fragen (Prompt nach ADR 0017); die Regel „verneinte Frage geht durch“
   (2026-09-30) geht darin auf.
-- Unverändert (Entscheidung 1): Fetzen unter 5 Wörtern (`too_short`, E3 holt sie nach), Aussagen
-  mit Füllwort-Anfang oder Meinungsmarker ohne Zahl. E2 zählt mit, wie viele echte Behauptungen
-  diese Regeln im Gespräch verwerfen.
+- Unverändert (Entscheidung 1): Fetzen unter 5 Wörtern (`too_short`, E3 holt sie nach) und
+  Aussagen mit Füllwort-Anfang ohne Zahl. E2 zählt mit, wie viele echte Behauptungen die
+  Füllwort-Regel im Gespräch verwirft.
 - Kosten: ein Klassifikator-Aufruf mehr je Frage (Jev 0,042 $ pro 1 Mio. Input-Tokens, der
   `llm`-Klassifikator zum Preis des Extractor-Modells); wird eine Frage zur Behauptung, kommen
-  Formulierung und Faktencheck dazu. Auf dem Eval-Set bewegt sich F1 je nach Urteil zwischen −3,2
+  Formulierung und Faktencheck dazu. Auf dem Eval-Set bewegt sich F1 je nach Urteil zwischen −4,6
   und +1,3 Punkten; die E2-Baseline misst es.
 - Datierter Nachtrag in ADR 0017 (Umfang des Vorfilters).
 
@@ -175,7 +182,7 @@ Danach #76.
 
 | Anforderung | Stufe | Test / Nachweis | Status |
 |---|---|---|---|
-| Fragen erreichen den Klassifikator („Was uns empört, ist …“, rhetorische, echte und mit Füllwort vorn); Aussagen mit Füllwort oder Meinung ohne Zahl weiter verworfen | 1 | `prefilter.test.ts`, `detect.test.ts` | in #92 |
+| Fragen und Meinungen erreichen den Klassifikator („Was uns empört, ist …“, rhetorische, echte und mit Füllwort vorn, „Ich finde es absurd, dass …“); Aussagen mit Füllwort vorn ohne Zahl weiter verworfen | 1 | `prefilter.test.ts`, `detect.test.ts` | in #92 |
 | Gesprächssegmente aus Protokollen, jedes Label von Marco abgenommen, Quelle in `SOURCES.md` | – | `evals/detection.de.jsonl` | in #93 |
 | 8–10 Audio-Clips (2–3 min, Querschnitt nach Entscheidung 10), Lizenz und Metadaten je Clip, Labels von Marco abgenommen | – | `tests/fixtures/audio/regression/` | geplant |
 | Audio-Regressionslauf: Wortfehlerrate und Erkennung je Clip gegen die festgehaltenen Werte | 5 | Make-Target (Deepgram, bezahlt) | geplant |
@@ -225,5 +232,7 @@ Danach #76.
   Satzfetzen; das misst E2b.
 - Grilling-Runde 2 entschieden (Marco, 2026-10-02): Entscheidungen 8–12. Übersicht aller Regeln
   der Prüfstrecke als Artifact „Prüfstrecke Live-Faktencheck“.
+- Meinungsregel gestrichen (Marco, 2026-10-02, in #92). Neue Idee Nachrecherche bei „keine
+  Belege“ und Themenwechsel → #94, nach E1–E4 (Entscheidung 13).
 - **Frontier:** #89 mergen, dann #92 und #93 (Marco) · #90 Datenschutz-Text (eigener PR) · E2b:
   Clips auswählen und die Kostenschätzung für den ersten Deepgram-Lauf an Marco
