@@ -49,4 +49,10 @@ describe('claim-extractor config', () => {
       DETECTOR_CONFIDENCE_HIGH: 0.6,
     });
   });
+
+  it('accepts the old limits for a measurement', () => {
+    expect(
+      configSchema.parse({ ...ENV, DETECTOR_MIN_WORDS: '5', DETECTOR_MIN_SCORE: '3' }),
+    ).toMatchObject({ DETECTOR_MIN_WORDS: 5, DETECTOR_MIN_SCORE: 3 });
+  });
 });

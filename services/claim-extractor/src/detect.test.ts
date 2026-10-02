@@ -210,12 +210,23 @@ describe('detectClaim (ADR 0017)', () => {
   );
 
   it('lets a fragment reach the classifier with the segment before it as context (no word limit by default)', async () => {
-    const { deps: d, classifierStates } = deps({
+    const newestText = (state: unknown): unknown =>
+      typeof state === 'object' &&
+      state !== null &&
+      'neu' in state &&
+      typeof state.neu === 'object' &&
+      state.neu !== null &&
+      'text' in state.neu
+        ? state.neu.text
+        : undefined;
+    const {
+      deps: d,
+      classifierStates,
+      llmRequests,
+    } = deps({
       // A claim only once the fragment completes it.
-      classifier: (state, questions) => {
-        const newest = (state as { neu?: { text?: string } }).neu?.text;
-        return answering(newest === 'hat Abitur' ? 0.97 : 0.1, 3)(state, questions);
-      },
+      classifier: (state, questions) =>
+        answering(newestText(state) === 'hat Abitur' ? 0.97 : 0.1, 3)(state, questions),
     });
     expect(await detectClaim(segment('Robert Habeck', 'A', 0), d)).toEqual({
       kind: 'dropped',
@@ -228,6 +239,8 @@ describe('detectClaim (ADR 0017)', () => {
       verlauf: [{ sprecher: 'A', text: 'Robert Habeck' }],
       neu: { sprecher: 'A', text: 'hat Abitur' },
     });
+    // The formulation gets the same window, so it can name the subject of the fragment.
+    expect(llmRequests.at(-1)?.user).toContain('Robert Habeck');
   });
 
   it('checks a claim the classifier rates as trivial (no checkworthiness minimum by default)', async () => {
@@ -320,8 +333,8 @@ describe('detectClaim (ADR 0017)', () => {
   });
 
   it('asks "same claim?" from a similarity of exactly 0.6 on', async () => {
-    // Five words for the pre-filter, four tokens each ("so" is too short to count), three
-    // shared: Jaccard 3 / 5 = 0.6, the threshold itself.
+    // Four counted tokens each ("so" is too short to count), three shared: Jaccard 3 / 5 = 0.6,
+    // the threshold itself.
     expect(similarity('Der Krieg endete 1945 so.', 'Der Krieg endete 1965 so.')).toBeCloseTo(
       0.6,
       10,
@@ -344,9 +357,9 @@ describe('detectClaim (ADR 0017)', () => {
     );
   });
 
-  it('keeps a claim whose checkworthiness is exactly the minimum', async () => {
-    // Level 2 of 0–4 is score 3 on the 1–5 scale, the default minimum.
-    const { deps: d } = deps({ classifier: answering(0.97, 2) });
+  it('keeps a claim whose checkworthiness is exactly a configured minimum', async () => {
+    // Level 2 of 0–4 is score 3 on the 1–5 scale; 3 was the default minimum until 2026-10-02.
+    const { deps: d } = deps({ classifier: answering(0.97, 2), minScore: 3 });
     expect((await detectClaim(segment('Die Mondlandung fand 1969 statt.'), d)).kind).toBe('claim');
   });
 
