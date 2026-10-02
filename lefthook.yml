@@ -22,8 +22,9 @@ pre-commit:
       run: pnpm typecheck
 
     - name: unit
-      glob: '*.{ts,tsx}'
+      glob: '*.{ts,tsx,jsonl}'
       # Unit tests (stage 1) of packages affected by uncommitted changes and their dependents.
+      # .jsonl included: an eval set's own tests (documented sources) run before a data commit, not after the push.
       # The root package is excluded: its own test:unit script would run every package again.
       run: pnpm --filter "...[HEAD]" --filter "!live-factcheck" --if-present test:unit
 
