@@ -1,0 +1,91 @@
+Erkennung · E1 – being a question is no reason to drop (2026-10-02, branch feat/prefilter-questions)
+====================================================================================================
+
+Plan .ai/plans/feature-erkennung-absatz.md (PR #89), task E1; ADR 0017, amendment 2026-10-02.
+Change: the pre-filter no longer drops a segment for being a question (leading interrogative or
+"?"). The length, filler and opinion rules still apply, to questions too (owner decision).
+
+1. Red first: updated tests against the old prefilter.ts
+   $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run src/prefilter.test.ts src/detect.test.ts
+     × passes "Wer hat denn die Mieten in Berlin verdoppelt?"
+     × passes "Wie hoch ist die Arbeitslosigkeit eigentlich gerade?"
+     × passes "Stimmt es, dass Berlin größer als Hamburg ist?"
+     × passes "Was uns empört, ist, dass die Mieten in Berlin explodiert sind."
+     × leaves a question to the classifier (claim and no-claim case)
+     (first test version; after the review the no-claim case asserts the exact drop reason
+     not_a_claim, and the claim case uses a rhetorical question without negation)
+
+2. Green: new prefilter.ts
+   $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
+     Test Files  4 passed (4)
+     Tests  58 passed (58)
+   $ make lint     typecheck and eslint (--max-warnings 0) pass; format:check stops only on
+                   .claude/settings.local.json, a local file outside the repo (global gitignore)
+   $ scripts/tb pnpm depcruise
+     ✔ no dependency violations found (353 modules, 1074 dependencies cruised)
+   $ scripts/tb pnpm exec prettier --check <changed files>
+     All matched files use Prettier code style!
+   $ make sast
+     Ran 244 rules on 510 files: 0 findings.
+
+3. Detection set, pre-filter only (deterministic, no model, the real TypeScript module run with
+   Node 24 type stripping in the toolbox)
+   $ scripts/tb node --input-type=module -e "
+       import { prefilter } from '/workspace/services/claim-extractor/src/prefilter.ts';
+       import { readFileSync } from 'node:fs';
+       const rows = readFileSync('/workspace/evals/detection.de.jsonl', 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+       const counts = {};
+       for (const r of rows) {
+         const res = prefilter(r.text, { minWords: 5 });
+         const key = (res.pass ? 'pass' : res.reason) + ' | expected=' + r.expected;
+         counts[key] = (counts[key] ?? 0) + 1;
+       }
+       console.log('segments:', rows.length);
+       for (const k of Object.keys(counts).sort()) console.log(k.padEnd(34), counts[k]);"
+
+                                    before (origin/main)   after
+     pass        | expected=true            46              47
+     pass        | expected=false           93              97
+     question    | expected=true             1               –
+     question    | expected=false            4               –
+     too_short   | expected=false           14              14
+     greeting_or_filler | expected=false     1               1
+     opinion_only       | expected=false     2               2
+     segments                              161             161
+
+   The five changed segments: r05-06 (expected true: "Was uns ebenfalls empört, liebe Kollegin
+   Mast: Sie verlängern mit Ihren Mehrheiten auch künstlich die Legislatur des 20. Bundestages, …",
+   leading interrogative, no question mark) and r16-24, r18-16, r18-17, r18-18 (expected false:
+   one rhetorical question, three labelled as opinion or appeal). None of the five has been
+   classified yet. Against the Jev@0.6 run (37 true positives, 11 false positives, 10 misses)
+   F1 moves between −3.2 points (four new false positives, r05-06 still missed) and +1.3 points
+   (r05-06 found, no new false positive). The paid baseline of plan task E2 measures it.
+
+4. Follow-up (owner, 2026-10-02, after the review): filler-led questions pass too
+   Red first: "Also wer hat denn die Mieten in Berlin verdoppelt?" and "Ja, aber wer hat das am Ende
+   eigentlich bezahlt?" moved to the pass list → 2 of 27 prefilter tests red against the previous code.
+   Change: the filler rule skips segments that end with "?"; without a question mark it still applies
+   (pinned: "Also wer hat denn die Mieten in Berlin verdoppelt" → greeting_or_filler).
+   Green: $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
+     Test Files  4 passed (4)
+     Tests  60 passed (60)
+   Detection set: no segment of evals/detection.de.jsonl starts with a filler word and ends with "?",
+   so the count in section 3 is unchanged.
+
+5. Follow-up (owner, 2026-10-02): the opinion rule is gone
+   Reason: the classifier is told since PR #84 to find a fact inside an opinion; the pre-filter
+   dropped "Ich finde es absurd, dass Berlin eine kostenlose Kita hat." before it could, and the
+   planned paragraph path (E3) does not re-check such drops.
+   Red first: three cases red against the previous code (two opinions in the pass list, one opinion
+   expected to reach the classifier in detect.test.ts).
+   Green: $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
+     Test Files  4 passed (4)
+     Tests  59 passed (59)
+   Detection set with the final pre-filter (real module, as in section 3):
+     pass        | expected=true    47
+     pass        | expected=false   99   (two opinions more than in section 3)
+     too_short   | expected=false   14
+     greeting_or_filler | expected=false 1
+   Unmeasured range against the Jev@0.6 run: F1 between −4.6 points (six new false positives) and
+   +1.3 points; the E2c baseline measures it.
+

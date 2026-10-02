@@ -21,7 +21,7 @@ The app is German-only. The owner asked what English would take. It is two diffe
 | Recording start (`apps/web/src/state/recording.ts`) | sends `language: 'de'` | send the chosen conversation language |
 | STT (`packages/providers/src/stt/config.ts`) | `STT_LANGUAGE` default `de` | per recording from the start message |
 | Number words (`services/transcription/src/numbers.ts`) | German only | not needed for English (Deepgram writes digits); already limited to `de` |
-| Pre-filter (`services/claim-extractor/src/prefilter.ts`) | German question words, greetings, opinion markers, fact signals | word lists per language; English rhetorical questions ("Wasn't it you who …?") |
+| Pre-filter (`services/claim-extractor/src/prefilter.ts`) | German greetings and fillers, fact signals (questions and opinions are no drop reason since ADR 0017, amendment 2026-10-02) | word lists per language |
 | Classifier questions and prompts (`detect.ts`, `prompts/*.md`, `fact-checker/prompts`, `explainer/prompts`) | German | per language, or English prompts that answer in the conversation language |
 | Research (`packages/research/src/sources/wiki.ts`, `web.ts`, `services/fact-checker/src/wiring.ts`) | de.wikipedia, Wikidata labels `de`, search `language: 'de'`, Google Fact Check `de` | language as a parameter through the research |
 | Source tiers (`config/source-tiers.yaml`) | German domains | add English outlets and agencies |

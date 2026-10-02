@@ -10,8 +10,11 @@ describe('prefilter (ADR 0017)', () => {
     'Berlin hat ungefähr drei Komma neun Millionen Einwohner.',
     'Die Arbeitslosigkeit ist seit 2020 um die Hälfte gesunken.',
     'Deutschland exportiert mehr als China und die USA zusammen.',
-    // An opinion marker with a fact inside stays: the classifier decides.
+    // An opinion marker is no reason to drop: the classifier finds the fact inside one and
+    // rejects a pure opinion itself (owner decision 2026-10-02).
     'Ich glaube, die Rente liegt im Schnitt bei 800 Euro.',
+    'Ich finde es absurd, dass Berlin eine kostenlose Kita hat.',
+    'Meiner Meinung nach macht die Regierung alles falsch.',
     // A greeting that carries a number stays too.
     'Guten Abend, heute sind 30 Millionen Menschen zugeschaltet.',
     // No fact signal, no marker: the classifier decides.
@@ -20,34 +23,18 @@ describe('prefilter (ADR 0017)', () => {
     'Denn waren es nicht Sie, der der Ampel ein Durchpeitschen vorgeworfen hat?',
     'Stimmt es nicht, dass die Arbeitslosigkeit gestiegen ist?',
     'Hat die Regierung nicht gerade erst die Steuern erhöht?',
+    // Being a question is no reason to drop: only the classifier tells a rhetorical question
+    // from a genuine one (owner decision 2026-10-02).
+    'Wer hat denn die Mieten in Berlin verdoppelt?',
+    'Wie hoch ist die Arbeitslosigkeit eigentlich gerade?',
+    'Stimmt es, dass Berlin größer als Hamburg ist?',
+    // A leading interrogative can open a claim (the detection set lost one this way).
+    'Was uns empört, ist, dass die Mieten in Berlin explodiert sind.',
+    // A filler opener does not drop a question either (owner decision 2026-10-02).
+    'Also wer hat denn die Mieten in Berlin verdoppelt?',
+    'Ja, aber wer hat das am Ende eigentlich bezahlt?',
   ])('passes %j', (text) => {
     expect(run(text)).toEqual({ pass: true });
-  });
-
-  it.each([
-    'Wer',
-    'Wen',
-    'Wem',
-    'Wessen',
-    'Was',
-    'Wann',
-    'Wo',
-    'Woher',
-    'Wohin',
-    'Warum',
-    'Wieso',
-    'Weshalb',
-    'Wie',
-    'Welche',
-    'Welcher',
-    'Welches',
-    'Welchen',
-    'Welchem',
-  ])('drops a question starting with %j even without a question mark', (word) => {
-    expect(run(`${word} hat das damals eigentlich entschieden`)).toEqual({
-      pass: false,
-      reason: 'question',
-    });
   });
 
   it('treats a greeting word inside a sentence as content, not as a greeting', () => {
@@ -57,14 +44,14 @@ describe('prefilter (ADR 0017)', () => {
   it.each([
     ['Das stimmt so nicht.', 'too_short'],
     ['  ', 'too_short'],
-    ['Wie hoch ist die Arbeitslosigkeit eigentlich gerade?', 'question'],
-    ['Warum sollten wir das überhaupt glauben', 'question'],
-    ['Stimmt es, dass Berlin größer als Hamburg ist?', 'question'],
-    ['Wer soll Ihnen glauben, dass es diesmal erstmals anders sein wird?', 'question'],
     ['Guten Abend und willkommen zur Diskussion.', 'greeting_or_filler'],
     ['Vielen Dank für die Einladung in diese Runde.', 'greeting_or_filler'],
-    ['Das sehe ich anders, ich finde das Thema wichtig.', 'opinion_only'],
-    ['Meiner Meinung nach macht die Regierung alles falsch.', 'opinion_only'],
+    // Kept by owner decision 2026-10-02: statements with a filler opener and no fact signal are
+    // still dropped; the conversation eval (plan E2) counts what that costs.
+    ['Also die Mieten in Berlin sind explodiert.', 'greeting_or_filler'],
+    ['Nein, die Regierung hat das Gesetz nie beschlossen.', 'greeting_or_filler'],
+    // A question is recognised by its question mark; without one the filler rule still applies.
+    ['Also wer hat denn die Mieten in Berlin verdoppelt', 'greeting_or_filler'],
   ] as const)('drops %j as %s', (text, reason) => {
     expect(run(text)).toEqual({ pass: false, reason });
   });
