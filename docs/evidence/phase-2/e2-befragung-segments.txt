@@ -1,0 +1,51 @@
+Erkennung · E2 part 1 – conversation segments from the Befragung 21/95 (2026-10-02, branch feat/eval-per-source)
+=================================================================================================================
+
+Plan .ai/plans/feature-erkennung-absatz.md (PR #89), task E2. Source row `bundestag-befragung` in
+evals/SOURCES.md.
+
+1. Source and extraction
+   Plenarprotokoll 21/95 (23.09.2026), XML https://www.bundestag.de/resource/blob/1217366/21095.xml,
+   Tagesordnungspunkt 1 „Befragung der Bundesregierung“, `rede` elements 2–9 (zero-based; turns 3–10):
+   Nolte, Pistorius, Nolte, Pistorius, Erndl, Pistorius, Erndl, Pistorius, with the president's lines and
+   the worded interjections in between. Element classes decided one by one (SOURCES.md).
+   Extraction: a session script (stdlib xml.etree, not in the repo): spoken paragraphs split at sentence
+   ends followed by an ordinary space and a capital, ordinal numbers and abbreviations re-joined; only
+   ordinary whitespace collapsed, so no-break spaces stay as published (13 rows carry them).
+
+2. Checks
+   - Reproducible: the code review re-ran the script on the XML and got the same 73 rows (id,
+     conversationId, speaker, text).
+   - Nothing lost or invented: 1012 words in the spoken paragraphs plus worded interjections, the same
+     1012 words in the same order in the rows (code review); both applause comments dropped.
+   - Verbatim: the security review compared all 73 rows with the official PDF
+     (dserver.bundestag.de/btp/21/21095.pdf): 73/73 match once PDF hyphenation is undone.
+   - Speakers: A Nolte, B Pistorius, C Brandner (three interjections), D presiding (Klöckner), E Nanni,
+     F Erndl; the letter map stays outside the repo. Names inside the text are public officials.
+   - $ cd evals && ../scripts/tb pnpm exec vitest run → 3 files, all tests passed (dataset invariants:
+     234 items, every sourceId documented for `detection.de.jsonl`, conversations contiguous).
+
+3. Labels (proposals, reviewed: false)
+   17 of 73 proposed as claims, 11 notes marked „Grenzfall“ for the owner. After the code review: `-35`
+   true → false (repeats `-04` in substance; never both true), `-37` reason corrected (insinuating
+   question repeating `-04`/`-05`), `-04` and `-47` marked as borderline with the alternative.
+
+4. Pre-filter on these rows (deterministic, no model; Python replica of prefilter.ts, which matched the
+   real module exactly on the 161 speech segments, see e1-prefilter-questions.txt)
+
+                                          main (before E1)   with E1 (#92)
+     pass        | expected=true                16                16
+     pass        | expected=false               37                39
+     question    | expected=false                2                 –
+     too_short   | expected=true                 1                 1
+     too_short   | expected=false               14                14
+     greeting_or_filler | expected=false         3                 3
+
+   The only claim the pre-filter drops is `-49` „und mit der Bereichsausnahme.“ (too short, the rest of
+   a sentence cut by an interjection; a case for the paragraph path of E3). The filler and opinion rules
+   cost no claim in this block (owner decision 2026-10-02 asked for this count).
+
+5. Limitation (code review): edited protocol text has far fewer and cleaner fragments than live STT
+   output: 15 of 73 rows are under 5 words, but only one claim is spread over fragments (`-47`/`-49`).
+   It does not measure the fragment problem of the live test of 2026-10-01 (25 segments: 8 too short,
+   8 uncertain); that needs real recordings run through the STT (grilling round 2).

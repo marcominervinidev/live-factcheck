@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DetectionItem } from './dataset.js';
 import type { DetectionOutcome } from './detection.js';
-import { detectionReport, summarizeDetection } from './detection.js';
+import { detectionReport, rawOutcomes, summarizeDetection } from './detection.js';
 
 const item = (id: string, expected: boolean): DetectionItem => ({
   id,
@@ -21,6 +21,11 @@ const outcome = (
   detected: boolean,
   latencyMs = 100,
 ): DetectionOutcome => ({ item: item(id, expected), processed: true, detected, latencyMs });
+
+const inSource = (sourceId: string, o: DetectionOutcome): DetectionOutcome => ({
+  ...o,
+  item: { ...o.item, sourceId },
+});
 
 describe('summarizeDetection', () => {
   it('computes precision, recall and F1 from the confusion matrix', () => {
@@ -81,10 +86,10 @@ describe('detectionReport', () => {
   };
 
   it('marks runs with unreviewed labels as invalid and lists the errors', () => {
-    const report = detectionReport(
-      { ...meta, includesUnreviewed: true },
-      summarizeDetection([outcome('fp', false, true), outcome('tp', true, true)]),
-    );
+    const report = detectionReport({ ...meta, includesUnreviewed: true }, [
+      outcome('fp', false, true),
+      outcome('tp', true, true),
+    ]);
     expect(report).toContain('not a valid result');
     expect(report).toContain('| Precision | 50.0 % |');
     expect(report).toContain('- False positives: fp');
@@ -92,11 +97,42 @@ describe('detectionReport', () => {
   });
 
   it('shows a dash for undefined metrics', () => {
-    const report = detectionReport(
-      { ...meta, includesUnreviewed: false },
-      summarizeDetection([outcome('tn', false, false)]),
-    );
+    const report = detectionReport({ ...meta, includesUnreviewed: false }, [
+      outcome('tn', false, false),
+    ]);
     expect(report).toContain('owner-reviewed labels only');
     expect(report).toContain('| Recall | – |');
+  });
+
+  it('never carries segment text, speaker or note into the report or the raw rows', () => {
+    const secret = {
+      ...outcome('local-1', true, false),
+      item: { ...item('local-1', true), text: 'Wortlaut der Sendung', note: 'Notiz zum Gast' },
+    };
+    const report = detectionReport({ ...meta, includesUnreviewed: false }, [secret]);
+    const raw = JSON.stringify(rawOutcomes([secret]));
+    for (const output of [report, raw]) {
+      expect(output).not.toContain('Wortlaut der Sendung');
+      expect(output).not.toContain('Notiz zum Gast');
+    }
+    expect(Object.keys(rawOutcomes([secret])[0] ?? {})).toEqual([
+      'id',
+      'sourceId',
+      'expected',
+      'processed',
+      'detected',
+      'latencyMs',
+    ]);
+  });
+
+  it('adds one row per source, so a gain on one kind of speech cannot hide a loss on another', () => {
+    const report = detectionReport({ ...meta, includesUnreviewed: false }, [
+      inSource('talk', outcome('t-fp', false, true)),
+      inSource('bundestag', outcome('b-tp', true, true)),
+      inSource('talk', outcome('t-fn', true, false)),
+    ]);
+    expect(report).toContain(
+      '| `bundestag` | 1 | 100.0 % | 100.0 % | 100.0 % | 1 / 0 | 0 / 0 | 0 |\n| `talk` | 2 | 0.0 % | 0.0 % | – | 0 / 1 | 1 / 0 | 0 |',
+    );
   });
 });

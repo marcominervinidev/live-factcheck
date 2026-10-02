@@ -65,6 +65,39 @@ export function summarizeDetection(outcomes: readonly DetectionOutcome[]): Detec
   };
 }
 
+/**
+ * One summary per source (`sourceId`), sorted by id: a gain on conversations must not hide a
+ * loss on speeches, or the other way round.
+ */
+function summarizeBySource(
+  outcomes: readonly DetectionOutcome[],
+): ReadonlyMap<string, DetectionSummary> {
+  const groups = new Map<string, DetectionOutcome[]>();
+  for (const outcome of outcomes) {
+    groups.set(outcome.item.sourceId, [...(groups.get(outcome.item.sourceId) ?? []), outcome]);
+  }
+  return new Map(
+    [...groups.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([sourceId, group]) => [sourceId, summarizeDetection(group)] as const),
+  );
+}
+
+/**
+ * The raw result rows for later analysis: ids, labels and outcomes, never the segment text,
+ * speaker or note, so a run on a local set (owner 2026-10-02) leaks no transcript.
+ */
+export function rawOutcomes(outcomes: readonly DetectionOutcome[]) {
+  return outcomes.map((o) => ({
+    id: o.item.id,
+    sourceId: o.item.sourceId,
+    expected: o.item.expected,
+    processed: o.processed,
+    detected: o.detected,
+    latencyMs: o.latencyMs,
+  }));
+}
+
 export interface DetectionReportMeta {
   readonly label: string;
   readonly startedAt: string;
@@ -77,8 +110,16 @@ const pct = (value: number) => (Number.isNaN(value) ? '–' : `${(value * 100).t
 const ms = (value: number) => (Number.isNaN(value) ? '–' : `${String(Math.round(value))} ms`);
 const list = (ids: readonly string[]) => (ids.length === 0 ? '–' : ids.join(', '));
 
-/** The detection eval report as Markdown. */
-export function detectionReport(meta: DetectionReportMeta, s: DetectionSummary): string {
+/** The detection eval report as Markdown: the whole set, then one row per source. */
+export function detectionReport(
+  meta: DetectionReportMeta,
+  outcomes: readonly DetectionOutcome[],
+): string {
+  const s = summarizeDetection(outcomes);
+  const sourceRows = [...summarizeBySource(outcomes)].map(
+    ([sourceId, b]) =>
+      `| \`${sourceId}\` | ${String(b.items)} | ${pct(b.precision)} | ${pct(b.recall)} | ${pct(b.f1)} | ${String(b.truePositives)} / ${String(b.falsePositives)} | ${String(b.falseNegatives)} / ${String(b.trueNegatives)} | ${String(b.timeouts)} |`,
+  );
   return `# Detection eval report: ${meta.label}
 
 - Run: ${meta.startedAt}
@@ -96,6 +137,12 @@ export function detectionReport(meta: DetectionReportMeta, s: DetectionSummary):
 | False / true negatives | ${String(s.falseNegatives)} / ${String(s.trueNegatives)} |
 | Timeouts (not counted above) | ${String(s.timeouts)} |
 | Latency p50 / p95 (publish → handled) | ${ms(s.latencyP50)} / ${ms(s.latencyP95)} |
+
+## By source
+
+| Source | Segments | Precision | Recall | F1 | True / false positives | False / true negatives | Timeouts |
+|---|---|---|---|---|---|---|---|
+${sourceRows.join('\n')}
 
 ## Errors
 

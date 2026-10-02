@@ -5,7 +5,7 @@ Quality measurements of the LLM and classifier setups (brief 13.5). They run man
 | Set | File | Phase | Measures |
 |---|---|---|---|
 | Verdict | `claims.de.jsonl` (target ≥ 200 claims) | 1 | accuracy, calibration (Brier score, expected calibration error, reliability diagram), latency p50/p95 per path (`cacheHit`), cost per claim |
-| Detection | `detection.de.jsonl` (161 segments, target several hundred) | 2 | precision, recall, F1 of "the segment becomes a new claim", latency p50/p95 |
+| Detection | `detection.de.jsonl` (234 segments: 161 from speeches, 73 from a Befragung; target several hundred) | 2 | precision, recall, F1 of "the segment becomes a new claim", latency p50/p95 |
 
 The eval result decides which classifier becomes the default and whether phase 7 (own model) is needed.
 
@@ -55,7 +55,7 @@ Every paid run needs the owner's go-ahead with a cost estimate first.
 
 Labels proposed or corrected by an LLM keep `reviewed: false`; only the owner sets `true`.
 
-Live mode takes only audio through the gateway, so this runner (`eval-detection` in `compose.test.yaml`) runs in the internal network with the services' Redis user instead of acting as a client. Reports: `docs/evidence/phase-2/evals/eval-detection-<label>-<time>.md` and `.json`. With the mock classifier (every segment with a digit is a claim) a dry run checks only the mechanics.
+Live mode takes only audio through the gateway, so this runner (`eval-detection` in `compose.test.yaml`) runs in the internal network with the services' Redis user instead of acting as a client. Reports: `docs/evidence/phase-2/evals/eval-detection-<label>-<time>.md` and `.json`. The report shows the whole set and one row per `sourceId`, so a gain on one kind of speech cannot hide a loss on another. A set under `evals/local/` (copyrighted recordings, kept out of git) writes its report and raw rows to `evals/local/reports/` instead, because ids and source names can tell what was measured; only aggregate numbers go into the evidence by hand. Neither output ever contains segment text. With the mock classifier (every segment with a digit is a claim) a dry run checks only the mechanics.
 
 ### Extracting from structured sources
 
