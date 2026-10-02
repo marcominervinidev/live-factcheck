@@ -3,10 +3,11 @@ import { z } from 'zod';
 
 import type { TextCache } from './cache.js';
 import { sha256 } from './cache.js';
+import { FetchFailedError } from './fetch/safe-fetch.js';
 import type { FetchedText, SafeFetcher } from './fetch/safe-fetch.js';
 import type { FactCheckSource } from './sources/factcheck.js';
 import type { FactCheckHit, SourceDocument } from './sources/types.js';
-import type { createWebSource } from './sources/web.js';
+import type { WebSearchStats, createWebSource } from './sources/web.js';
 import type { createWikidataSource, createWikipediaSource } from './sources/wiki.js';
 
 const CachedPage = z.object({
@@ -86,11 +87,23 @@ export interface ResearchLimits {
   readonly webPages: number;
 }
 
+/** A tier that failed or timed out; for metrics and logs, never shown to users. */
+export interface ResearchFailure {
+  readonly source: string;
+  readonly reason: string;
+  /** The error's name, and the HTTP status when a server answered; safe to log (plan D1). */
+  readonly error?: string;
+  readonly status?: number;
+}
+
 export interface ResearchResult {
   readonly documents: readonly SourceDocument[];
   readonly factChecks: readonly FactCheckHit[];
-  /** Tiers that failed or timed out; for metrics and logs, never shown to users. */
-  readonly failures: readonly { readonly source: string; readonly reason: string }[];
+  readonly failures: readonly ResearchFailure[];
+  /** Documents per tier before deduplication, for the research summary log (plan D1). */
+  readonly perSource?: Readonly<Record<string, number>>;
+  /** What the web tier did; absent when it failed. */
+  readonly web?: WebSearchStats;
 }
 
 async function withTimeout<T>(
@@ -109,6 +122,10 @@ async function withTimeout<T>(
     return {
       source,
       reason: error instanceof Error ? `${error.name}: ${error.message}` : 'unknown error',
+      error: error instanceof Error ? error.name : 'unknown',
+      ...(error instanceof FetchFailedError && error.status !== undefined
+        ? { status: error.status }
+        : {}),
     };
   }
 }
@@ -146,18 +163,31 @@ export async function researchClaim(
     ),
   ]);
 
-  const failures = [facts, wikipedia, wikidata, web].flatMap((r) =>
-    'reason' in r ? [{ source: r.source, reason: r.reason }] : [],
+  const failures: ResearchFailure[] = [facts, wikipedia, wikidata, web].flatMap((r) =>
+    'reason' in r ? [r] : [],
   );
+  const tiers = [
+    { source: wikipedia.source, value: 'value' in wikipedia ? wikipedia.value : undefined },
+    { source: wikidata.source, value: 'value' in wikidata ? wikidata.value : undefined },
+    { source: web.source, value: 'value' in web ? web.value.documents : undefined },
+  ];
   const documents: SourceDocument[] = [];
+  const perSource: Record<string, number> = {};
   const seen = new Set<string>();
-  for (const result of [wikipedia, wikidata, web]) {
-    if (!('value' in result)) continue;
-    for (const document of result.value) {
+  for (const tier of tiers) {
+    if (tier.value === undefined) continue;
+    perSource[tier.source] = tier.value.length;
+    for (const document of tier.value) {
       if (seen.has(document.url)) continue;
       seen.add(document.url);
       documents.push(document);
     }
   }
-  return { documents, factChecks: 'value' in facts ? facts.value : [], failures };
+  return {
+    documents,
+    factChecks: 'value' in facts ? facts.value : [],
+    failures,
+    perSource,
+    ...('value' in web ? { web: web.value.stats } : {}),
+  };
 }

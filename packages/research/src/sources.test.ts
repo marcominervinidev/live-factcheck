@@ -7,7 +7,7 @@ import { readRepoSourceTiers } from '@lfc/service-kit/testing';
 import type { TextCache } from './cache.js';
 import type { RobotsPolicy } from './fetch/robots.js';
 import type { FetchTextOptions, SafeFetcher } from './fetch/safe-fetch.js';
-import { FetchBlockedError } from './fetch/safe-fetch.js';
+import { FetchBlockedError, FetchFailedError } from './fetch/safe-fetch.js';
 import { rankChunks } from './rank.js';
 import { cachedFetcher, cachedSearch, researchClaim } from './research.js';
 import { parseSourceTiers } from './source-tiers.js';
@@ -251,7 +251,7 @@ describe('web source (tier 3)', () => {
       'https://www.destatis.de/a': html('Berlin hatte Ende 2024 rund 3,9 Millionen Einwohner.'),
       'https://blocked.example.org/': new FetchBlockedError('address not allowed'),
     });
-    const docs = await createWebSource({
+    const { documents, stats } = await createWebSource({
       search,
       fetcher,
       robots,
@@ -262,8 +262,58 @@ describe('web source (tier 3)', () => {
       resultsPerQuery: 5,
       maxPages: 5,
     });
-    expect(docs.map((d) => [d.url, d.tier])).toEqual([['https://www.destatis.de/a', 'amtlich']]);
+    expect(documents.map((d) => [d.url, d.tier])).toEqual([
+      ['https://www.destatis.de/a', 'amtlich'],
+    ]);
     expect(calls.map((c) => c.url)).not.toContain('https://robots-says-no.example.org/');
+    // The counts for the research summary log (plan D1).
+    expect(stats).toEqual({
+      queries: 2,
+      failedQueries: 0,
+      results: 3,
+      pages: 3,
+      skipped: { robots: 1, blocked: 1 },
+    });
+  });
+
+  it('counts why pages gave no document, as labels without URLs (plan D1)', async () => {
+    const engines: SearchProvider = {
+      name: 'mock',
+      search: (query) =>
+        query === 'kaputt'
+          ? Promise.reject(new Error('engine suspended'))
+          : Promise.resolve([
+              { url: 'https://www.zeitung.example.org/paywall', title: 'A', snippet: '' },
+              { url: 'https://example.org/bericht.pdf', title: 'B', snippet: '' },
+              { url: 'https://example.org/leer', title: 'C', snippet: '' },
+              { url: 'https://example.org/vierte', title: 'D', snippet: '' },
+            ]),
+    };
+    const { fetcher, calls } = fakeFetcher({
+      'https://www.zeitung.example.org/paywall': new FetchFailedError('HTTP 403', { status: 403 }),
+      'https://example.org/bericht.pdf': new FetchFailedError(
+        'content type application/pdf not accepted',
+      ),
+      'https://example.org/leer': { contentType: 'text/html', text: '<html><body></body></html>' },
+    });
+    const { documents, stats } = await createWebSource({
+      search: engines,
+      fetcher,
+      robots: { isAllowed: () => Promise.resolve(true) },
+      tiers,
+      maxChars: 10_000,
+      now,
+    }).search(['Mieten Berlin', 'kaputt'], { resultsPerQuery: 5, maxPages: 3 });
+
+    expect(documents).toEqual([]);
+    expect(calls).toHaveLength(3);
+    expect(stats).toEqual({
+      queries: 2,
+      failedQueries: 1,
+      results: 4,
+      pages: 3,
+      skipped: { http_403: 1, content_type: 1, unreadable: 1 },
+    });
   });
 });
 
@@ -298,7 +348,46 @@ describe('researchClaim', () => {
     );
     expect(result.documents.map((d) => d.url)).toEqual(['https://www.destatis.de/a']);
     expect(result.factChecks).toEqual([]);
-    expect(result.failures).toEqual([{ source: 'wikipedia', reason: 'Error: wikipedia down' }]);
+    expect(result.failures).toEqual([
+      { source: 'wikipedia', reason: 'Error: wikipedia down', error: 'Error' },
+    ]);
+    // Counts per tier for the research summary log (plan D1); a failed tier has none.
+    expect(result.perSource).toEqual({ wikidata: 0, web: 1 });
+    expect(result.web).toEqual({ queries: 1, failedQueries: 0, results: 1, pages: 1, skipped: {} });
+  });
+
+  it('names a failed tier by error class and HTTP status (plan D1)', async () => {
+    const { fetcher } = fakeFetcher({
+      'https://de.wikipedia.org/': new FetchFailedError('HTTP 429', { status: 429 }),
+      'https://www.wikidata.org/': json({ search: [] }),
+    });
+    const search: SearchProvider = { name: 'mock', search: () => Promise.reject(new Error('x')) };
+    const robots: RobotsPolicy = { isAllowed: () => Promise.resolve(true) };
+    const result = await researchClaim(
+      { claim: 'Berlin hat 3,9 Millionen Einwohner.', queries: ['Berlin Einwohner'] },
+      {
+        wikipedia: createWikipediaSource({ fetcher, tiers, maxChars: 10_000, now }),
+        wikidata: createWikidataSource({ fetcher, tiers, now }),
+        web: createWebSource({ search, fetcher, robots, tiers, maxChars: 10_000, now }),
+      },
+      {
+        timeoutMs: 1_000,
+        factChecks: 3,
+        wikipediaPages: 2,
+        wikidataEntities: 2,
+        resultsPerQuery: 5,
+        webPages: 5,
+      },
+    );
+    expect(result.failures).toEqual([
+      {
+        source: 'wikipedia',
+        reason: 'FetchFailedError: HTTP 429',
+        error: 'FetchFailedError',
+        status: 429,
+      },
+    ]);
+    expect(result.web).toMatchObject({ queries: 1, failedQueries: 1, results: 0, pages: 0 });
   });
 
   it('drops a tier that exceeds its timeout', async () => {

@@ -28,8 +28,14 @@ export { createFactCheckSource } from './sources/factcheck.js';
 export type { FactCheckSource } from './sources/factcheck.js';
 export { createWikidataSource, createWikipediaSource, formatWikidataTime } from './sources/wiki.js';
 export { createWebSource } from './sources/web.js';
+export type { WebSearchResult, WebSearchStats } from './sources/web.js';
 export type { FactCheckHit, SourceDocument } from './sources/types.js';
 export { cachedFetcher, cachedSearch, researchClaim } from './research.js';
-export type { ResearchLimits, ResearchResult, ResearchSources } from './research.js';
+export type {
+  ResearchFailure,
+  ResearchLimits,
+  ResearchResult,
+  ResearchSources,
+} from './research.js';
 export { rankChunks } from './rank.js';
 export type { RankOptions, RankedChunk } from './rank.js';
