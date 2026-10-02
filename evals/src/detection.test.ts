@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import type { DetectionItem } from './dataset.js';
 import type { DetectionOutcome } from './detection.js';
-import { detectionReport, summarizeBySource, summarizeDetection } from './detection.js';
+import {
+  detectionReport,
+  rawOutcomes,
+  summarizeBySource,
+  summarizeDetection,
+} from './detection.js';
 
 const item = (id: string, expected: boolean): DetectionItem => ({
   id,
@@ -119,6 +124,27 @@ describe('detectionReport', () => {
     ]);
     expect(report).toContain('owner-reviewed labels only');
     expect(report).toContain('| Recall | – |');
+  });
+
+  it('never carries segment text, speaker or note into the report or the raw rows', () => {
+    const secret = {
+      ...outcome('local-1', true, false),
+      item: { ...item('local-1', true), text: 'Wortlaut der Sendung', note: 'Notiz zum Gast' },
+    };
+    const report = detectionReport({ ...meta, includesUnreviewed: false }, [secret]);
+    const raw = JSON.stringify(rawOutcomes([secret]));
+    for (const output of [report, raw]) {
+      expect(output).not.toContain('Wortlaut der Sendung');
+      expect(output).not.toContain('Notiz zum Gast');
+    }
+    expect(Object.keys(rawOutcomes([secret])[0] ?? {})).toEqual([
+      'id',
+      'sourceId',
+      'expected',
+      'processed',
+      'detected',
+      'latencyMs',
+    ]);
   });
 
   it('adds one row per source, so a gain on one kind of speech cannot hide a loss on another', () => {

@@ -15,7 +15,7 @@ import { Redis } from 'ioredis';
 import type { DetectionItem } from './dataset.js';
 import { loadDetection } from './dataset.js';
 import type { DetectionOutcome } from './detection.js';
-import { detectionReport, summarizeDetection } from './detection.js';
+import { detectionReport, rawOutcomes, summarizeDetection } from './detection.js';
 
 const env = (name: string, fallback?: string) => {
   const value = process.env[name] ?? fallback;
@@ -27,9 +27,13 @@ const LABEL = env('EVAL_LABEL')
   .replace(/[^a-z0-9-]/gi, '-')
   .toLowerCase();
 const DATASET = env('EVAL_DATASET', new URL('../detection.de.jsonl', import.meta.url).pathname);
+// A local set (copyrighted recordings, owner 2026-10-02) keeps its reports local as well: ids and
+// source names can tell what was measured. Only aggregate numbers are copied into the evidence.
+const LOCAL_SET = DATASET.includes('/evals/local/');
 const OUT_DIR = env(
   'EVAL_OUT_DIR',
-  new URL('../../docs/evidence/phase-2/evals', import.meta.url).pathname,
+  new URL(LOCAL_SET ? '../local/reports' : '../../docs/evidence/phase-2/evals', import.meta.url)
+    .pathname,
 );
 const INCLUDE_UNREVIEWED = process.env['EVAL_INCLUDE_UNREVIEWED'] === 'true';
 const TIMEOUT_MS = Number(env('EVAL_TIMEOUT_MS', '60000'));
@@ -159,22 +163,7 @@ writeFileSync(
     outcomes,
   ),
 );
-// Raw results for later analysis; the segments are public protocol text, no secrets.
-writeFileSync(
-  join(OUT_DIR, `${base}.json`),
-  JSON.stringify(
-    outcomes.map((o) => ({
-      id: o.item.id,
-      sourceId: o.item.sourceId,
-      expected: o.item.expected,
-      processed: o.processed,
-      detected: o.detected,
-      latencyMs: o.latencyMs,
-    })),
-    null,
-    2,
-  ),
-);
+writeFileSync(join(OUT_DIR, `${base}.json`), JSON.stringify(rawOutcomes(outcomes), null, 2));
 const reportPath = join(OUT_DIR, `${base}.md`);
 console.log(`\nReport: ${reportPath}`);
 console.log(

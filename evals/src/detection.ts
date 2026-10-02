@@ -83,6 +83,21 @@ export function summarizeBySource(
   );
 }
 
+/**
+ * The raw result rows for later analysis: ids, labels and outcomes, never the segment text,
+ * speaker or note, so a run on a local set (owner 2026-10-02) leaks no transcript.
+ */
+export function rawOutcomes(outcomes: readonly DetectionOutcome[]) {
+  return outcomes.map((o) => ({
+    id: o.item.id,
+    sourceId: o.item.sourceId,
+    expected: o.item.expected,
+    processed: o.processed,
+    detected: o.detected,
+    latencyMs: o.latencyMs,
+  }));
+}
+
 export interface DetectionReportMeta {
   readonly label: string;
   readonly startedAt: string;
