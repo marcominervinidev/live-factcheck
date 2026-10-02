@@ -13,6 +13,7 @@ The eval result decides which classifier becomes the default and whether phase 7
 
 - Every label is reviewed by the owner before it enters a set. An LLM may propose labels; the proposal is never the label.
 - Origin and licence of every source are listed in [SOURCES.md](SOURCES.md).
+- Audio behind a set is real people speaking, never synthetic voices or scripts read aloud (owner, 2026-10-02): scenarios stay close to reality, with different voices, ages and genders. Copyrighted recordings such as TV talk shows are measured locally only; the repository keeps their numbers, never their audio or transcript.
 - The sets are versioned; a changed label is a new commit with a reason, never a silent edit.
 - Reports go to `docs/evidence/phase-N/eval-<setup>-<date>.md`.
 
