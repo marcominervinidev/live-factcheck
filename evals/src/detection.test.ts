@@ -2,12 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DetectionItem } from './dataset.js';
 import type { DetectionOutcome } from './detection.js';
-import {
-  detectionReport,
-  rawOutcomes,
-  summarizeBySource,
-  summarizeDetection,
-} from './detection.js';
+import { detectionReport, rawOutcomes, summarizeDetection } from './detection.js';
 
 const item = (id: string, expected: boolean): DetectionItem => ({
   id,
@@ -79,23 +74,6 @@ describe('summarizeDetection', () => {
       { item: item('c', false), processed: false, detected: false },
     ]);
     expect([s.latencyP50, s.latencyP95]).toEqual([100, 300]);
-  });
-});
-
-describe('summarizeBySource', () => {
-  it('summarizes every source on its own, sorted by id', () => {
-    const bySource = summarizeBySource([
-      inSource('talk', outcome('t-fp', false, true)),
-      inSource('bundestag', outcome('b-tp', true, true)),
-      inSource('talk', outcome('t-fn', true, false)),
-    ]);
-    expect([...bySource.keys()]).toEqual(['bundestag', 'talk']);
-    expect(bySource.get('bundestag')).toMatchObject({ items: 1, truePositives: 1, precision: 1 });
-    expect(bySource.get('talk')).toMatchObject({
-      items: 2,
-      falsePositiveIds: ['t-fp'],
-      falseNegativeIds: ['t-fn'],
-    });
   });
 });
 

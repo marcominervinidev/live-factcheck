@@ -69,7 +69,7 @@ export function summarizeDetection(outcomes: readonly DetectionOutcome[]): Detec
  * One summary per source (`sourceId`), sorted by id: a gain on conversations must not hide a
  * loss on speeches, or the other way round.
  */
-export function summarizeBySource(
+function summarizeBySource(
   outcomes: readonly DetectionOutcome[],
 ): ReadonlyMap<string, DetectionSummary> {
   const groups = new Map<string, DetectionOutcome[]>();
