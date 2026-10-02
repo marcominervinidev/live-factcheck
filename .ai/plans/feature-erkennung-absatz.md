@@ -1,7 +1,7 @@
 # Feature: Erkennung im Gespräch – Plan
 
-> Entwurf nach Grilling-Runde 1 (Marco, 2026-10-02), **Freigabe steht aus**. Auslöser: Live-Test
-> am 2026-10-01 mit einer Talkshow – 131 s, 25 Segmente, **0 Behauptungen** erkannt.
+> Nach Grilling-Runde 1 (Marco, 2026-10-02) und Marcos Änderungen am selben Tag. Auslöser:
+> Live-Test am 2026-10-01 mit einer Talkshow – 131 s, 25 Segmente, **0 Behauptungen** erkannt.
 > Reihenfolge danach: #76 Kosten-Monitoring, T7.5 Red-Team, Phase 3.
 
 ## Context
@@ -29,57 +29,70 @@
 
 ## Geklärte Entscheidungen (Marco, 2026-10-02)
 
-1. **Vorfilter verwirft so wenig wie möglich** (Q3): Rhetorische Fragen und Einleitungen wie
-   „Was uns empört, ist …“ bleiben in der Prüfung, der Klassifikator entscheidet.
-2. **Erst messen, dann bauen** (Q1 a): Vor jeder Änderung am Pfad kommen rund 100
-   Gesprächssegmente ins Erkennungs-Set: frei nutzbare Protokolle (Fragestunden mit
-   Zwischenrufen, Landtage) und selbst eingesprochene Talkshow-Szenen. TV-Mitschnitte misst der
-   Agent nur lokal, sie kommen nicht ins Repo (Urheberrecht). Labels schlägt der Agent vor,
-   Marco nimmt sie ab. Die Audio-Eval-Bank #82 folgt danach.
-3. **Hybrid** (Q2 b): Der schnelle Satz-Pfad bleibt für klare Fälle. Am Ende eines Redebeitrags
+1. **Fragen bleiben in der Prüfung** (Q3): Rhetorische Fragen und Einleitungen wie „Was uns
+   empört, ist …“ gehen an den Klassifikator. Füllwort-Anfänge („Also …“, „Nein, …“) und
+   Meinungsmarker („Ich finde …“) verwirft der Vorfilter weiter.
+2. **Erst messen, mit echten Aufnahmen** (Q1 a, am selben Tag geändert): Vor jeder Änderung am
+   Pfad kommen rund 100 Gesprächssegmente ins Erkennungs-Set, aus echten Aufnahmen echter Menschen
+   (Talkshows, Diskussionen, Debatten) und aus Protokollen. Nichts wird eingesprochen.
+   Urheberrechtlich geschützte Mitschnitte misst der Agent nur lokal, sie kommen nicht ins Repo.
+   Labels schlägt der Agent vor, Marco nimmt sie ab. Die Audio-Eval-Bank #82 folgt danach.
+3. **Testszenarien nah an der Realität, keine synthetischen Stimmen** (gilt für alle Tests und
+   Messungen): verschiedene Stimmen – Alter, Männer, Frauen, wo möglich Kinder. Die Regel steht
+   in `evals/README.md` und `tests/AGENTS.md`.
+4. **Hybrid** (Q2 b): Der schnelle Satz-Pfad bleibt für klare Fälle. Am Ende eines Redebeitrags
    liest ein Absatz-Pfad den ganzen Absatz und holt nach, was als „zu kurz“ oder „unsicher“
    hängen blieb.
-4. **Kein eigenes Modell jetzt** (Q4): Erst messen, ob E1–E3 reichen. Bleibt die Erkennung danach
+5. **Kein eigenes Modell jetzt** (Q4): Erst messen, ob E1–E3 reichen. Bleibt die Erkennung danach
    unter F1 0,85, wird Phase 7 (eigenes Modell, Trainingsdaten mit Lizenzprüfung) eine eigene
    Entscheidung.
-5. **Reihenfolge** (Q5): Vorfilter → Gesprächs-Eval → Absatz-Pfad, danach #76, T7.5, Phase 3.
+6. **Reihenfolge** (Q5): Vorfilter → Gesprächs-Eval → Absatz-Pfad, danach #76, T7.5, Phase 3.
    Schritte, bei denen nichts zu tun ist, entfallen.
+7. **Label-Regel für verteilte Behauptungen:** Eine über mehrere Fetzen verteilte Behauptung
+   zählt auf dem Segment, mit dem sie vollständig wird (Regel 4 in `evals/README.md`, „Kontext
+   entscheidet“).
 
 ## Aufgaben
 
-**E1 – Vorfilter: nur noch Satzfetzen verwerfen** · Risiko: **niedrig** (revertibel, nur
+**E1 – Vorfilter: Fragen gehen an den Klassifikator** · Risiko: **niedrig** (revertibel, nur
 `claim-extractor`, kein Vertrag) · Typ: implement
 
-- `prefilter.ts` verwirft nur noch `too_short` (unter `DETECTOR_MIN_WORDS` = 5 Wörtern); diese
-  Fetzen holt E3 nach. Fragen, Füllwort-Anfänge und Meinungsmarker gehen an den Klassifikator,
-  dessen Prompt rhetorische und echte Fragen schon unterscheidet. Die Wortlisten entfallen und
-  mit ihnen der `nosemgrep`-Kommentar (2026-09-29 behalten; ohne Regex gibt es nichts zu
-  unterdrücken); die Regel „verneinte Frage geht durch“ (2026-09-30) geht in der neuen auf.
-- Kosten: ein Jev-Aufruf mehr je durchgelassenem Satz (0,042 $ pro 1 Mio. Input-Tokens).
-- Unit-Tests mit den vier Sätzen oben und „Was uns empört, ist …“; Nachweis: Zählung über das
-  Eval-Set vorher/nachher (deterministisch, kostenlos). Die Wirkung auf die Präzision misst der
-  Baseline-Lauf in E2.
+- `prefilter.ts` verwirft keine Fragen mehr, weder mit Fragewort am Anfang („Was uns empört,
+  ist …“) noch mit „?“ („Wer hat denn die Mieten verdoppelt?“). Der Klassifikator unterscheidet
+  rhetorische und echte Fragen (Prompt nach ADR 0017); die Regel „verneinte Frage geht durch“
+  (2026-09-30) geht darin auf.
+- Unverändert (Entscheidung 1): Fetzen unter 5 Wörtern (`too_short`, E3 holt sie nach),
+  Füllwort-Anfänge und Meinungsmarker ohne Zahl. E2 zählt mit, wie viele echte Behauptungen diese
+  Regeln im Gespräch verwerfen; die Zahlen gehen an Marco.
+- Kosten: ein Jev-Aufruf mehr je Frage (0,042 $ pro 1 Mio. Input-Tokens).
+- Unit-Tests: „Was uns empört, ist …“, rhetorische und echte Fragen erreichen den Klassifikator.
+  Nachweis: Zählung über das Eval-Set vorher/nachher mit dem echten Code (kostenlos); die Wirkung
+  auf die Präzision misst der Baseline-Lauf in E2.
 - Datierter Nachtrag in ADR 0017 (Umfang des Vorfilters).
 
-**E2 – Gesprächs-Eval: rund 100 Segmente und Baseline** · Risiko: **niedrig** (nur Eval-Daten,
-revertibel; die Labels tragen jede spätere Entscheidung, daher nimmt Marco jedes ab) · Typ:
-research → implement
+**E2 – Gesprächs-Eval mit echten Aufnahmen und Baseline** · Risiko: **niedrig** (nur
+Eval-Daten, revertibel; die Labels tragen jede spätere Entscheidung, daher nimmt Marco jedes ab) ·
+Typ: research → implement
 
-- Protokolle (Zeile in `evals/SOURCES.md` vor dem ersten Eintrag): eine Fragestunde oder
-  Regierungsbefragung des Bundestags mit Zwischenrufen (amtliches Werk, § 5 UrhG) und ein bis zwei
-  Landtagsprotokolle (Lizenz je Landtag prüfen). Zwischenrufe bleiben als eigene Sprecher drin.
-- Talkshow-Szenen: Der Agent schreibt 4–5 Skripte (je 2–3 min, zwei bis drei Rollen, typische
-  Muster: Unterbrechungen, halbe Sätze, „Was uns empört …“, rhetorische Fragen, Zitate), Marco
-  spricht sie ein (etwa 15–20 min). Die Aufnahmen laufen durch die Spracherkennung des Live-Tests
-  (gleicher Anbieter, gleiches Finalisierungs-Fenster), die echten Fetzen gehen als Text ins Set.
-  Die Audiodateien bleiben lokal bis #82.
-- Labels: Vorschlag vom Agent (`reviewed: false`), Abnahme durch Marco (etwa 30 min). Regel aus
-  `evals/README.md`; neu ist nur, welches Segment eine über mehrere Fetzen verteilte Behauptung
-  trägt. Vorschlag: das Segment, mit dem sie vollständig wird (Regel 4, „Kontext entscheidet“).
-- Eval-Bericht getrennt nach Quelle (Bundestag / Gespräch), damit ein Gewinn im Gespräch keinen
-  Verlust im Bundestag verdeckt.
+- Research zuerst: frei lizenzierte Aufnahmen echter Gespräche mit verschiedenen Stimmen (etwa
+  CC-lizenzierte Videos, Vorträge mit Fragerunden, Parlaments-Mediatheken), Protokolle mit
+  Zwischenrufen (Bundestag-Fragestunde, Landtage) und der rechtliche Rahmen für Talkshows →
+  `.ai/research/conversation-audio-sources.md`.
+- Ins Repo (Set plus Zeile in `evals/SOURCES.md`) kommt nur, was die Lizenz erlaubt. Talkshows aus
+  YouTube oder der Mediathek misst der Agent nur lokal: Audio und Transkript liegen in einem
+  ignorierten Ordner, ins Repo kommen nur Zahlen.
+- Die Aufnahmen laufen durch die Spracherkennung des Live-Tests (gleicher Anbieter, gleiches
+  Finalisierungs-Fenster); die echten Fetzen gehen als Text ins Set, Zwischenrufe als eigene
+  Sprecher. Die Kosten der Spracherkennung schätzt der Agent vorher.
+- Labels: Vorschlag vom Agent (`reviewed: false`), Abnahme durch Marco (etwa 30 min), mit der
+  Label-Regel aus Entscheidung 7.
+- Eval-Bericht getrennt nach Quelle (Bundestag / Gespräch; lokal gemessene Talkshows nur als
+  Zahlen), damit ein Gewinn im Gespräch keinen Verlust im Bundestag verdeckt. Dazu die
+  Vorfilter-Zählung für die Gesprächssegmente (Entscheidung 1).
 - Baseline: bezahlter Lauf Jev@0,6 mit E1 über das ganze Set (Kostenschätzung vorher, Start nur
   nach Marcos OK).
+- `tests/fixtures/audio/conversation.de.wav` (synthetisch, macOS-Stimmen) wird durch einen frei
+  lizenzierten echten Ausschnitt ersetzt (Entscheidung 3).
 
 **Gate E1** – Marco: Labels abgenommen, Baseline gesehen. Danach E3.
 
@@ -126,8 +139,9 @@ Danach #76.
 
 | Anforderung | Stufe | Test / Nachweis | Status |
 |---|---|---|---|
-| Vorfilter verwirft nur Fetzen unter 5 Wörtern; die vier Sätze oben und „Was uns empört, ist …“ erreichen den Klassifikator | 1 | `prefilter.test.ts` | geplant |
-| Rund 100 Gesprächssegmente im Set, jedes Label von Marco abgenommen, Quelle in `SOURCES.md` | – | `evals/detection.de.jsonl` | geplant |
+| Fragen erreichen den Klassifikator („Was uns empört, ist …“, rhetorische und echte Fragen); Füllwort- und Meinungsregeln unverändert | 1 | `prefilter.test.ts`, `detect.test.ts` | geplant |
+| Rund 100 Gesprächssegmente aus echten Aufnahmen, jedes Label von Marco abgenommen, Quelle in `SOURCES.md` | – | `evals/detection.de.jsonl` | geplant |
+| Keine synthetischen Stimmen im Test-Audio | – | `tests/fixtures/audio/README.md` | geplant |
 | Eval-Bericht getrennt nach Quelle | 5 | `make eval EVAL_SET=detection` | geplant |
 | Grenzen des Redebeitrags (Sprecherwechsel, Pause, Höchstdauer, Aufnahme-Ende) | 1 | Unit-Tests mit Fake-Timern | geplant |
 | Behauptung aus mehreren Segmenten nennt alle; keine doppelte Karte zwischen den Pfaden | 1 + 2a | `detect.test.ts`, `main.int.test.ts` | geplant |
@@ -144,7 +158,10 @@ Danach #76.
   Karten sind möglich. Baseline (E2) und Messung (E3) zeigen es, bevor etwas Standard wird.
 - **Kleines Set:** Bei rund 100 Gesprächssegmenten sind wenige F1-Punkte Rauschen; Berichte nennen
   Trefferzahlen, nicht nur Prozent.
-- **Eingesprochen ist nicht echt:** Gegenprobe mit einem echten Mitschnitt, nur lokal.
+- **Lizenzlage:** Frei lizenzierte echte Gespräche sind seltener als Talkshows. Reicht das
+  Material nicht, kommen mehr Protokolle dazu, und die Talkshows zählen nur lokal.
+- **Kinderstimmen:** frei lizenziert selten und besonders schutzwürdig (Stimme ist ein
+  personenbezogenes Datum). Fehlen sie, benennt der Bericht die Lücke.
 - **Mehrere Extractor-Instanzen:** Der Puffer liegt in Redis; ein Redebeitrag wird genau einmal
   abgeschlossen (Marker wie `processedMarker`).
 - **Prompt-Injection:** Der Absatz geht als Daten mit Nonce in den Prompt (wie die Formulierung);
@@ -152,7 +169,8 @@ Danach #76.
 
 ## Status
 
-- [ ] Plan freigegeben
+- [x] Plan freigegeben mit Änderungen (Marco, 2026-10-02, als Freigabe verstanden: „E3 passt zu
+  bauen“; E1 nur Fragen; E2 echte Aufnahmen statt Einsprechen; Label-Regel „passt“)
 - Grilling-Runde 1 entschieden (Marco, 2026-10-02), Entscheidungen oben
-- **Frontier:** Freigabe → E1 (sofort machbar) → E2 braucht Marco: Szenen einsprechen (etwa
-  15–20 min), Labels abnehmen (etwa 30 min), OK für den bezahlten Baseline-Lauf
+- **Frontier:** E1 umsetzen · E2-Research zu Quellen und Rechtslage läuft · danach braucht E2
+  Marco: Labels abnehmen (etwa 30 min), OK für die Kosten von Spracherkennung und Baseline-Lauf
