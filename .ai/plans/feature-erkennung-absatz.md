@@ -75,29 +75,47 @@ Grilling-Runde 2 (E2-Quellen, Marco, 2026-10-02):
     „keine Belege“ und nach einem Themenwechsel nachzurecherchieren, wartet als #94 und wird
     danach geplant (Grilling).
 
-Grilling-Runde 3 (nach Marcos Testlauf, Marco, 2026-10-02):
+Grilling-Runde 3 (nach Marcos Testlauf, Marco, 2026-10-02). Zähler dieses Laufs: 3 Behauptungen
+(1 × falsch, 2 × nicht prüfbar mit `no_evidence`), verworfen 3 × keine Behauptung, 4 × wenig
+prüfwürdig, 2 × zu kurz. Welcher Satz welchen Grund bekam, halten die Zähler nicht fest (D1 macht
+es sichtbar); die Zuordnung unten ist aus den Zahlen erschlossen.
 
 14. **Wortgrenze entfällt:** Auch kurze Behauptungen und Fetzen gehen an den Klassifikator. Er
-    sieht die Abschnitte davor, so kann aus „Robert Habeck“ und „hat Abitur“ eine Behauptung
-    werden; im Testlauf verwarf die Grenze genau diese beiden Fetzen. Ersetzt in Entscheidung 1
-    den Teil „Fetzen unter 5 Wörtern“.
-15. **Prüfwürdigkeit filtert nicht mehr** (Q1 a): Jede erkannte Behauptung wird geprüft, auch
-    scheinbar Belangloses oder Absurdes. Im Testlauf fielen vier Abschnitte an dieser Regel
-    heraus, darunter „Helmut Kohl ist eine Frau“ und „Robert Habeck hat gar kein Abitur“ (#79
-    kennt das Muster vom 2026-10-01). Kosten: rund 5 Cent je Prüfung mit Opus, das Tagesbudget
-    deckelt. Beide Grenzen bleiben einstellbar, für den Messlauf.
-16. **Testtage mit 5 $ Tagesbudget** (Q2 b, `CLOUD_DAILY_BUDGET_USD=5` in Marcos `.env`). Ist ein
-    Budget aufgebraucht, soll ein Hinweis kommen: Faktencheck-Karten und Spracherkennung zeigen
-    ihn schon; für das Budget der Erkennung, das heute ohne Hinweis endet, kommt er mit #76.
-17. **„Keine Belege“: erst das Leck finden** (Q3 a): Die Suche liefert Treffer (für die
-    Berlin-Mieten 26, darunter „binnen zehn Jahren um 69 Prozent“), die Prüfung meldet trotzdem
-    `no_evidence`. Erst Diagnose-Logs (D1), dann die Ursache beheben (R1). Eine
-    LLM-Zweitprüfung nicht prüfbarer Karten kommt erst, wenn feststeht, woran es lag, und nur,
-    wenn danach noch zu viele Karten „nicht prüfbar“ bleiben: mit einem günstigen
-    Anthropic-Modell (Haiku 4.5), austauschbar gegen ein lokales. Auslöser, Anzeige (Prototyp mit
-    Varianten) und ob das lokale Modell mit dem Debattier-Modus (#59) kommt, klärt dann eine
-    eigene Runde. Reihenfolge: E1b → D1 → Marcos Testlauf → R1 → Gate R → E2b.
-18. **Diagnose-Logs** wie vorgeschlagen (D1), nie mit Gesprächs- oder Behauptungstext.
+    sieht die Segmente davor, so kann aus „Robert Habeck“ und „hat Abitur“ eine Behauptung
+    werden; nach den Zählern waren das die beiden „zu kurz“. Ersetzt in E1 den Punkt „Fetzen
+    unter 5 Wörtern“.
+15. **Prüfwürdigkeit filtert nicht mehr** (Runde 3, Q1 a): Jede erkannte Behauptung wird geprüft,
+    auch scheinbar Belangloses oder Absurdes; die vier „wenig prüfwürdig“ passen zu kurzen
+    falschen Behauptungen wie „Helmut Kohl ist eine Frau“. #79 kennt nicht erkannte absurde
+    Behauptungen schon vom 2026-10-01, dort als „unsicher“ oder „keine Behauptung“ verworfen.
+    Geht vor Entscheidung 2 („erst messen“), weil Marco nach dem Testlauf so entschieden hat; E2c
+    misst danach beide Einstellungen (5 Wörter und 3 von 5 gegen 1 und 1). Kosten: in Marcos Lauf
+    0,147 $ für drei Prüfungen, also rund 5 Cent je Prüfung ohne Erklärung (mit Erklärung
+    geschätzt 6–8 Cent, `docs/evidence/phase-1/tp7-eval.txt`); das Tagesbudget deckelt. Beide
+    Grenzen bleiben einstellbar. Offen (Runde 3b): ob Privates ohne diese Grenze draußen bleibt
+    und ob Label-Regel 2 in `evals/README.md` („prüfwürdig ab 3 von 5“) angepasst wird.
+16. **Testtage mit 5 $ Tagesbudget** (Runde 3, Q2 b): Marco setzt `CLOUD_DAILY_BUDGET_USD=5`
+    selbst in seiner `.env`, die Testanleitung gibt ihm die Zeile. Das Budget ist ein gemeinsamer
+    Topf aller Dienste (ein Zähler je Tag, `budget:v1:cloud:<Tag>`), nicht eines je Dienst, wie
+    README, `docs/SECURITY.md` und `.env.example` sagen. Ist er leer, endet eine Aufnahme mit
+    Cloud-Spracherkennung mit Hinweis, und Karten zeigen „Tagesbudget aufgebraucht“; die Erkennung
+    bleibt ohne Hinweis stehen. Diesen Hinweis und die Doku-Korrektur nimmt #76 auf; bis dahin
+    zeigt die D1-Zeile `segment dropped` mit `budget_exceeded` den Stopp.
+17. **„Keine Belege“: erst die Stelle finden, an der die Belege verloren gehen** (Runde 3, Q3 a):
+    Eine Testsuche des Agenten über SearXNG fand zu den Berlin-Mieten 26 Treffer, darunter
+    „binnen zehn Jahren um 69 Prozent“; die Prüfung meldete trotzdem `no_evidence`. Die Prüfung
+    nutzt davon höchstens 3 Suchanfragen mit je 5 Treffern und lädt höchstens 4 Seiten, und
+    `no_evidence` hat drei Ausgänge: nichts gefunden, nichts relevant, Belege reichen nicht. Erst
+    Diagnose-Logs (D1), dann die Ursache beheben (R1). Eine LLM-Zweitprüfung nicht prüfbarer
+    Karten kommt nur, wenn danach noch zu viele Karten „nicht prüfbar“ bleiben, und erst, wenn
+    feststeht, woran es lag (Marco); als Feature ginge sie nach Entscheidung 13 sonst erst nach
+    E4. Dann mit einem günstigen Anthropic-Modell (Haiku 4.5), austauschbar gegen ein lokales.
+    Auslöser, Anzeige (Prototyp mit Varianten), das Verhältnis zu #94 und ob das lokale Modell
+    mit dem Debattier-Modus (#59) kommt, klärt dann eine eigene Runde. Reihenfolge: E1b → D1 →
+    Gate D → R1 → Gate R → E2b.
+18. **Diagnose-Logs nur mit Zahlen** (D1, „Logs passen so“): Anzahlen, Gründe als feste Kürzel,
+    Fehlerklassen und HTTP-Status. Keine Suchanfragen, keine URLs, keine Fehlertexte, nie
+    Gesprächs- oder Behauptungstext.
 
 ## Aufgaben
 
@@ -111,8 +129,8 @@ Grilling-Runde 3 (nach Marcos Testlauf, Marco, 2026-10-02):
   rhetorische und echte Fragen (Prompt nach ADR 0017); die Regel „verneinte Frage geht durch“
   (2026-09-30) geht darin auf.
 - Unverändert (Entscheidung 1): Fetzen unter 5 Wörtern (`too_short`, E3 holt sie nach; mit E1b
-  aus, Entscheidung 14) und Aussagen mit Füllwort-Anfang ohne Zahl. E2 zählt mit, wie viele echte Behauptungen die
-  Füllwort-Regel im Gespräch verwirft.
+  aus, Entscheidung 14) und Aussagen mit Füllwort-Anfang ohne Zahl. E2 zählt mit, wie viele
+  echte Behauptungen die Füllwort-Regel im Gespräch verwirft.
 - Kosten: ein Klassifikator-Aufruf mehr je Frage (Jev 0,042 $ pro 1 Mio. Input-Tokens, der
   `llm`-Klassifikator zum Preis des Extractor-Modells); wird eine Frage zur Behauptung, kommen
   Formulierung und Faktencheck dazu. Auf dem Eval-Set bewegt sich F1 je nach Urteil zwischen −4,6
@@ -127,36 +145,51 @@ Grilling-Runde 3 (nach Marcos Testlauf, Marco, 2026-10-02):
 - Grenze: Protokolltext hat kaum Satzfetzen. Das misst erst E2b.
 
 **E1b – Wortgrenze und Prüfwürdigkeit aus** · Risiko: **mittel** (mehr Klassifikator-Aufrufe und
-Prüfungen kosten mehr; revertibel per Einstellung, nur `claim-extractor`, kein Vertrag) · Typ:
-implement
+Prüfungen kosten mehr, mehr Gesprächstext geht an Suchmaschinen und Modelle; revertibel per
+Einstellung, nur `claim-extractor`, kein Vertrag) · Typ: implement
 
-- `DETECTOR_MIN_WORDS` mit Standard 1 (nur leere Abschnitte fallen weg), neu auch in Compose
+- `DETECTOR_MIN_WORDS` mit Standard 1 (nur leere Segmente fallen weg), neu auch in Compose
   einstellbar; `DETECTOR_MIN_SCORE` mit Standard 1 (keine Behauptung fällt wegen geringer
   Prüfwürdigkeit weg). Beide bleiben für den Messlauf einstellbar (Entscheidungen 14, 15).
-- Datierter Nachtrag in ADR 0017; Vorfilter-Zählung auf dem Eval-Set vorher und nachher als
-  Nachweis.
+- Mit angepasst: `.env.example`, die Kommentare in `config.ts` und die Standardwerte in ADR 0017
+  (Entscheidungstext und datierter Nachtrag); `config.test.ts` prüft bewusst die neuen Werte.
+- Nachweis: Vorfilter-Zählung auf dem Eval-Set vorher und nachher.
+- Je nach Runde 3b: Privates und Label-Regel 2.
 
-**D1 – Diagnose-Logs** · Risiko: **niedrig** (nur Logzeilen, kein Vertrag; revertibel) · Typ:
-implement
+**D1 – Diagnose-Logs** · Risiko: **mittel** (dienstübergreifend: `packages/research`, Erkennung und
+Faktencheck; Logzeilen zu Gesprächen; revertibel, kein Vertrag) · Typ: implement
 
-- Erkennung: je verworfenem Abschnitt eine Zeile mit `segmentId` und Grund; bei Anbieterfehlern
-  Quelle (Klassifikator oder LLM), Fehlerart und HTTP-Status (#79).
-- Faktencheck: je Prüfung eine Zeile „research summary“ mit Suchanfragen, Treffern je Quelle,
-  geladenen und gescheiterten Seiten, Ausschnitten, relevanten Ausschnitten und Zeiten (#80).
-- Nie Gesprächs- oder Behauptungstext, keine URLs (Entscheidung 18).
+- Erkennung: je verworfenem Segment eine Zeile `segment dropped` (info) mit `segmentId` und
+  Grund; nach einem Anbieterfehler als Warnung mit Quelle (Klassifikator oder LLM), Fehlerart,
+  HTTP-Status und Fehlerklasse (#79; das Drop-Logging aus #79 und #76 wandert hierher).
+- Faktencheck: je Prüfung mit Recherche eine Zeile `research summary` (info): Anzahl
+  Suchanfragen und ob die Ersatz-Suchanfragen liefen, Anzahl Suchanfragen mit langen
+  Ziffernketten (#80), Dokumente je Recherche-Stufe, gescheiterte Stufen mit Fehlerklasse und
+  Status, Treffer der Websuche, versuchte Seiten und übersprungene Seiten je Grund (robots,
+  blockiert, HTTP-Status, Inhaltstyp, zu groß, nicht lesbar), Ausschnitte, relevante
+  Ausschnitte, die Wahrscheinlichkeit „Belege reichen“ und die Zeiten. Daraus ergibt sich, welcher
+  der drei `no_evidence`-Ausgänge griff.
+- Nur Zahlen (Entscheidung 18); die Tests prüfen, dass weder Behauptungstext noch eine URL im
+  Ergebnis steht.
 
-**Meilenstein** – Marcos Testlauf nach Testanleitung (AGENTS.md): kurze Behauptungen und die
-Berlin-Mieten; die D1-Zeilen zeigen, wo die Belege verloren gehen.
+**Gate D** – Marcos Testlauf nach Testanleitung (AGENTS.md, Workflow): kurze Behauptungen, die
+Berlin-Mieten, je nach Runde 3b auch Privates; Marco schickt die D1-Zeilen. Danach R1.
 
-**R1 – Leck in der Recherche beheben** · Risiko: **mittel** (Urteilsqualität aller Prüfungen;
-revertibel) · Typ: research → implement
+**R1 – Die Stelle beheben, an der die Recherche Belege verliert** · Risiko: **mittel**
+(Urteilsqualität aller Prüfungen; revertibel) · Typ: research → implement
 
-- Die Stelle aus den D1-Zeilen bestimmen (Suchanfragen, Laden der Seiten, Sortieren,
-  Relevanzprüfung) und beheben; Kandidat ist #80 (Zahlen in den Suchanfragen).
-- Die Owner-Fälle als Urteils-Testfälle in `evals/claims.de.jsonl`.
+- Die Stelle aus den D1-Zeilen bestimmen (Suchanfragen, Laden der Seiten, Sortieren mit dem
+  einfachen Wortvergleich `mock`, Relevanzprüfung, Ausreichen) und beheben; Kandidat ist #80
+  (Zahlen in den Suchanfragen).
+- Zuerst ein Regressionstest auf der untersten Stufe (1 oder 2a, AGENTS.md, Tests) mit einer
+  Recherche-Antwort wie im Testlauf.
+- Die Owner-Fälle als Urteils-Testfälle in `evals/claims.de.jsonl`: Labels von Marco abgenommen,
+  Quelle in `SOURCES.md`, Kategorie aus `evals/src/dataset.ts`.
+- Grenzen für SSRF, robots.txt und Inhaltstyp werden nicht gelockert; berührt eine Änderung sie,
+  prüft der Security-Reviewer mit Angriffstests.
 
-**Gate R** – Marco testet: Bekommen die Fälle jetzt Belege? Bleiben zu viele Karten „nicht
-prüfbar“, folgt die Grilling-Runde zur LLM-Zweitprüfung (Entscheidung 17).
+**Gate R** – Marco testet: Bekommen die Fälle jetzt Belege? Bleiben aus seiner Sicht zu viele
+Karten „nicht prüfbar“, folgt die Grilling-Runde zur LLM-Zweitprüfung (Entscheidung 17).
 
 **E2b – Audio-Regressionstests** · Risiko: **mittel** (neue Testart mit echtem Anbieter und Kosten,
 Audio-Dateien im öffentlichen Repo, Lizenzfragen; revertibel) · Typ: research → prototype →
@@ -205,7 +238,8 @@ prototype (Marco wählt nach Zahlen)
   `startMs`/`endMs`), höchstens etwa 20 s oder Aufnahme-Ende. Ohne Sprechertrennung (heute
   `stt-local`, Diarization ist Phase 3) zählen nur Pause, Höchstdauer und Ende.
 - Der Absatz-Pfad läuft nur, wenn im Redebeitrag ein Segment als `too_short` oder `uncertain`
-  hängen blieb (`too_short` seit E1b nur noch bei gesetzter Wortgrenze).
+  hängen blieb (`too_short` seit E1b nur noch bei gesetzter Wortgrenze). Den Auslöser bestimmt
+  E3 nach E2c neu; als `not_a_claim` abgewiesene Fragmente gehören dazu.
 - **Variante A „Zusammenfügen“:** Die hängen gebliebenen Fetzen werden mit ihren Nachbarn zu
   ganzen Sätzen verbunden und laufen noch einmal durch den bestehenden Pfad. Wenig neuer Code,
   kaum Kosten.
@@ -242,7 +276,7 @@ Danach #76.
 |---|---|---|---|
 | Fragen und Meinungen erreichen den Klassifikator („Was uns empört, ist …“, rhetorische, echte und mit Füllwort vorn, „Ich finde es absurd, dass …“); Aussagen mit Füllwort vorn ohne Zahl weiter verworfen | 1 | `prefilter.test.ts`, `detect.test.ts` | in #92 |
 | Kurze Behauptungen und Fetzen erreichen den Klassifikator; jede erkannte Behauptung wird ohne Prüfwürdigkeits-Grenze geprüft (Standard); beide Grenzen bleiben einstellbar | 1 | `prefilter.test.ts`, `detect.test.ts`, `config.test.ts` | geplant (E1b) |
-| Verworfene Abschnitte mit Grund und Anbieterfehler mit Quelle und HTTP-Status im Log der Erkennung; je Prüfung eine Recherche-Zusammenfassung; nie Text oder URLs | 1 | Tests in `claim-extractor` und `fact-checker` | geplant (D1) |
+| Verworfene Segmente mit Grund und Anbieterfehler mit Quelle und HTTP-Status im Log der Erkennung; je Prüfung eine Recherche-Zusammenfassung; nur Zahlen, nie Text oder URLs | 1 | Tests in `packages/research`, `fact-checker` und `claim-extractor` | geplant (D1) |
 | Die Owner-Fälle (Berlin-Mieten) bekommen Belege | 5 | Marcos Testlauf, `evals/claims.de.jsonl` | geplant (R1) |
 | Gesprächssegmente aus Protokollen, jedes Label von Marco abgenommen, Quelle in `SOURCES.md` | – | `evals/detection.de.jsonl` | in #93 |
 | 8–10 Audio-Clips (2–3 min, Querschnitt nach Entscheidung 10), Lizenz und Metadaten je Clip, Labels von Marco abgenommen | – | `tests/fixtures/audio/regression/` | geplant |
@@ -264,7 +298,8 @@ Danach #76.
 - **Kosten ohne Anzeige:** #76 kommt erst danach. Das Tagesbudget (fail closed) deckelt, E3 misst
   die Kosten pro Gesprächsminute.
 - **Präzision:** Mehr Sätze erreichen den Klassifikator (E1), der Absatz-Pfad findet mehr; falsche
-  Karten sind möglich. Baseline (E2) und Messung (E3) zeigen es, bevor etwas Standard wird.
+  Karten sind möglich. Baseline (E2c) und Messung (E3) zeigen es; E1b wurde nach Marcos
+  Testlauf schon vorher Standard (Entscheidung 15), E2c misst beide Einstellungen.
 - **Kleines Set:** Bei rund 100 Gesprächssegmenten sind wenige F1-Punkte Rauschen; Berichte nennen
   Trefferzahlen, nicht nur Prozent.
 - **Lizenzlage:** Frei lizenzierte echte Gespräche sind seltener als Talkshows; die
