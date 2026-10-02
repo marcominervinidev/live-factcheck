@@ -23,6 +23,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
+import { configSchema } from './config.js';
 import type { DetectDeps } from './detect.js';
 import { detectClaim, similarity } from './detect.js';
 import { mockDetector, mockStandalone } from './mocks.js';
@@ -61,12 +62,24 @@ function memoryStore(): SessionStore & { windows: Map<string, WindowSegment[]> }
 
 const PROMPT = loadPromptTemplate(new URL('../prompts/standalone.md', import.meta.url));
 
+/** The detection defaults of config.ts: no word limit, no checkworthiness minimum (2026-10-02). */
+const DEFAULTS = configSchema.parse({
+  PORT: '8080',
+  REDIS_URL: 'redis://redis:6379',
+  REDIS_PASSWORD: 'x',
+  EXTRACTOR_LLM_PROVIDER: 'mock',
+  EXTRACTOR_LLM_MODEL: 'mock',
+  DETECTOR_CLASSIFIER_PROVIDER: 'mock',
+});
+
 function deps(
   overrides: {
     classifier?: MockClassifierHandler;
     llm?: MockLlmHandler;
     store?: SessionStore;
     budget?: DailyBudget;
+    minWords?: number;
+    minScore?: number;
   } = {},
 ) {
   const llmRequests: StructuredRequest<unknown>[] = [];
@@ -94,8 +107,8 @@ function deps(
     store: overrides.store ?? memoryStore(),
     ...(overrides.budget === undefined ? {} : { budget: overrides.budget }),
     thresholds: { high: 0.75, low: 0.45 },
-    minScore: 3,
-    minWords: 5,
+    minScore: overrides.minScore ?? DEFAULTS.DETECTOR_MIN_SCORE,
+    minWords: overrides.minWords ?? DEFAULTS.DETECTOR_MIN_WORDS,
     now: () => new Date('2026-09-29T12:00:00.000Z'),
     clock: () => (tick += 40),
   };
@@ -155,14 +168,18 @@ describe('detectClaim (ADR 0017)', () => {
   });
 
   it.each([
-    ['Guten Abend und willkommen zur Diskussion.', 'greeting_or_filler'],
-    ['Stimmt nicht.', 'too_short'],
-  ] as const)('drops %j in the pre-filter (%s) without asking a model', async (text, reason) => {
-    const { deps: d, classifierStates, llmRequests } = deps();
-    expect(await detectClaim(segment(text), d)).toEqual({ kind: 'dropped', reason });
-    expect(classifierStates).toHaveLength(0);
-    expect(llmRequests).toHaveLength(0);
-  });
+    ['Guten Abend und willkommen zur Diskussion.', 'greeting_or_filler', {}],
+    // The word limit applies only when set (DETECTOR_MIN_WORDS, off by default since 2026-10-02).
+    ['Stimmt nicht.', 'too_short', { minWords: 5 }],
+  ] as const)(
+    'drops %j in the pre-filter (%s) without asking a model',
+    async (text, reason, limits) => {
+      const { deps: d, classifierStates, llmRequests } = deps(limits);
+      expect(await detectClaim(segment(text), d)).toEqual({ kind: 'dropped', reason });
+      expect(classifierStates).toHaveLength(0);
+      expect(llmRequests).toHaveLength(0);
+    },
+  );
 
   it.each([
     'Wie hoch ist die Arbeitslosigkeit eigentlich gerade?',
@@ -174,13 +191,15 @@ describe('detectClaim (ADR 0017)', () => {
   });
 
   it.each([
-    ['not_a_claim', answering(0.1, 4)],
-    ['uncertain', answering(0.8, 4)],
-    ['low_checkworthiness', answering(0.97, 1)],
+    ['not_a_claim', answering(0.1, 4), {}],
+    ['uncertain', answering(0.8, 4), {}],
+    // The checkworthiness minimum applies only when set (DETECTOR_MIN_SCORE, off by default since
+    // 2026-10-02).
+    ['low_checkworthiness', answering(0.97, 1), { minScore: 3 }],
   ] as const)(
     'drops a segment the classifier rates as %s, without formulating it',
-    async (reason, classifier) => {
-      const { deps: d, llmRequests } = deps({ classifier });
+    async (reason, classifier, limits) => {
+      const { deps: d, llmRequests } = deps({ classifier, ...limits });
       const outcome = await detectClaim(
         segment('Die Mondlandung wurde in einem Filmstudio gedreht.'),
         d,
@@ -189,6 +208,33 @@ describe('detectClaim (ADR 0017)', () => {
       expect(llmRequests).toHaveLength(0);
     },
   );
+
+  it('lets a fragment reach the classifier with the segment before it as context (no word limit by default)', async () => {
+    const { deps: d, classifierStates } = deps({
+      // A claim only once the fragment completes it.
+      classifier: (state, questions) => {
+        const newest = (state as { neu?: { text?: string } }).neu?.text;
+        return answering(newest === 'hat Abitur' ? 0.97 : 0.1, 3)(state, questions);
+      },
+    });
+    expect(await detectClaim(segment('Robert Habeck', 'A', 0), d)).toEqual({
+      kind: 'dropped',
+      reason: 'not_a_claim',
+    });
+    const outcome = await detectClaim(segment('hat Abitur', 'A', 1_500), d);
+
+    expect(outcome.kind).toBe('claim');
+    expect(classifierStates.at(-1)).toEqual({
+      verlauf: [{ sprecher: 'A', text: 'Robert Habeck' }],
+      neu: { sprecher: 'A', text: 'hat Abitur' },
+    });
+  });
+
+  it('checks a claim the classifier rates as trivial (no checkworthiness minimum by default)', async () => {
+    const { deps: d } = deps({ classifier: answering(0.97, 0) });
+    const outcome = await detectClaim(segment('Helmut Kohl ist eine Frau.'), d);
+    expect(outcome).toMatchObject({ kind: 'claim', claim: { checkworthiness: 0 } });
+  });
 
   it('lets a rhetorical question that insinuates a fact reach the classifier and become a claim', async () => {
     const { deps: d, classifierStates, llmRequests } = deps({ classifier: answering(0.97, 3) });

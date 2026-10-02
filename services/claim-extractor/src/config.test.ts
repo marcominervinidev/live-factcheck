@@ -42,8 +42,9 @@ describe('claim-extractor config', () => {
   it('applies the detection defaults of ADR 0017', () => {
     expect(configSchema.parse(ENV)).toMatchObject({
       DETECTOR_WINDOW_SEGMENTS: 6,
-      DETECTOR_MIN_WORDS: 5,
-      DETECTOR_MIN_SCORE: 3,
+      // Word limit and checkworthiness minimum off by default (owner decision 2026-10-02).
+      DETECTOR_MIN_WORDS: 1,
+      DETECTOR_MIN_SCORE: 1,
       DETECTOR_DEDUP_CANDIDATES: 10,
       DETECTOR_CONFIDENCE_HIGH: 0.6,
     });
