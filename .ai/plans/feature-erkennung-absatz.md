@@ -66,8 +66,8 @@ Grilling-Runde 2 (E2-Quellen, Marco, 2026-10-02):
     Jüngere, Frauen und Männer, jeweils Ausschnitte mit häufigem Sprecherwechsel.
 11. **Kinder und Jugendliche ausdrücklich erlaubt**, auch als Audio (Q8), aus Aufnahmen, die
     ihre Herausgeber frei lizenziert veröffentlicht haben.
-12. **Datenschutz-Text zu Jev präzisieren** (#90): Er nennt das Fenster aus sechs Sätzen und
-    dass im Gespräch genannte Namen mitgehen.
+12. **Datenschutz-Text zu Jev präzisieren** (#90, umgesetzt in #95): Er nennt die letzten
+    Gesprächsabschnitte (standardmäßig sechs) und dass im Gespräch genannte Namen mitgehen.
 13. **Erst die Erkennung abschließen, dann Features:** Bevor weitere Features entstehen, sollen
     Erkennung und Klassifizierung wirklich gut funktionieren (E1–E4). Marcos neue Idee, bei
     „keine Belege“ und nach einem Themenwechsel nachzurecherchieren, wartet als #94 und wird
@@ -234,5 +234,8 @@ Danach #76.
   der Prüfstrecke als Artifact „Prüfstrecke Live-Faktencheck“.
 - Meinungsregel gestrichen (Marco, 2026-10-02, in #92). Neue Idee Nachrecherche bei „keine
   Belege“ und Themenwechsel → #94, nach E1–E4 (Entscheidung 13).
-- **Frontier:** #89 mergen, dann #92 und #93 (Marco) · #90 Datenschutz-Text (eigener PR) · E2b:
-  Clips auswählen und die Kostenschätzung für den ersten Deepgram-Lauf an Marco
+- Datenschutz-Text zu Jev in **PR #95** (Review eingearbeitet: „standardmäßig sechs“
+  Gesprächsabschnitte, Aufbewahrung „bei uns“); Übersicht aller Regeln als Artifact
+  „Prüfstrecke Live-Faktencheck“.
+- **Frontier:** #89 mergen, dann #92, #93 und #95 (Marco) · Marcos Testlauf nach Anleitung ·
+  E2b: Clips auswählen und die Kostenschätzung für den ersten Deepgram-Lauf an Marco
