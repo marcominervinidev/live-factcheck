@@ -20,8 +20,8 @@ describe('prefilter (ADR 0017)', () => {
     'Denn waren es nicht Sie, der der Ampel ein Durchpeitschen vorgeworfen hat?',
     'Stimmt es nicht, dass die Arbeitslosigkeit gestiegen ist?',
     'Hat die Regierung nicht gerade erst die Steuern erhöht?',
-    // Every question reaches the classifier: only it tells a rhetorical question from a genuine
-    // one (owner decision 2026-10-02).
+    // Being a question is no reason to drop: only the classifier tells a rhetorical question
+    // from a genuine one (owner decision 2026-10-02).
     'Wer hat denn die Mieten in Berlin verdoppelt?',
     'Wie hoch ist die Arbeitslosigkeit eigentlich gerade?',
     'Stimmt es, dass Berlin größer als Hamburg ist?',
@@ -47,6 +47,8 @@ describe('prefilter (ADR 0017)', () => {
     ['Also die Mieten in Berlin sind explodiert.', 'greeting_or_filler'],
     ['Nein, die Regierung hat das Gesetz nie beschlossen.', 'greeting_or_filler'],
     ['Ich finde es absurd, dass Berlin eine kostenlose Kita hat.', 'opinion_only'],
+    // The filler rule applies to questions too; plan E2 counts how often that drops one.
+    ['Also wer hat denn die Mieten in Berlin verdoppelt?', 'greeting_or_filler'],
   ] as const)('drops %j as %s', (text, reason) => {
     expect(run(text)).toEqual({ pass: false, reason });
   });

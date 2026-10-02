@@ -3,9 +3,9 @@
  * hold a checkable claim before any model sees them. Precision of the whole detection matters
  * most, but the pre-filter must not drop real claims, so it only removes the obvious cases and
  * keeps everything that carries a "fact signal" (a number, a quantity, a comparison).
- * Questions always pass: only the classifier tells a rhetorical question that insinuates a fact
- * from a genuine one, and a leading interrogative can open a claim ("Was uns empört, ist …")
- * (owner decision 2026-10-02, ADR 0017).
+ * Being a question is no reason to drop: only the classifier tells a rhetorical question that
+ * insinuates a fact from a genuine one, and a leading interrogative can open a claim ("Was uns
+ * empört, ist …") (owner decision 2026-10-02, ADR 0017).
  */
 
 export type PrefilterReason = 'too_short' | 'greeting_or_filler' | 'opinion_only';

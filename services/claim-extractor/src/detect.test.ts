@@ -165,21 +165,15 @@ describe('detectClaim (ADR 0017)', () => {
     expect(llmRequests).toHaveLength(0);
   });
 
-  it.each([
-    { rating: 'a claim', classifier: answering(0.97, 4), kind: 'claim' },
-    { rating: 'no claim', classifier: answering(0.1, 4), kind: 'dropped' },
-  ] as const)(
-    'leaves a question to the classifier, which rates it as $rating',
-    async ({ classifier, kind }) => {
-      const { deps: d, classifierStates } = deps({ classifier });
-      const outcome = await detectClaim(
-        segment('Wer hat denn die Mieten in Berlin verdoppelt?'),
-        d,
-      );
-      expect(outcome.kind).toBe(kind);
-      expect(classifierStates).toHaveLength(1);
-    },
-  );
+  it('leaves a genuine question to the classifier, which drops it as no claim', async () => {
+    const { deps: d, classifierStates } = deps({ classifier: answering(0.1, 4) });
+    const outcome = await detectClaim(
+      segment('Wie hoch ist die Arbeitslosigkeit eigentlich gerade?'),
+      d,
+    );
+    expect(outcome).toEqual({ kind: 'dropped', reason: 'not_a_claim' });
+    expect(classifierStates).toHaveLength(1);
+  });
 
   it.each([
     ['not_a_claim', answering(0.1, 4)],
@@ -200,10 +194,8 @@ describe('detectClaim (ADR 0017)', () => {
 
   it('lets a rhetorical question that insinuates a fact reach the classifier and become a claim', async () => {
     const { deps: d, classifierStates, llmRequests } = deps({ classifier: answering(0.97, 3) });
-    const outcome = await detectClaim(
-      segment('Denn waren es nicht Sie, der der Ampel ein Durchpeitschen vorgeworfen hat?'),
-      d,
-    );
+    // No negation needed since the owner decision of 2026-10-02.
+    const outcome = await detectClaim(segment('Wer hat denn die Mieten in Berlin verdoppelt?'), d);
     expect(outcome.kind).toBe('claim');
     expect(classifierStates).toHaveLength(1);
     expect(llmRequests.at(-1)?.system).toContain('rhetorische Frage');
