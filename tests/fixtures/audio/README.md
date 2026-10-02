@@ -8,4 +8,4 @@ Uses: `make stt-probe` (real STT provider, plan T2.5), later stage 4 live mode (
 
 The macOS system voices may be used to create content for personal, non-commercial projects; this repository is a non-commercial portfolio project.
 
-Synthetic voices are no longer allowed in test audio (owner, 2026-10-02, `tests/AGENTS.md`): `conversation.de.wav` is replaced by a freely licensed recording of real people in task E2 of `.ai/plans/feature-erkennung-absatz.md`.
+Synthetic voices are no longer allowed in test audio (owner, 2026-10-02, `tests/AGENTS.md`): `conversation.de.wav` is replaced by a freely licensed recording of real people in task E2b of `.ai/plans/feature-erkennung-absatz.md` (audio regression clips in `regression/`).

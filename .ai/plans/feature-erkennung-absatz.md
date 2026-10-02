@@ -30,16 +30,16 @@
 ## Geklärte Entscheidungen (Marco, 2026-10-02)
 
 1. **Fragen bleiben in der Prüfung** (Q3): Rhetorische Fragen und Einleitungen wie „Was uns
-   empört, ist …“ gehen an den Klassifikator. Füllwort-Anfänge („Also …“, „Nein, …“) und
-   Meinungsmarker („Ich finde …“) verwirft der Vorfilter weiter.
+   empört, ist …“ gehen an den Klassifikator, auch mit Füllwort vorn („Also wer hat denn …?“,
+   Nachtrag aus #92). Aussagen mit Füllwort-Anfang („Also …“, „Nein, …“) oder Meinungsmarker
+   („Ich finde …“) ohne Zahl verwirft der Vorfilter weiter.
 2. **Erst messen, mit echten Aufnahmen** (Q1 a, am selben Tag geändert): Vor jeder Änderung am
-   Pfad kommen rund 100 Gesprächssegmente ins Erkennungs-Set, aus echten Aufnahmen echter Menschen
-   (Talkshows, Diskussionen, Debatten) und aus Protokollen. Nichts wird eingesprochen.
-   Urheberrechtlich geschützte Mitschnitte misst der Agent nur lokal, sie kommen nicht ins Repo.
-   Labels schlägt der Agent vor, Marco nimmt sie ab. Die Audio-Eval-Bank #82 folgt danach.
+   Pfad kommen echte Gespräche ins Erkennungs-Set: Protokolle und echte Aufnahmen echter Menschen
+   (Talkshows, Diskussionen, Debatten). Nichts wird eingesprochen. Labels schlägt der Agent vor,
+   Marco nimmt sie ab.
 3. **Testszenarien nah an der Realität, keine synthetischen Stimmen** (gilt für alle Tests und
-   Messungen): verschiedene Stimmen – Alter, Männer, Frauen, wo möglich Kinder. Die Regel steht
-   in `evals/README.md` und `tests/AGENTS.md`.
+   Messungen): verschiedene Stimmen – Alter, Männer, Frauen, Kinder. Die Regel steht in
+   `evals/README.md` und `tests/AGENTS.md`.
 4. **Hybrid** (Q2 b): Der schnelle Satz-Pfad bleibt für klare Fälle. Am Ende eines Redebeitrags
    liest ein Absatz-Pfad den ganzen Absatz und holt nach, was als „zu kurz“ oder „unsicher“
    hängen blieb.
@@ -52,71 +52,85 @@
    zählt auf dem Segment, mit dem sie vollständig wird (Regel 4 in `evals/README.md`, „Kontext
    entscheidet“).
 
+Grilling-Runde 2 (E2-Quellen, Marco, 2026-10-02):
+
+8. **Spracherkennung: Deepgram**, so wie in Produktion (Q6). Welcher Anbieter beim Live-Test
+   lief, ist nicht bekannt.
+9. **Talkshows laden, lokal messen, danach löschen** (Q7): aus der Mediathek (ZDF, phoenix; die
+   ARD hat Text und Data Mining vorbehalten), nie von YouTube. Ins Repo kommen nur Zahlen.
+10. **Audio-Regressionstests mit Audio im Repo** (Q9, ersetzt „Audio-Eval-Bank danach“, #82):
+    Clips von je 2–3 Minuten echter Gespräche werden eingespielt und gegen ein festgehaltenes
+    Ergebnis geprüft. Ein Querschnitt der Gesellschaft: Kinder und Jugendliche, Ältere und
+    Jüngere, Frauen und Männer, jeweils Ausschnitte mit häufigem Sprecherwechsel.
+11. **Kinder und Jugendliche ausdrücklich erlaubt**, auch als Audio (Q8), aus Aufnahmen, die
+    ihre Herausgeber frei lizenziert veröffentlicht haben.
+12. **Datenschutz-Text zu Jev präzisieren** (#90): Er nennt das Fenster aus sechs Sätzen und
+    dass im Gespräch genannte Namen mitgehen.
+
 ## Aufgaben
 
 **E1 – Vorfilter: Fragen gehen an den Klassifikator** · Risiko: **niedrig** (revertibel, nur
 `claim-extractor`, kein Vertrag) · Typ: implement
 
 - Umgesetzt in **PR #92**: Eine Frage ist kein Grund mehr zum Verwerfen, weder mit Fragewort am
-  Anfang („Was uns empört, ist …“) noch mit „?“ („Wer hat denn die Mieten verdoppelt?“). Der
-  Klassifikator unterscheidet rhetorische und echte Fragen (Prompt nach ADR 0017); die Regel
-  „verneinte Frage geht durch“ (2026-09-30) geht darin auf.
-- Unverändert (Entscheidung 1): Fetzen unter 5 Wörtern (`too_short`, E3 holt sie nach),
-  Füllwort-Anfänge und Meinungsmarker ohne Zahl – auch vor einer Frage („Also wer hat denn …?“
-  wird verworfen; offene Frage an Marco in #92). E2 zählt mit, wie viele echte Behauptungen diese
-  Regeln im Gespräch verwerfen; die Zahlen gehen an Marco.
+  Anfang („Was uns empört, ist …“) noch mit „?“ („Wer hat denn die Mieten verdoppelt?“) noch mit
+  Füllwort vorn („Also wer hat denn …?“; erkannt am Fragezeichen). Der Klassifikator unterscheidet
+  rhetorische und echte Fragen (Prompt nach ADR 0017); die Regel „verneinte Frage geht durch“
+  (2026-09-30) geht darin auf.
+- Unverändert (Entscheidung 1): Fetzen unter 5 Wörtern (`too_short`, E3 holt sie nach), Aussagen
+  mit Füllwort-Anfang oder Meinungsmarker ohne Zahl. E2 zählt mit, wie viele echte Behauptungen
+  diese Regeln im Gespräch verwerfen.
 - Kosten: ein Klassifikator-Aufruf mehr je Frage (Jev 0,042 $ pro 1 Mio. Input-Tokens, der
   `llm`-Klassifikator zum Preis des Extractor-Modells); wird eine Frage zur Behauptung, kommen
   Formulierung und Faktencheck dazu. Auf dem Eval-Set bewegt sich F1 je nach Urteil zwischen −3,2
   und +1,3 Punkten; die E2-Baseline misst es.
-- Unit-Tests: „Was uns empört, ist …“, rhetorische und echte Fragen erreichen den Klassifikator.
-  Nachweis: Zählung über das Eval-Set vorher/nachher mit dem echten Code (kostenlos); die Wirkung
-  auf die Präzision misst der Baseline-Lauf in E2.
 - Datierter Nachtrag in ADR 0017 (Umfang des Vorfilters).
 
-**E2 – Gesprächs-Eval mit echten Aufnahmen und Baseline** · Risiko: **niedrig** (nur
-Eval-Daten, revertibel; die Labels tragen jede spätere Entscheidung, daher nimmt Marco jedes ab) ·
-Typ: research → implement
+**E2a – Protokoll-Segmente und Bericht je Quelle** · Risiko: **niedrig** · Typ: implement
 
-- Research erledigt (2026-10-02) → `.ai/research/conversation-audio-sources.md`. Vorgeschlagene
-  Mischung für das Repo-Set:
-  - Bundestag: Regierungsbefragung und Fragestunde. Die ersten 73 Segmente aus Protokoll 21/95
-    liegen zur Abnahme in **PR #93** (mit Eval-Bericht je Quelle).
-  - Etwa 15 Segmente aus Landtagsprotokollen (Baden-Württemberg, Bayern, Berlin; amtliche Werke
-    mit Zurufen und Zusatzfragen).
-  - Etwa 30 Segmente aus Podien und Debatten unter CC BY oder BY-SA (Wikimedia Commons,
-    media.ccc.de).
-  - Etwa 15 Segmente aus Interviews als realistische Gegenbeispiele.
-  - Etwa 10 Segmente von Jugendlichen, nur als Text („Jugend und Parlament“).
-  - Pro Quelle Ausgewogenheit prüfen (politische Lager, Männer und Frauen).
-- Ins Repo (Set plus Zeile in `evals/SOURCES.md`) kommt nur, was die Lizenz erlaubt. Talkshows misst
-  der Agent nur lokal: Audio und Transkript liegen in `evals/local/` (per `.gitignore`
-  ausgeschlossen, ebenso `tests/fixtures/audio/local-*`), werden nach der Messung gelöscht, und ins
-  Repo kommen nur Zahlen. Laut Research:
-  - ZDF und phoenix haben keinen TDM-Vorbehalt (§ 44b UrhG).
-  - Die ARD hat Text und Data Mining in der robots.txt vorbehalten, ARD-Sendungen gehen deshalb
-    nur per Live-Wiedergabe in die App.
-  - YouTube nie: Die Nutzungsbedingungen verbieten den Download, und laut OLG Hamburg (2024) ist
-    die Verschlüsselung ein wirksamer Kopierschutz.
-  - Den Weg entscheidet Marco (Grilling-Runde 2).
-- Die Aufnahmen laufen durch die Spracherkennung des Live-Tests (gleicher Anbieter, gleiches
-  Finalisierungs-Fenster); die echten Fetzen gehen als Text ins Set, Zwischenrufe als eigene
-  Sprecher. Die Kosten der Spracherkennung schätzt der Agent vorher.
-- Labels: Vorschlag vom Agent (`reviewed: false`), Abnahme durch Marco (etwa 30 min), mit der
-  Label-Regel aus Entscheidung 7.
-- Eval-Bericht getrennt nach Quelle (Bundestag / Gespräch; lokal gemessene Talkshows nur als
-  Zahlen), damit ein Gewinn im Gespräch keinen Verlust im Bundestag verdeckt. Dazu die
-  Vorfilter-Zählung für die Gesprächssegmente (Entscheidung 1).
-- Baseline: bezahlter Lauf Jev@0,6 mit E1 über das ganze Set (Kostenschätzung vorher, Start nur
-  nach Marcos OK).
-- `tests/fixtures/audio/conversation.de.wav` (synthetisch, macOS-Stimmen) wird durch einen frei
-  lizenzierten echten Ausschnitt ersetzt (Entscheidung 3).
-- Minderjährige: Frei lizenzierte deutsche Gespräche mit Kindern unter etwa 12 Jahren gibt es laut
-  Research nicht. Kinderstimmen sind außerdem besonders schutzwürdig (DSGVO, Erwägungsgrund 38).
-  Vorschlag: Jugendliche nur als Text und kein Audio von Minderjährigen im Repo. Das entscheidet
-  Marco (Grilling-Runde 2).
+- Umgesetzt in **PR #93**: 73 Segmente aus der Regierungsbefragung 21/95, von Marco abgenommen
+  (2026-10-02); Eval-Bericht mit einer Zeile pro Quelle; lokale Sets schreiben ihre Berichte nach
+  `evals/local/reports/`; jede Quelle muss für ihr Set dokumentiert sein.
+- Grenze: Protokolltext hat kaum Satzfetzen. Das misst erst E2b.
 
-**Gate E1** – Marco: Labels abgenommen, Baseline gesehen. Danach E3.
+**E2b – Audio-Regressionstests** · Risiko: **mittel** (neue Testart mit echtem Anbieter und Kosten,
+Audio-Dateien im öffentlichen Repo, Lizenzfragen; revertibel) · Typ: research → prototype →
+implement
+
+- Quellen (Research → `.ai/research/conversation-audio-sources.md`), ins Repo nur mit passender
+  Lizenz und Namensnennung:
+  - Bundestag-Mediathek: zuerst das Audio derselben Regierungsbefragung 21/95, so dass Protokoll
+    und Spracherkennung direkt vergleichbar sind; dazu „Jugend und Parlament“ (17–20 Jahre).
+    Nutzungsbedingungen: Bildung und Kultur, nicht kommerziell, Weitergabe mit Hinweis.
+  - Wikimedia Commons (CC BY, BY-SA): Podien und Streitgespräche, Interviews mit Älteren.
+  - media.ccc.de (CC BY 4.0): Gesprächsrunden mit Publikumsfragen; „Jugend hackt“ (12–18 Jahre).
+  - Kinder unter etwa 12: frei lizenzierte Gespräche fand die Recherche keine. Der Agent sucht
+    gezielt weiter und benennt die Lücke, statt sie zu füllen.
+- Auswahl: 8–10 Clips von je 2–3 Minuten, jeweils der Ausschnitt mit den meisten
+  Sprecherwechseln. Je Clip stehen Quelle, Lizenz, Sprecherzahl, grobes Alter und Geschlecht in
+  einer Metadaten-Datei. Der Querschnitt ist erst erreicht, wenn jede Gruppe aus Entscheidung 10
+  vorkommt.
+- Ablage: `tests/fixtures/audio/regression/` als FLAC (16 kHz mono, verlustfrei, etwa 3 MB je
+  Clip, ohne Git LFS); ein Clip ersetzt `conversation.de.wav`.
+- Ablauf je Clip: Audio → Deepgram (Entscheidung 8) → Segmente → `claim-extractor`. Beim ersten
+  Lauf hält der Agent das Transkript als Referenz fest und schlägt Labels je Segment vor; Marco
+  nimmt sie ab. Ab dann prüft jeder Lauf zwei Dinge: Wie weit weicht das Transkript von der
+  Referenz ab (Wortfehlerrate), und wie gut trifft die Erkennung die Labels (Precision, Recall).
+  Fällt einer der Werte unter die festgehaltene Schwelle, ist der Lauf rot.
+- Start mit einem Make-Target (manuell, eigener Budget-Key); später nightly, wenn Marco einen
+  Deepgram-Key fürs Eval-Environment hinterlegt. In der PR-CI läuft der Test nicht, dort gibt es
+  nur Mock-Anbieter.
+- Kosten: Deepgram 0,0077 $ pro Minute, für 10 Clips à 3 min also etwa 0,23 $ je Lauf, dazu
+  Klassifikator und Formulierung. Vor dem ersten Lauf eine Schätzung an Marco.
+- Talkshows (Entscheidung 9) laufen durch denselben Runner aus `evals/local/`; Audio, Transkript
+  und Labels bleiben lokal und werden nach der Messung gelöscht.
+
+**E2c – Baseline** · Risiko: **niedrig** · Typ: implement
+
+- Bezahlter Lauf Jev@0,6 mit E1 über das Text-Set (Reden und Befragung) und die Audio-Clips,
+  Bericht je Quelle, dazu die Vorfilter-Zählung (Entscheidung 1). Kostenschätzung vorher.
+
+**Gate E1** – Marco: Labels der Audio-Clips abgenommen, Baseline gesehen. Danach E3.
 
 **E3 – Prototyp Absatz-Pfad, zwei Varianten gemessen** · Risiko: **mittel** (neuer LLM-Aufruf
 kostet Geld, neuer Zustand im Extractor; revertibel per Konfiguration, kein Vertrag) · Typ:
@@ -161,10 +175,12 @@ Danach #76.
 
 | Anforderung | Stufe | Test / Nachweis | Status |
 |---|---|---|---|
-| Fragen erreichen den Klassifikator („Was uns empört, ist …“, rhetorische und echte Fragen); Füllwort- und Meinungsregeln unverändert | 1 | `prefilter.test.ts`, `detect.test.ts` | geplant |
-| Rund 100 Gesprächssegmente aus echten Aufnahmen, jedes Label von Marco abgenommen, Quelle in `SOURCES.md` | – | `evals/detection.de.jsonl` | geplant |
-| Keine synthetischen Stimmen im Test-Audio | – | `tests/fixtures/audio/README.md` | geplant |
-| Eval-Bericht getrennt nach Quelle | 5 | `make eval EVAL_SET=detection` | geplant |
+| Fragen erreichen den Klassifikator („Was uns empört, ist …“, rhetorische, echte und mit Füllwort vorn); Aussagen mit Füllwort oder Meinung ohne Zahl weiter verworfen | 1 | `prefilter.test.ts`, `detect.test.ts` | in #92 |
+| Gesprächssegmente aus Protokollen, jedes Label von Marco abgenommen, Quelle in `SOURCES.md` | – | `evals/detection.de.jsonl` | in #93 |
+| 8–10 Audio-Clips (2–3 min, Querschnitt nach Entscheidung 10), Lizenz und Metadaten je Clip, Labels von Marco abgenommen | – | `tests/fixtures/audio/regression/` | geplant |
+| Audio-Regressionslauf: Wortfehlerrate und Erkennung je Clip gegen die festgehaltenen Werte | 5 | Make-Target (Deepgram, bezahlt) | geplant |
+| Keine synthetischen Stimmen im Test-Audio | – | `tests/fixtures/audio/README.md` | Regel in #89, Ersatz der Datei in E2b |
+| Eval-Bericht getrennt nach Quelle | 1 | `detection.test.ts` (Bericht), `make eval EVAL_SET=detection` | in #93 |
 | Grenzen des Redebeitrags (Sprecherwechsel, Pause, Höchstdauer, Aufnahme-Ende) | 1 | Unit-Tests mit Fake-Timern | geplant |
 | Behauptung aus mehreren Segmenten nennt alle; keine doppelte Karte zwischen den Pfaden | 1 + 2a | `detect.test.ts`, `main.int.test.ts` | geplant |
 | Gespräch besser als die Baseline, Bundestag nicht schlechter | 5 | Messlauf (bezahlt, Freigabe) | geplant |
@@ -180,10 +196,15 @@ Danach #76.
   Karten sind möglich. Baseline (E2) und Messung (E3) zeigen es, bevor etwas Standard wird.
 - **Kleines Set:** Bei rund 100 Gesprächssegmenten sind wenige F1-Punkte Rauschen; Berichte nennen
   Trefferzahlen, nicht nur Prozent.
-- **Lizenzlage:** Frei lizenzierte echte Gespräche sind seltener als Talkshows. Reicht das
-  Material nicht, kommen mehr Protokolle dazu, und die Talkshows zählen nur lokal.
-- **Kinderstimmen:** frei lizenziert selten und besonders schutzwürdig (Stimme ist ein
-  personenbezogenes Datum). Fehlen sie, benennt der Bericht die Lücke.
+- **Lizenzlage:** Frei lizenzierte echte Gespräche sind seltener als Talkshows; die
+  Bundestag-Bedingungen („Bildung und Kultur“) decken ein öffentliches Test-Repo vermutlich, aber
+  nicht sicher (bei Zweifel Rückfrage beim Parlamentsfernsehen). Talkshows zählen nur lokal.
+- **Kinderstimmen:** frei lizenziert selten (unter etwa 12 Jahren keine gefunden). Erlaubt sind
+  sie laut Marco; die Clips nennen keine Namen von Kindern, und der Bericht benennt eine Lücke,
+  statt sie mit ungeeignetem Material zu füllen.
+- **Regression mit Cloud-Anbieter:** Deepgram kann sein Modell ändern; dann weicht das Transkript
+  ab, ohne dass unser Code schuld ist. Der Bericht trennt deshalb Transkript-Abweichung und
+  Erkennungs-Ergebnis.
 - **Mehrere Extractor-Instanzen:** Der Puffer liegt in Redis; ein Redebeitrag wird genau einmal
   abgeschlossen (Marker wie `processedMarker`).
 - **Prompt-Injection:** Der Absatz geht als Daten mit Nonce in den Prompt (wie die Formulierung);
@@ -197,16 +218,12 @@ Danach #76.
 - E1 umgesetzt in PR #92 (Reviewer und Security-Reviewer ohne Blocker, Befunde eingearbeitet);
   ältere Befunde aus dem Security-Review als Issues #90 (Datenschutz-Text zu Jev) und #91 (Budget
   bei Jev ohne Token-Angabe); lokale Aufnahmen per `.gitignore` geschützt
-- E2 Teil 1 in **PR #93** (Reviews eingearbeitet): Eval-Bericht mit einer Zeile pro Quelle, 73
-  Gesprächssegmente aus der Regierungsbefragung 21/95 mit Label-Vorschlägen (17 Behauptungen, 11
-  Grenzfälle), Schutz für lokale Sets (Berichte bleiben lokal, Quelle muss für das Set
-  dokumentiert sein, Commit-Hook prüft `.jsonl`). In diesem Block verwirft der Vorfilter nur den
-  Satzrest „und mit der Bereichsausnahme.“ (zu kurz, Fall für E3); Füllwort- und Meinungsregeln
-  kosten keine Behauptung. Grenze: Protokolltext hat kaum Satzfetzen, den Kern des
-  Live-Test-Problems messen erst echte Aufnahmen. Quellen-Research erledigt.
-- Grilling-Runde 2 (E2-Quellen, 2026-10-02) wartet auf Marco: Spracherkennung und Kosten für die
-  Aufnahmen, Weg für die Talkshows (ZDF/phoenix lokal, ARD nur live, nie YouTube), Minderjährige
-  (nur Text), Audio-Ausschnitte im Repo
-- **Frontier:** #89 mergen, dann #92 und #93 (Marco) · Grilling-Runde 2 beantworten ·
-  E2-Labels in #93 abnehmen (etwa 30 min) · OK für die Kosten von Spracherkennung und
-  Baseline-Lauf · offene Frage zu Fragen mit Füllwort-Anfang (#92)
+- E2a in **PR #93** (Reviews eingearbeitet, Labels von Marco abgenommen 2026-10-02): Eval-Bericht
+  mit einer Zeile pro Quelle, 73 Gesprächssegmente aus der Regierungsbefragung 21/95 (17
+  Behauptungen), Schutz für lokale Sets. In diesem Block verwirft der Vorfilter nur den Satzrest
+  „und mit der Bereichsausnahme.“ (zu kurz, Fall für E3). Grenze: Protokolltext hat kaum
+  Satzfetzen; das misst E2b.
+- Grilling-Runde 2 entschieden (Marco, 2026-10-02): Entscheidungen 8–12. Übersicht aller Regeln
+  der Prüfstrecke als Artifact „Prüfstrecke Live-Faktencheck“.
+- **Frontier:** #89 mergen, dann #92 und #93 (Marco) · #90 Datenschutz-Text (eigener PR) · E2b:
+  Clips auswählen und die Kostenschätzung für den ersten Deepgram-Lauf an Marco
