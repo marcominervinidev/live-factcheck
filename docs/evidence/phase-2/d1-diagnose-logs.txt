@@ -6,55 +6,86 @@ Plan .ai/plans/feature-erkennung-absatz.md (grilling round 3, decisions 17 and 1
 the evidence got lost).
 
 Trigger: in the owner's test run of 2026-10-02 eight segments ended as provider_error, and nothing
-said whether Jev or Claude failed; later two claims ended no_evidence although a SearXNG query for
-the Berlin rents returned 26 results (among them Tagesspiegel: "binnen zehn Jahren um 69 Prozent").
+said whether Jev or Claude failed; later two claims ended no_evidence although a test search for
+the Berlin rents returned 26 results.
 
-What the logs now say (never segment text, claim text, queries or URLs):
-- claim-extractor, one line per dropped segment, msg "segment dropped":
-    {"sessionId":…,"segmentId":…,"reason":"not_a_claim"}                                   (info)
+What the logs now say (never segment text, claim text, queries, URLs or error messages):
+- claim-extractor, one line per dropped final segment, msg "segment dropped":
+    {"sessionId":…,"segmentId":…,"reason":"not_a_claim"}                                    (info)
     {"sessionId":…,"segmentId":…,"reason":"provider_error",
-     "failure":{"source":"classifier","kind":"provider_error","status":401,"error":"AuthenticationError"}}   (warn)
-- fact-checker, one line per researched check, msg "research summary" (shape asserted by the unit
+     "failure":{"source":"classifier","kind":"provider_error","status":429,"error":"RateLimitError"}}   (warn)
+  The failure walks the cause chain, so status and SDK class survive the double wrapping of the
+  llm classifier (ClassifierError → LlmError → SDK error). refused and invalid_llm_output carry a
+  failure too and log at warn.
+- fact-checker, one line per researched check, msg "research summary" (shape pinned by the unit
   test "shows where a check without evidence lost it"):
-    {"sessionId":…,"claimId":…,"queries":3,"fallbackQueries":false,"longNumberQueries":0,
+    {"sessionId":…,"claimId":…,"queries":1,"fallbackQueries":false,"longNumberQueries":0,
      "documents":{"wikipedia":0,"web":0},"factChecks":0,
-     "failedSources":["wikidata: FetchFailedError 429"],
+     "failedSources":[{"source":"wikidata","error":"FetchFailedError","status":429}],
      "web":{"queries":2,"failedQueries":0,"results":8,"pages":5,"skipped":{"http_403":5}},
-     "snippets":0,"retrieveMs":…,"classifyMs":0}
-  `relevant` (snippets judged relevant) and `sufficient` (probability that the evidence suffices)
-  appear once those steps ran. A cached verdict does no research and logs no summary.
+     "snippets":0,"verdict":"nicht_pruefbar","reason":"no_evidence","retrieveMs":10,"classifyMs":0}
+  `relevant` and `sufficient` appear once those steps ran, so the line shows which of the three
+  no_evidence exits fired: snippets 0 (nothing found), relevant 0 (nothing relevant), sufficient
+  below 0.5 (not enough). Skip labels: timeout, robots, blocked, http_<status>, content_type,
+  too_large, fetch_failed, unreadable, or an error class. A tier or page cut off by our own
+  timeout counts as `timeout`, never as robots.txt or a failed fetch. A cached verdict and a
+  budget stop do no research and log no summary; an error in the hook never changes the answer.
 
-1. Tests (stage 1)
+1. Tests, stage 1
    $ cd packages/research && ../../scripts/tb pnpm exec vitest run --project unit
      Test Files  6 passed (6)
-     Tests  151 passed (151)
+          Tests  156 passed (156)
      new: "counts why pages gave no document, as labels without URLs (plan D1)"
+          "labels the page failure … as too_large | fetch_failed | timeout | TypeError"
+          "counts pages cut off by the tier timeout as timeout, not as robots.txt or failure"
           "names a failed tier by error class and HTTP status (plan D1)"
-          web tier and researchClaim tests assert the counts
+          the tier-timeout test now also expects error "timeout"
    $ cd services/fact-checker && ../../scripts/tb pnpm exec vitest run --project unit
      Test Files  4 passed (4)
-     Tests  44 passed (44)
-     new: "counts what a judged check found and kept, without any text"
+          Tests  49 passed (49)
+     new: "reports a judged check | a check whose snippets were all irrelevant | a check whose
+           classifier failed | a check whose embeddings failed once, with its counts"
+          "tells snippets from relevant snippets"
           "shows where a check without evidence lost it: tiers, failures and skipped pages"
           "marks heuristic queries after a failed query step"
           "counts queries with long digit runs, which search engines rarely match (#80)"
-          "reports nothing for a cached verdict, which does no research"
+          "reports nothing for a cached verdict or a budget stop, which do no research"
+          "keeps the answer when the diagnose hook throws"
    $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
      Test Files  4 passed (4)
-     Tests  60 passed (60)
-     new: "names source, HTTP status and SDK error of a failed call for the log, never its text (plan D1)";
-          the drop tests now expect the failure details
+          Tests  61 passed (61)
+     new: "names source, HTTP status and SDK error of a failed call for the log, never its text (plan D1)"
+          "finds HTTP status and SDK error two levels down, as the llm classifier wraps them (plan D1)"
 
-2. Static checks
+2. Tests, stage 2a (Testcontainers Redis; the services run as child processes from main.ts)
+   $ docker compose -f compose.toolbox.yaml --profile docker run --rm toolbox-docker \
+       pnpm --filter @lfc/claim-extractor --filter @lfc/fact-checker -r --if-present test:int
+     services/claim-extractor  Test Files 2 passed (2)  Tests 8 passed (8)
+       "detects claims in final segments …" now also expects three "segment dropped" lines
+       (duplicate, greeting_or_filler, not_a_claim) and none of the dropped texts in the output
+     services/fact-checker     Test Files 1 passed (1)  Tests 3 passed (3)
+       "checks a claim from claims.detected …" now also expects exactly one "research summary"
+       line with the claim's id and verdict
+     exit 0
+
+3. Static checks
    $ scripts/tb pnpm typecheck                                          exit 0
    $ scripts/tb pnpm exec eslint --max-warnings 0 <changed .ts files>  exit 0
    $ scripts/tb pnpm exec prettier --check <changed files>
      All matched files use Prettier code style!
    $ scripts/tb pnpm depcruise
-     ✔ no dependency violations found (315 modules, 938 dependencies cruised)
+     ✔ no dependency violations found (315 modules, 937 dependencies cruised)
    $ make sast
      Ran 244 rules on 513 files: 0 findings.
 
-3. Not done here: a live run. The owner's next test run (milestone after E1b and D1) reads the
-   new lines with `docker logs live-factcheck-fact-checker-1 | grep 'research summary'`; task R1
-   starts from what they show.
+4. What the lines do not show yet (candidates for R1, not for D1)
+   - Wikipedia page loads that fail are swallowed inside the Wikipedia tier, so
+     documents.wikipedia 0 can mean "no hit" or "the pages failed".
+   - Chunks beyond MAX_CHUNKS_PER_DOCUMENT (6) per page are never ranked; a relevant sentence deep
+     in a long article does not reach the relevance question.
+   - A failed SearXNG query counts in web.failedQueries; its HTTP status stays inside the
+     SearchError message, which is never logged.
+
+5. Not done here: a live run. The owner's next test run (Gate D) reads the new lines with
+   `docker logs live-factcheck-fact-checker-1 | grep 'research summary'`; task R1 starts from
+   what they show.
