@@ -1,0 +1,44 @@
+Erkennung · E1 – every question reaches the classifier (2026-10-02, branch feat/prefilter-questions)
+==================================================================================================
+
+Plan .ai/plans/feature-erkennung-absatz.md, task E1; ADR 0017, amendment 2026-10-02.
+Change: the pre-filter no longer drops questions (leading interrogative or "?"); greetings,
+filler openers and opinion markers without a fact signal are still dropped (owner decision).
+
+1. Red first: updated tests against the old prefilter.ts
+   $ scripts/tb pnpm exec vitest run src/prefilter.test.ts src/detect.test.ts   (services/claim-extractor)
+     × passes "Wer hat denn die Mieten in Berlin verdoppelt?"
+     × passes "Wie hoch ist die Arbeitslosigkeit eigentlich gerade?"
+     × passes "Stimmt es, dass Berlin größer als Hamburg ist?"
+     × passes "Was uns empört, ist, dass die Mieten in Berlin explodiert sind."
+     × leaves a question to the classifier, which rates it as a claim
+     × leaves a question to the classifier, which rates it as no claim
+     (all other cases green, including the kept drops "Also die Mieten …", "Nein, die
+     Regierung …" and "Ich finde es absurd, dass …")
+
+2. Green: new prefilter.ts
+   $ scripts/tb pnpm exec vitest run --project unit   (services/claim-extractor)
+     Test Files  4 passed (4)
+     Tests  58 passed (58)
+   $ scripts/tb pnpm typecheck                        → no errors
+   $ scripts/tb pnpm exec eslint --max-warnings 0 <changed files>, prettier --check → clean
+
+3. Detection set, pre-filter only (deterministic, no model, the real TypeScript module run with
+   Node 24 type stripping in the toolbox)
+   $ scripts/tb node --input-type=module -e "<prefilter(text, { minWords: 5 }) per reason and
+     label over evals/detection.de.jsonl>"
+
+                                    before (origin/main)   after
+     pass        | expected=true            46              47
+     pass        | expected=false           93              97
+     question    | expected=true             1               –
+     question    | expected=false            4               –
+     too_short   | expected=false           14              14
+     greeting_or_filler | expected=false     1               1
+     opinion_only       | expected=false     2               2
+     segments                              161             161
+
+   Recovered positive: "Was uns ebenfalls empört, liebe Kollegin Mast: Sie verlängern mit Ihren
+   Mehrheiten auch künstlich die Legislatur des 20. Bundestages, …" (leading interrogative, no
+   question mark). The four genuine questions now reach the classifier, whose claim question
+   rejects genuine questions; the effect on precision is measured in the paid baseline of E2.
