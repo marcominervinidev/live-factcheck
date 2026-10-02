@@ -87,12 +87,17 @@ export interface ResearchLimits {
   readonly webPages: number;
 }
 
-/** A tier that failed or timed out; for metrics and logs, never shown to users. */
+/** A tier that failed or timed out; never shown to users. */
 export interface ResearchFailure {
   readonly source: string;
+  /**
+   * Name and message of the error, for tests and debugging. Never log it: the message can carry
+   * hostnames or response fragments.
+   */
   readonly reason: string;
-  /** The error's name, and the HTTP status when a server answered; safe to log (plan D1). */
-  readonly error?: string;
+  /** Safe to log (plan D1): the error class, or `timeout` for our own abort. */
+  readonly error: string;
+  /** The HTTP status when a server answered. */
   readonly status?: number;
 }
 
@@ -101,7 +106,7 @@ export interface ResearchResult {
   readonly factChecks: readonly FactCheckHit[];
   readonly failures: readonly ResearchFailure[];
   /** Documents per tier before deduplication, for the research summary log (plan D1). */
-  readonly perSource?: Readonly<Record<string, number>>;
+  readonly perSource: Readonly<Record<string, number>>;
   /** What the web tier did; absent when it failed. */
   readonly web?: WebSearchStats;
 }
@@ -119,11 +124,13 @@ async function withTimeout<T>(
   try {
     return { source, value: await run(signal) };
   } catch (error) {
+    // Our own abort (the tier's timeout or the check's deadline) says nothing about the source.
+    const timedOut = signal.aborted;
     return {
       source,
       reason: error instanceof Error ? `${error.name}: ${error.message}` : 'unknown error',
-      error: error instanceof Error ? error.name : 'unknown',
-      ...(error instanceof FetchFailedError && error.status !== undefined
+      error: timedOut ? 'timeout' : error instanceof Error ? error.name : 'unknown',
+      ...(!timedOut && error instanceof FetchFailedError && error.status !== undefined
         ? { status: error.status }
         : {}),
     };

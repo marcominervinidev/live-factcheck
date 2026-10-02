@@ -315,6 +315,75 @@ describe('web source (tier 3)', () => {
       skipped: { http_403: 1, content_type: 1, unreadable: 1 },
     });
   });
+
+  it.each([
+    [new FetchFailedError('response too large'), 'too_large'],
+    [new FetchFailedError('request failed', { cause: new Error('ECONNREFUSED') }), 'fetch_failed'],
+    [
+      new FetchFailedError('request failed', { cause: new DOMException('t', 'TimeoutError') }),
+      'timeout',
+    ],
+    [new TypeError('bug'), 'TypeError'],
+  ] as const)('labels the page failure %s as %s', async (error, label) => {
+    const one: SearchProvider = {
+      name: 'mock',
+      search: () =>
+        Promise.resolve([{ url: 'https://example.org/seite', title: 'A', snippet: '' }]),
+    };
+    const { fetcher } = fakeFetcher({ 'https://example.org/seite': error });
+    const { stats } = await createWebSource({
+      search: one,
+      fetcher,
+      robots: { isAllowed: () => Promise.resolve(true) },
+      tiers,
+      maxChars: 10_000,
+      now,
+    }).search(['q'], { resultsPerQuery: 5, maxPages: 5 });
+    expect(stats.skipped).toEqual({ [label]: 1 });
+  });
+
+  it('counts pages cut off by the tier timeout as timeout, not as robots.txt or failure', async () => {
+    const two: SearchProvider = {
+      name: 'mock',
+      search: () =>
+        Promise.resolve([
+          { url: 'https://slow-robots.example.org/a', title: 'A', snippet: '' },
+          { url: 'https://slow-page.example.org/b', title: 'B', snippet: '' },
+        ]),
+    };
+    const waitForAbort = <T>(signal: AbortSignal | undefined, answer: () => T) =>
+      new Promise<T>((resolve, reject) => {
+        signal?.addEventListener('abort', () => {
+          try {
+            resolve(answer());
+          } catch (error) {
+            reject(error instanceof Error ? error : new Error(String(error)));
+          }
+        });
+      });
+    // robots.ts answers "disallow" for our own abort; the page fetch rejects like safe-fetch does.
+    const robots: RobotsPolicy = {
+      isAllowed: (url, options) =>
+        url.includes('slow-robots')
+          ? waitForAbort(options?.signal, () => false)
+          : Promise.resolve(true),
+    };
+    const fetcher: SafeFetcher = {
+      fetchText: (_url, options) =>
+        waitForAbort(options.signal, () => {
+          throw new FetchFailedError('request failed', { cause: new Error('aborted') });
+        }),
+    };
+    const { stats } = await createWebSource({
+      search: two,
+      fetcher,
+      robots,
+      tiers,
+      maxChars: 10_000,
+      now,
+    }).search(['q'], { resultsPerQuery: 5, maxPages: 5, signal: AbortSignal.timeout(50) });
+    expect(stats.skipped).toEqual({ timeout: 2 });
+  });
 });
 
 describe('researchClaim', () => {
@@ -418,6 +487,8 @@ describe('researchClaim', () => {
       },
     );
     expect(result.failures.map((f) => f.source)).toEqual(['wikipedia', 'wikidata']);
+    // Our own abort says nothing about the source (plan D1).
+    expect(result.failures.map((f) => f.error)).toEqual(['timeout', 'timeout']);
     expect(result.documents).toEqual([]);
   });
 });
