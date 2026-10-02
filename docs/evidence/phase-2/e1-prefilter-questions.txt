@@ -60,3 +60,14 @@ Change: the pre-filter no longer drops a segment for being a question (leading i
    classified yet. Against the Jev@0.6 run (37 true positives, 11 false positives, 10 misses)
    F1 moves between −3.2 points (four new false positives, r05-06 still missed) and +1.3 points
    (r05-06 found, no new false positive). The paid baseline of plan task E2 measures it.
+
+4. Follow-up (owner, 2026-10-02, after the review): filler-led questions pass too
+   Red first: "Also wer hat denn die Mieten in Berlin verdoppelt?" and "Ja, aber wer hat das am Ende
+   eigentlich bezahlt?" moved to the pass list → 2 of 27 prefilter tests red against the previous code.
+   Change: the filler rule skips segments that end with "?"; without a question mark it still applies
+   (pinned: "Also wer hat denn die Mieten in Berlin verdoppelt" → greeting_or_filler).
+   Green: $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
+     Test Files  4 passed (4)
+     Tests  60 passed (60)
+   Detection set: no segment of evals/detection.de.jsonl starts with a filler word and ends with "?",
+   so the count in section 3 is unchanged.
