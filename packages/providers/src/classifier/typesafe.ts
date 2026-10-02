@@ -45,8 +45,10 @@ function toJev(question: Question): JevQuestion {
 
 /**
  * Jev by TypeSafe via the official SDK (brief 8.1, ADR 0007). Speaker names never reach this
- * adapter: callers send only the claim and snippets (brief 15.6). SDK logging is off because
- * its debug level logs request bodies.
+ * adapter, only letters: the claim-extractor sends its window of recent segments, the
+ * fact-checker the claim and snippets (brief 15.6, ADR 0017, #90). Names spoken in the
+ * conversation are part of that text. SDK logging is off because its debug level logs request
+ * bodies.
  */
 export function createTypeSafeClassifier(options: TypeSafeOptions): ClassifierProvider {
   const client = new TypeSafeClient({
