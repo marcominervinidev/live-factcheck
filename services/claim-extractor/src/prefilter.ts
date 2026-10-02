@@ -5,7 +5,8 @@
  * keeps everything that carries a "fact signal" (a number, a quantity, a comparison).
  * Being a question is no reason to drop: only the classifier tells a rhetorical question that
  * insinuates a fact from a genuine one, and a leading interrogative can open a claim ("Was uns
- * empört, ist …") (owner decision 2026-10-02, ADR 0017).
+ * empört, ist …"). A filler opener does not drop a question either ("Also wer hat denn …?");
+ * a question is recognised by its question mark (owner decisions 2026-10-02, ADR 0017).
  */
 
 export type PrefilterReason = 'too_short' | 'greeting_or_filler' | 'opinion_only';
@@ -41,7 +42,8 @@ export function prefilter(text: string, options: PrefilterOptions): PrefilterRes
   if (words.length < options.minWords) return { pass: false, reason: 'too_short' };
 
   const factSignal = FACT_SIGNAL.test(trimmed);
-  if (!factSignal && GREETING_OR_FILLER.test(trimmed)) {
+  const question = trimmed.endsWith('?');
+  if (!factSignal && !question && GREETING_OR_FILLER.test(trimmed)) {
     return { pass: false, reason: 'greeting_or_filler' };
   }
   if (!factSignal && OPINION_MARKERS.test(trimmed)) {
