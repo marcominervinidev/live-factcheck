@@ -1,10 +1,12 @@
 Erkennung · E1b – no word limit and no checkworthiness minimum by default (2026-10-02, branch feat/e1b-weniger-verwerfen)
 ==========================================================================================================================
 
-Plan .ai/plans/feature-erkennung-absatz.md (grilling round 3, decisions 14 and 15), task E1b;
-ADR 0017, amendment 2026-10-02 (round 3).
+Plan .ai/plans/feature-erkennung-absatz.md (grilling rounds 3 and 3b, decisions 14, 15 and 19),
+task E1b; ADR 0017, amendment 2026-10-02 (round 3).
 Change: DETECTOR_MIN_WORDS and DETECTOR_MIN_SCORE default to 1, which switches both rules off; both
-stay configurable, and Compose now passes DETECTOR_MIN_WORDS through like DETECTOR_MIN_SCORE.
+stay configurable, and Compose now passes DETECTOR_MIN_WORDS through like DETECTOR_MIN_SCORE. A
+third classifier question keeps private matters of non-public persons out; such segments are
+masked in every later state.
 
 0. Trigger: the owner's test run of 2026-10-02 after a key fix (counters read from the owner's
    stack, nothing changed there)
@@ -29,11 +31,19 @@ stay configurable, and Compose now passes DETECTOR_MIN_WORDS through like DETECT
 2. Green
    $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
      Test Files  4 passed (4)
-          Tests  70 passed (70)
-     with the privacy question of round 3b (owner, 2026-10-02):
+          Tests  74 passed (74)
+     with the privacy question of round 3b (owner, 2026-10-02, decision 19):
        "drops a private matter of a non-public person before any text is formulated (owner 2026-10-02)"
-       "drops a private matter from a probability of 0.5 on, and keeps public matters below it"
-       "asks claim, privacy and checkworthiness in one classifier call"
+       "drops a private matter at 0.5 | before not_a_claim | before uncertain | on a malformed probability"
+       "keeps a public matter just below the privacy threshold"
+       "shows a private segment to later states only as a placeholder, also to the formulation"
+   $ docker compose -f compose.toolbox.yaml --profile docker run --rm toolbox-docker \
+       pnpm --filter @lfc/claim-extractor -r --if-present test:int
+     Test Files  2 passed (2)
+          Tests  9 passed (9)
+     new: "marks a segment private for every later window of its session, and only there (round 3b)";
+     the TTL test now covers the private marks too
+     exit 0
    $ scripts/tb pnpm typecheck                                          exit 0
    $ scripts/tb pnpm exec eslint --max-warnings 0 <changed .ts files>  exit 0
    $ scripts/tb pnpm exec prettier --check <changed .ts files> docker-compose.yml
