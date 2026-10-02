@@ -188,6 +188,17 @@ Faktencheck; Logzeilen zu Gesprächen; revertibel, kein Vertrag) · Typ: impleme
 - Nur Zahlen (Entscheidung 18); die Tests prüfen, dass weder Behauptungstext noch eine URL im
   Ergebnis steht.
 
+**E1c – Verlauf nur mit geprüften Segmenten** · Risiko: **hoch** (Datenschutz, Kontext der
+Formulierung; revertibel, nur `claim-extractor`) · Typ: implement · Zeitpunkt: Marco entscheidet
+(vor oder nach Gate D)
+
+- Lücke aus dem Review von E1b: Die Maske ist eine Sperrliste. Segmente, die Jev nie beurteilt
+  (vom Vorfilter verworfen, etwa „Ja, unser Nachbar ist alkoholkrank.“, nach einem Ausfall oder
+  noch in Arbeit), stehen ungeprüft im Verlauf, den Jev und die Formulierung bekommen.
+- Vorschlag: Jev beurteilt auch die vom Vorfilter verworfenen Segmente, nur auf „privat?“; die
+  Formulierung sieht nur Segmente, die als nicht privat freigegeben sind, alles andere als
+  Platzhalter. Kosten: ein zusätzlicher Jev-Aufruf je solchem Segment.
+
 **Gate D** – Marcos Testlauf nach Testanleitung (AGENTS.md, Workflow): kurze Behauptungen, die
 Berlin-Mieten, je nach Runde 3b auch Privates; Marco schickt die D1-Zeilen. Danach R1.
 
