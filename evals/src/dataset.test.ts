@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -7,6 +7,15 @@ import { describe, expect, it } from 'vitest';
 import { loadClaims, loadDetection } from './dataset.js';
 
 const FILE = new URL('../claims.de.jsonl', import.meta.url).pathname;
+
+/** The `sourceId`s with a row in SOURCES.md: every item must name one of them (brief 13.5). */
+const DOCUMENTED_SOURCES = new Set(
+  [
+    ...readFileSync(new URL('../SOURCES.md', import.meta.url), 'utf8').matchAll(
+      /^\| `([a-z0-9-]+)` \|/gm,
+    ),
+  ].map((match) => match[1]),
+);
 
 describe('claims.de.jsonl', () => {
   const items = loadClaims(FILE);
@@ -37,7 +46,7 @@ describe('detection.de.jsonl', () => {
     const positives = items.filter((i) => i.expected).length;
     expect(positives).toBeGreaterThanOrEqual(30);
     expect(items.length - positives).toBeGreaterThanOrEqual(100);
-    expect([...new Set(items.map((i) => i.sourceId))]).toEqual(['bundestag-pp']);
+    expect(items.filter((i) => !DOCUMENTED_SOURCES.has(i.sourceId)).map((i) => i.id)).toEqual([]);
   });
 
   it('keeps the segments of one conversation together, so the replay order is the file order', () => {
