@@ -25,7 +25,7 @@ import { z } from 'zod';
 
 import { configSchema } from './config.js';
 import type { DetectDeps } from './detect.js';
-import { detectClaim, similarity } from './detect.js';
+import { PRIVATE_PLACEHOLDER, detectClaim, similarity } from './detect.js';
 import { mockDetector, mockStandalone } from './mocks.js';
 import type { SessionStore, WindowSegment } from './store.js';
 
@@ -33,8 +33,13 @@ function memoryStore(): SessionStore & { windows: Map<string, WindowSegment[]> }
   const windows = new Map<string, WindowSegment[]>();
   const claims = new Map<string, Set<string>>();
   const recent = new Map<string, string[]>();
+  const privateIds = new Set<string>();
   return {
     windows,
+    markPrivate(_sessionId, segmentId) {
+      privateIds.add(segmentId);
+      return Promise.resolve();
+    },
     addToWindow(segment) {
       const list = windows.get(segment.sessionId) ?? [];
       if (!list.some((s) => s.segmentId === segment.segmentId)) {
@@ -46,7 +51,12 @@ function memoryStore(): SessionStore & { windows: Map<string, WindowSegment[]> }
         });
       }
       windows.set(segment.sessionId, list.slice(-6));
-      return Promise.resolve([...(windows.get(segment.sessionId) ?? [])]);
+      return Promise.resolve(
+        (windows.get(segment.sessionId) ?? []).map((s) => ({
+          ...s,
+          private: privateIds.has(s.segmentId),
+        })),
+      );
     },
     hasClaim: (sessionId, normalized) =>
       Promise.resolve(claims.get(sessionId)?.has(normalized) ?? false),
@@ -251,34 +261,75 @@ describe('detectClaim (ADR 0017)', () => {
   });
 
   it('drops a private matter of a non-public person before any text is formulated (owner 2026-10-02)', async () => {
-    const { deps: d, llmRequests } = deps({ classifier: answering(0.97, 1, 0.9) });
+    const {
+      deps: d,
+      llmRequests,
+      classifierStates,
+    } = deps({ classifier: answering(0.97, 1, 0.9) });
     const outcome = await detectClaim(segment('Meine Schwester ist seit 2019 arbeitslos.'), d);
     expect(outcome).toEqual({ kind: 'dropped', reason: 'private' });
+    expect(classifierStates).toHaveLength(1);
     expect(llmRequests).toHaveLength(0);
   });
 
-  it('drops a private matter from a probability of 0.5 on, and keeps public matters below it', async () => {
-    const at = async (privateMatter: number) =>
-      (
-        await detectClaim(
-          segment('Helmut Kohl ist eine Frau.'),
-          deps({ classifier: answering(0.97, 0, privateMatter) }).deps,
-        )
-      ).kind;
-    expect(await at(0.5)).toBe('dropped');
-    expect(await at(0.49)).toBe('claim');
+  it.each([
+    ['at 0.5', answering(0.97, 0, 0.5)],
+    ['before not_a_claim', answering(0.1, 4, 0.9)],
+    ['before uncertain', answering(0.8, 4, 0.9)],
+    ['on a malformed probability', answering(0.97, 3, Number.NaN)],
+  ] as const)('drops a private matter %s', async (_when, classifier) => {
+    const outcome = await detectClaim(
+      segment('Helmut Kohl ist eine Frau.'),
+      deps({ classifier }).deps,
+    );
+    expect(outcome).toEqual({ kind: 'dropped', reason: 'private' });
   });
 
-  it('asks claim, privacy and checkworthiness in one classifier call', async () => {
-    const asked: string[][] = [];
-    const { deps: d } = deps({
-      classifier: (state, questions) => {
-        asked.push(Object.keys(questions));
-        return answering(0.97, 3)(state, questions);
-      },
+  it('keeps a public matter just below the privacy threshold', async () => {
+    const outcome = await detectClaim(
+      segment('Helmut Kohl ist eine Frau.'),
+      deps({ classifier: answering(0.97, 0, 0.49) }).deps,
+    );
+    expect(outcome.kind).toBe('claim');
+  });
+
+  it('shows a private segment to later states only as a placeholder, also to the formulation', async () => {
+    const privateText = 'Mein Nachbar Thomas Krüger ist seit März arbeitslos.';
+    const newestText = (state: unknown): unknown =>
+      typeof state === 'object' &&
+      state !== null &&
+      'neu' in state &&
+      typeof state.neu === 'object' &&
+      state.neu !== null &&
+      'text' in state.neu
+        ? state.neu.text
+        : undefined;
+    const {
+      deps: d,
+      classifierStates,
+      llmRequests,
+    } = deps({
+      // The first segment is private, the second a claim that is not.
+      classifier: (state, questions) =>
+        answering(0.97, 3, newestText(state) === privateText ? 0.9 : 0.1)(state, questions),
     });
-    await detectClaim(segment('Der Zweite Weltkrieg endete im Jahr 1965.'), d);
-    expect(asked[0]).toEqual(['claim', 'private', 'checkworthiness']);
+    expect(await detectClaim(segment(privateText, 'A', 0), d)).toEqual({
+      kind: 'dropped',
+      reason: 'private',
+    });
+    const outcome = await detectClaim(
+      segment('Er ist einer von 2,9 Millionen Arbeitslosen in Deutschland.', 'A', 3_000),
+      d,
+    );
+
+    expect(outcome.kind).toBe('claim');
+    expect(classifierStates.at(-1)).toMatchObject({
+      verlauf: [{ sprecher: 'A', text: PRIVATE_PLACEHOLDER }],
+    });
+    const formulation = llmRequests.at(-1)?.user ?? '';
+    expect(formulation).toContain(PRIVATE_PLACEHOLDER);
+    expect(formulation).not.toContain('Krüger');
+    expect(formulation).not.toContain('Nachbar');
   });
 
   it('lets a rhetorical question that insinuates a fact reach the classifier and become a claim', async () => {
