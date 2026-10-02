@@ -320,7 +320,11 @@ describe('detectClaim (ADR 0017)', () => {
       segment('Berlin hat 3,9 Millionen Einwohner.'),
       deps({ llm: () => ({ standaloneText: 'Satz eins. Satz zwei.', originalText: 'x' }) }).deps,
     );
-    expect(twoSentences).toEqual({ kind: 'dropped', reason: 'invalid_llm_output' });
+    expect(twoSentences).toEqual({
+      kind: 'dropped',
+      reason: 'invalid_llm_output',
+      failure: { source: 'llm', kind: 'invalid_output' },
+    });
 
     const budget: DailyBudget = {
       ensureAvailable: () => Promise.reject(new BudgetExceededError(2, 2)),
@@ -336,16 +340,55 @@ describe('detectClaim (ADR 0017)', () => {
   });
 
   it.each([
-    ['refused', new LlmError('refused', 'no')],
-    ['provider_error', new LlmError('provider_error', 'timeout')],
-    ['provider_error', new ClassifierError('provider_error', 'down')],
-  ] as const)('drops with %s when a model call fails', async (reason, error) => {
+    ['refused', new LlmError('refused', 'no'), { source: 'llm', kind: 'refused' }],
+    [
+      'provider_error',
+      new LlmError('provider_error', 'timeout'),
+      { source: 'llm', kind: 'provider_error' },
+    ],
+    [
+      'provider_error',
+      new ClassifierError('provider_error', 'down'),
+      { source: 'classifier', kind: 'provider_error' },
+    ],
+  ] as const)('drops with %s when a model call fails', async (reason, error, failure) => {
     const { deps: d } = deps();
     const failing = { ...d, llm: { ...d.llm, generateStructured: () => Promise.reject(error) } };
     expect(await detectClaim(segment('Berlin hat 3,9 Millionen Einwohner.'), failing)).toEqual({
       kind: 'dropped',
       reason,
+      failure,
     });
+  });
+
+  it('names source, HTTP status and SDK error of a failed call for the log, never its text (plan D1)', async () => {
+    class AuthenticationError extends Error {
+      readonly status = 401;
+    }
+    const { deps: d } = deps();
+    const cause = new AuthenticationError('invalid x-api-key ts-secret');
+    const failing = {
+      ...d,
+      classifier: {
+        ...d.classifier,
+        ask: () =>
+          Promise.reject(
+            new ClassifierError('provider_error', 'typesafe request failed', undefined, { cause }),
+          ),
+      },
+    };
+    const outcome = await detectClaim(segment('Berlin hat 3,9 Millionen Einwohner.'), failing);
+    expect(outcome).toEqual({
+      kind: 'dropped',
+      reason: 'provider_error',
+      failure: {
+        source: 'classifier',
+        kind: 'provider_error',
+        status: 401,
+        error: 'AuthenticationError',
+      },
+    });
+    expect(JSON.stringify(outcome)).not.toContain('ts-secret');
   });
 
   it('does not hide programming errors behind a drop reason', async () => {

@@ -75,9 +75,20 @@ export type DropReason =
   | 'budget_exceeded'
   | 'provider_error';
 
+/**
+ * Where and how a model call failed, for the diagnose log (plan D1): the source, the error kind,
+ * and the HTTP status and SDK error class when the provider answered - never any text.
+ */
+export interface ProviderFailure {
+  readonly source: 'classifier' | 'llm';
+  readonly kind: string;
+  readonly status?: number;
+  readonly error?: string;
+}
+
 export type DetectOutcome =
   | { readonly kind: 'claim'; readonly claim: ClaimDetected }
-  | { readonly kind: 'dropped'; readonly reason: DropReason };
+  | { readonly kind: 'dropped'; readonly reason: DropReason; readonly failure?: ProviderFailure };
 
 export interface DetectDeps {
   readonly classifier: ClassifierProvider;
@@ -189,7 +200,7 @@ export async function detectClaim(
     });
     return { kind: 'claim', claim: claimDetected };
   } catch (error) {
-    return { kind: 'dropped', reason: reasonOf(error) };
+    return droppedBy(error);
   }
 }
 
@@ -215,12 +226,34 @@ async function isDuplicate(
   return false;
 }
 
-function reasonOf(error: unknown): DropReason {
-  if (error instanceof BudgetExceededError) return 'budget_exceeded';
+function droppedBy(error: unknown): DetectOutcome {
+  if (error instanceof BudgetExceededError) return { kind: 'dropped', reason: 'budget_exceeded' };
   if (error instanceof LlmError || error instanceof ClassifierError) {
-    if (error.kind === 'invalid_output') return 'invalid_llm_output';
-    if (error.kind === 'refused') return 'refused';
-    return 'provider_error';
+    const reason: DropReason =
+      error.kind === 'invalid_output'
+        ? 'invalid_llm_output'
+        : error.kind === 'refused'
+          ? 'refused'
+          : 'provider_error';
+    return { kind: 'dropped', reason, failure: failureOf(error) };
   }
   throw error;
+}
+
+function failureOf(error: LlmError | ClassifierError): ProviderFailure {
+  // The SDK error the provider wrapped: its class names the failure, `status` the HTTP answer.
+  const cause: unknown = error.cause;
+  const status =
+    typeof cause === 'object' &&
+    cause !== null &&
+    'status' in cause &&
+    typeof cause.status === 'number'
+      ? cause.status
+      : undefined;
+  return {
+    source: error instanceof ClassifierError ? 'classifier' : 'llm',
+    kind: error.kind,
+    ...(status === undefined ? {} : { status }),
+    ...(cause instanceof Error ? { error: cause.constructor.name } : {}),
+  };
 }
