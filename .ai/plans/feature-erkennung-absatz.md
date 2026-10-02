@@ -81,7 +81,7 @@ Typ: research → implement
 - Research erledigt (2026-10-02) → `.ai/research/conversation-audio-sources.md`. Vorgeschlagene
   Mischung für das Repo-Set:
   - Bundestag: Regierungsbefragung und Fragestunde. Die ersten 73 Segmente aus Protokoll 21/95
-    liegen schon zur Abnahme vor (Branch `feat/eval-per-source`).
+    liegen zur Abnahme in **PR #93** (mit Eval-Bericht je Quelle).
   - Etwa 15 Segmente aus Landtagsprotokollen (Baden-Württemberg, Bayern, Berlin; amtliche Werke
     mit Zurufen und Zusatzfragen).
   - Etwa 30 Segmente aus Podien und Debatten unter CC BY oder BY-SA (Wikimedia Commons,
@@ -197,14 +197,16 @@ Danach #76.
 - E1 umgesetzt in PR #92 (Reviewer und Security-Reviewer ohne Blocker, Befunde eingearbeitet);
   ältere Befunde aus dem Security-Review als Issues #90 (Datenschutz-Text zu Jev) und #91 (Budget
   bei Jev ohne Token-Angabe); lokale Aufnahmen per `.gitignore` geschützt
-- E2 begonnen (Branch `feat/eval-per-source`): Eval-Bericht mit einer Zeile pro Quelle, 73
-  Gesprächssegmente aus der Regierungsbefragung 21/95 mit Label-Vorschlägen (18 Behauptungen, 9
-  Grenzfälle). In diesem Block verwirft der Vorfilter nur den Satzrest „und mit der
-  Bereichsausnahme.“ (zu kurz, Fall für E3); die Regeln für Füllwörter und Meinungen kosten keine
-  Behauptung. Quellen-Research erledigt.
+- E2 Teil 1 in **PR #93** (Reviews eingearbeitet): Eval-Bericht mit einer Zeile pro Quelle, 73
+  Gesprächssegmente aus der Regierungsbefragung 21/95 mit Label-Vorschlägen (17 Behauptungen, 11
+  Grenzfälle), Schutz für lokale Sets (Berichte bleiben lokal, Quelle muss für das Set
+  dokumentiert sein, Commit-Hook prüft `.jsonl`). In diesem Block verwirft der Vorfilter nur den
+  Satzrest „und mit der Bereichsausnahme.“ (zu kurz, Fall für E3); Füllwort- und Meinungsregeln
+  kosten keine Behauptung. Grenze: Protokolltext hat kaum Satzfetzen, den Kern des
+  Live-Test-Problems messen erst echte Aufnahmen. Quellen-Research erledigt.
 - Grilling-Runde 2 (E2-Quellen, 2026-10-02) wartet auf Marco: Spracherkennung und Kosten für die
   Aufnahmen, Weg für die Talkshows (ZDF/phoenix lokal, ARD nur live, nie YouTube), Minderjährige
   (nur Text), Audio-Ausschnitte im Repo
-- **Frontier:** #89, dann #92 mergen (Marco) · Grilling-Runde 2 beantworten · E2-Labels abnehmen
-  (etwa 30 min) · OK für die Kosten von Spracherkennung und Baseline-Lauf · offene Frage zu
-  Fragen mit Füllwort-Anfang (#92)
+- **Frontier:** #89 mergen, dann #92 und #93 (Marco) · Grilling-Runde 2 beantworten ·
+  E2-Labels in #93 abnehmen (etwa 30 min) · OK für die Kosten von Spracherkennung und
+  Baseline-Lauf · offene Frage zu Fragen mit Füllwort-Anfang (#92)
