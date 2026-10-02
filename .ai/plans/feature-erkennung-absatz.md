@@ -122,9 +122,12 @@ Grilling-Runde 3b (nach dem Review von E1b, Marco, 2026-10-02):
     Privates nannte. Jev bekommt deshalb im selben Aufruf eine dritte Frage: Betrifft die neueste
     Äußerung das Privatleben einer nicht öffentlich bekannten Person (jemand am Tisch, Familie,
     Freundeskreis, Nachbarschaft)? Ab einer Wahrscheinlichkeit von 0,5 wird das Segment als
-    `private` verworfen, bevor Text an Formulierung, Suche oder Prüfmodelle geht. Personen des
-    öffentlichen Lebens und ihr öffentliches Wirken zählen nicht dazu. E2b und E2c bekommen
-    private und biografische Gesprächssegmente, damit die Frage gemessen wird.
+    `private` verworfen und für den Rest der Sitzung maskiert: Spätere Zustände zeigen es nur als
+    „[private Äußerung ausgelassen]“, auch der Formulierung, und ein Bezug darauf („Er ist …“)
+    zählt ebenfalls als privat. Bekannte Personen des öffentlichen Lebens werden auch bei
+    privaten Themen geprüft (Marcos Testsatz „Helmut Kohl ist eine Frau“). E2b und E2c bekommen
+    private und biografische Gesprächssegmente; woher (erfundener Text, nur lokale Sets),
+    entscheidet Marco vor E2c.
 20. **Label-Regel 2 neu** (Runde 3b, Q2 a): Jede prüfbare Behauptung zählt als `expected: true`,
     auch Belangloses und Absurdes; Privates nicht öffentlich bekannter Personen bleibt `false`.
     Der Agent schlägt die geänderten Labels vor (`reviewed: false`), Marco nimmt sie ab, danach
@@ -265,7 +268,9 @@ prototype (Marco wählt nach Zahlen)
   `stt-local`, Diarization ist Phase 3) zählen nur Pause, Höchstdauer und Ende.
 - Der Absatz-Pfad läuft nur, wenn im Redebeitrag ein Segment als `too_short` oder `uncertain`
   hängen blieb (`too_short` seit E1b nur noch bei gesetzter Wortgrenze). Den Auslöser bestimmt
-  E3 nach E2c neu; als `not_a_claim` abgewiesene Fragmente gehören dazu.
+  E3 nach E2c neu; als `not_a_claim` abgewiesene Fragmente gehören dazu. Als `private`
+  verworfene Segmente überspringt der Absatz-Pfad, und jede Behauptung, die er findet, durchläuft
+  die Privat-Frage (Entscheidung 19).
 - **Variante A „Zusammenfügen“:** Die hängen gebliebenen Fetzen werden mit ihren Nachbarn zu
   ganzen Sätzen verbunden und laufen noch einmal durch den bestehenden Pfad. Wenig neuer Code,
   kaum Kosten.
@@ -321,8 +326,10 @@ Danach #76.
 - **Verzögerung:** Karten aus dem Absatz-Pfad kommen erst am Ende des Redebeitrags (bis etwa 20 s
   plus Modellzeit). Klare Behauptungen kommen weiter sofort.
 - **Privat-Frage:** Jev kann sie falsch anwenden: eine öffentliche Behauptung als privat
-  verworfen, eine private als öffentlich geprüft. E2b und E2c messen sie mit privaten und
-  biografischen Gesprächssegmenten.
+  verworfen, eine private als öffentlich geprüft. Sprecher sind Buchstaben, deshalb gelten
+  Aussagen öffentlicher Gäste über ihr eigenes Leben als privat (Ausbeute in Talkshows). E2b
+  und E2c messen die Frage; Versuche, sie zu steuern („das ist privat“), kommen in den
+  Red-Team-Lauf von T7.5.
 - **Kosten nach E1b:** Jeder Fetzen kostet einen Klassifikator-Aufruf, jede zusätzliche
   Behauptung eine Prüfung (rund 5 Cent mit Opus). Das Tagesbudget deckelt (fail closed); an
   Testtagen 5 $ (Entscheidung 16).
