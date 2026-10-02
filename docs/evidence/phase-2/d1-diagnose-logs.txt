@@ -1,0 +1,58 @@
+Erkennung · D1 – diagnose logs for detection drops and research (2026-10-02, branch feat/d1-diagnose-logs)
+=========================================================================================================
+
+Plan .ai/plans/feature-erkennung-absatz.md (grilling round 3, decisions 17 and 18), task D1; #79
+(drops were counted but never logged), #80 (the "claim checked" line names the reason, not where
+the evidence got lost).
+
+Trigger: in the owner's test run of 2026-10-02 eight segments ended as provider_error, and nothing
+said whether Jev or Claude failed; later two claims ended no_evidence although a SearXNG query for
+the Berlin rents returned 26 results (among them Tagesspiegel: "binnen zehn Jahren um 69 Prozent").
+
+What the logs now say (never segment text, claim text, queries or URLs):
+- claim-extractor, one line per dropped segment, msg "segment dropped":
+    {"sessionId":…,"segmentId":…,"reason":"not_a_claim"}                                   (info)
+    {"sessionId":…,"segmentId":…,"reason":"provider_error",
+     "failure":{"source":"classifier","kind":"provider_error","status":401,"error":"AuthenticationError"}}   (warn)
+- fact-checker, one line per researched check, msg "research summary" (shape asserted by the unit
+  test "shows where a check without evidence lost it"):
+    {"sessionId":…,"claimId":…,"queries":3,"fallbackQueries":false,
+     "documents":{"wikipedia":0,"web":0},"factChecks":0,
+     "failedSources":["wikidata: FetchFailedError 429"],
+     "web":{"queries":2,"failedQueries":0,"results":8,"pages":5,"skipped":{"http_403":5}},
+     "snippets":0,"retrieveMs":…,"classifyMs":0}
+  `relevant` (snippets judged relevant) and `sufficient` (probability that the evidence suffices)
+  appear once those steps ran. A cached verdict does no research and logs no summary.
+
+1. Tests (stage 1)
+   $ cd packages/research && ../../scripts/tb pnpm exec vitest run --project unit
+     Test Files  6 passed (6)
+     Tests  151 passed (151)
+     new: "counts why pages gave no document, as labels without URLs (plan D1)"
+          "names a failed tier by error class and HTTP status (plan D1)"
+          web tier and researchClaim tests assert the counts
+   $ cd services/fact-checker && ../../scripts/tb pnpm exec vitest run --project unit
+     Test Files  4 passed (4)
+     Tests  43 passed (43)
+     new: "counts what a judged check found and kept, without any text"
+          "shows where a check without evidence lost it: tiers, failures and skipped pages"
+          "marks heuristic queries after a failed query step"
+          "reports nothing for a cached verdict, which does no research"
+   $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
+     Test Files  4 passed (4)
+     Tests  60 passed (60)
+     new: "names source, HTTP status and SDK error of a failed call for the log, never its text (plan D1)";
+          the drop tests now expect the failure details
+
+2. Static checks
+   $ scripts/tb pnpm typecheck                                          exit 0
+   $ scripts/tb pnpm exec eslint --max-warnings 0 <changed .ts files>  exit 0
+   $ scripts/tb pnpm exec prettier --check <changed files>
+     All matched files use Prettier code style!
+   $ scripts/tb pnpm depcruise
+     ✔ no dependency violations found (315 modules, 938 dependencies cruised)
+   $ make sast   (see the PR)
+
+3. Not done here: a live run. The owner's next test run (milestone after E1b and D1) reads the
+   new lines with `docker logs live-factcheck-fact-checker-1 | grep 'research summary'`; task R1
+   starts from what they show.
