@@ -20,34 +20,15 @@ describe('prefilter (ADR 0017)', () => {
     'Denn waren es nicht Sie, der der Ampel ein Durchpeitschen vorgeworfen hat?',
     'Stimmt es nicht, dass die Arbeitslosigkeit gestiegen ist?',
     'Hat die Regierung nicht gerade erst die Steuern erhöht?',
+    // Every question reaches the classifier: only it tells a rhetorical question from a genuine
+    // one (owner decision 2026-10-02).
+    'Wer hat denn die Mieten in Berlin verdoppelt?',
+    'Wie hoch ist die Arbeitslosigkeit eigentlich gerade?',
+    'Stimmt es, dass Berlin größer als Hamburg ist?',
+    // A leading interrogative can open a claim (the detection set lost one this way).
+    'Was uns empört, ist, dass die Mieten in Berlin explodiert sind.',
   ])('passes %j', (text) => {
     expect(run(text)).toEqual({ pass: true });
-  });
-
-  it.each([
-    'Wer',
-    'Wen',
-    'Wem',
-    'Wessen',
-    'Was',
-    'Wann',
-    'Wo',
-    'Woher',
-    'Wohin',
-    'Warum',
-    'Wieso',
-    'Weshalb',
-    'Wie',
-    'Welche',
-    'Welcher',
-    'Welches',
-    'Welchen',
-    'Welchem',
-  ])('drops a question starting with %j even without a question mark', (word) => {
-    expect(run(`${word} hat das damals eigentlich entschieden`)).toEqual({
-      pass: false,
-      reason: 'question',
-    });
   });
 
   it('treats a greeting word inside a sentence as content, not as a greeting', () => {
@@ -57,14 +38,15 @@ describe('prefilter (ADR 0017)', () => {
   it.each([
     ['Das stimmt so nicht.', 'too_short'],
     ['  ', 'too_short'],
-    ['Wie hoch ist die Arbeitslosigkeit eigentlich gerade?', 'question'],
-    ['Warum sollten wir das überhaupt glauben', 'question'],
-    ['Stimmt es, dass Berlin größer als Hamburg ist?', 'question'],
-    ['Wer soll Ihnen glauben, dass es diesmal erstmals anders sein wird?', 'question'],
     ['Guten Abend und willkommen zur Diskussion.', 'greeting_or_filler'],
     ['Vielen Dank für die Einladung in diese Runde.', 'greeting_or_filler'],
     ['Das sehe ich anders, ich finde das Thema wichtig.', 'opinion_only'],
     ['Meiner Meinung nach macht die Regierung alles falsch.', 'opinion_only'],
+    // Kept by owner decision 2026-10-02: filler openers and opinion markers without a fact
+    // signal are still dropped; the conversation eval (plan E2) counts what that costs.
+    ['Also die Mieten in Berlin sind explodiert.', 'greeting_or_filler'],
+    ['Nein, die Regierung hat das Gesetz nie beschlossen.', 'greeting_or_filler'],
+    ['Ich finde es absurd, dass Berlin eine kostenlose Kita hat.', 'opinion_only'],
   ] as const)('drops %j as %s', (text, reason) => {
     expect(run(text)).toEqual({ pass: false, reason });
   });

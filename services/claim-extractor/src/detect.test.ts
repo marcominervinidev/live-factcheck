@@ -157,7 +157,6 @@ describe('detectClaim (ADR 0017)', () => {
   it.each([
     ['Guten Abend und willkommen zur Diskussion.', 'greeting_or_filler'],
     ['Das sehe ich anders, ich finde das Thema wichtig.', 'opinion_only'],
-    ['Wie viele Einwohner hat Berlin eigentlich?', 'question'],
     ['Stimmt nicht.', 'too_short'],
   ] as const)('drops %j in the pre-filter (%s) without asking a model', async (text, reason) => {
     const { deps: d, classifierStates, llmRequests } = deps();
@@ -165,6 +164,22 @@ describe('detectClaim (ADR 0017)', () => {
     expect(classifierStates).toHaveLength(0);
     expect(llmRequests).toHaveLength(0);
   });
+
+  it.each([
+    { rating: 'a claim', classifier: answering(0.97, 4), kind: 'claim' },
+    { rating: 'no claim', classifier: answering(0.1, 4), kind: 'dropped' },
+  ] as const)(
+    'leaves a question to the classifier, which rates it as $rating',
+    async ({ classifier, kind }) => {
+      const { deps: d, classifierStates } = deps({ classifier });
+      const outcome = await detectClaim(
+        segment('Wer hat denn die Mieten in Berlin verdoppelt?'),
+        d,
+      );
+      expect(outcome.kind).toBe(kind);
+      expect(classifierStates).toHaveLength(1);
+    },
+  );
 
   it.each([
     ['not_a_claim', answering(0.1, 4)],
