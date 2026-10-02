@@ -71,3 +71,21 @@ Change: the pre-filter no longer drops a segment for being a question (leading i
      Tests  60 passed (60)
    Detection set: no segment of evals/detection.de.jsonl starts with a filler word and ends with "?",
    so the count in section 3 is unchanged.
+
+5. Follow-up (owner, 2026-10-02): the opinion rule is gone
+   Reason: the classifier is told since PR #84 to find a fact inside an opinion; the pre-filter
+   dropped "Ich finde es absurd, dass Berlin eine kostenlose Kita hat." before it could, and the
+   planned paragraph path (E3) does not re-check such drops.
+   Red first: three cases red against the previous code (two opinions in the pass list, one opinion
+   expected to reach the classifier in detect.test.ts).
+   Green: $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
+     Test Files  4 passed (4)
+     Tests  59 passed (59)
+   Detection set with the final pre-filter (real module, as in section 3):
+     pass        | expected=true    47
+     pass        | expected=false   99   (two opinions more than in section 3)
+     too_short   | expected=false   14
+     greeting_or_filler | expected=false 1
+   Unmeasured range against the Jev@0.6 run: F1 between −4.6 points (six new false positives) and
+   +1.3 points; the E2c baseline measures it.
+
