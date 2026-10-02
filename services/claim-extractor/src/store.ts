@@ -74,11 +74,7 @@ export function redisSessionStore(redis: Redis, options: SessionStoreOptions): S
   return {
     async addToWindow(segment) {
       const key = windowKey(segment.sessionId);
-      const [entries, privateIds] = await Promise.all([
-        redis.lrange(key, 0, -1),
-        redis.smembers(privateKey(segment.sessionId)),
-      ]);
-      const current = parseWindow(entries);
+      const current = parseWindow(await redis.lrange(key, 0, -1));
       if (!current.some((s) => s.segmentId === segment.segmentId)) {
         const entry: WindowSegment = {
           segmentId: segment.segmentId,
@@ -98,19 +94,26 @@ export function redisSessionStore(redis: Redis, options: SessionStoreOptions): S
           .exec();
         current.push(entry);
       }
-      const marked = new Set(privateIds);
       // Segments can arrive out of order with several consumers (pipeline summary).
-      return current
-        .slice(-options.windowSize)
-        .sort((a, b) => a.startMs - b.startMs)
-        .map((s) => ({ ...s, private: marked.has(s.segmentId) }));
+      const window = current.slice(-options.windowSize).sort((a, b) => a.startMs - b.startMs);
+      // Only the window's own ids: the private set grows with the session.
+      const marks = await redis.smismember(
+        privateKey(segment.sessionId),
+        ...window.map((s) => s.segmentId),
+      );
+      return window.map((s, i) => ({ ...s, private: marks[i] === 1 }));
     },
     async markPrivate(sessionId, segmentId) {
-      await redis
+      const results = await redis
         .multi()
         .sadd(privateKey(sessionId), segmentId)
         .pexpire(privateKey(sessionId), options.ttlMs)
         .exec();
+      // A lost mark would let the text into later states: fail instead of returning quietly.
+      const failed = (results ?? []).find(([error]) => error !== null);
+      if (results === null || failed !== undefined) {
+        throw new Error('marking a private segment failed', { cause: failed?.[0] ?? undefined });
+      }
     },
     async hasClaim(sessionId, normalizedText) {
       return (await redis.sismember(claimsKey(sessionId), normalizedText)) === 1;

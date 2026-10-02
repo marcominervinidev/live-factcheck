@@ -25,7 +25,7 @@ import { z } from 'zod';
 
 import { configSchema } from './config.js';
 import type { DetectDeps } from './detect.js';
-import { PRIVATE_PLACEHOLDER, detectClaim, similarity } from './detect.js';
+import { DETECTION_QUESTIONS, PRIVATE_PLACEHOLDER, detectClaim, similarity } from './detect.js';
 import { mockDetector, mockStandalone } from './mocks.js';
 import type { SessionStore, WindowSegment } from './store.js';
 
@@ -33,11 +33,11 @@ function memoryStore(): SessionStore & { windows: Map<string, WindowSegment[]> }
   const windows = new Map<string, WindowSegment[]>();
   const claims = new Map<string, Set<string>>();
   const recent = new Map<string, string[]>();
-  const privateIds = new Set<string>();
+  const privateIds = new Map<string, Set<string>>();
   return {
     windows,
-    markPrivate(_sessionId, segmentId) {
-      privateIds.add(segmentId);
+    markPrivate(sessionId, segmentId) {
+      privateIds.set(sessionId, new Set([...(privateIds.get(sessionId) ?? []), segmentId]));
       return Promise.resolve();
     },
     addToWindow(segment) {
@@ -54,7 +54,7 @@ function memoryStore(): SessionStore & { windows: Map<string, WindowSegment[]> }
       return Promise.resolve(
         (windows.get(segment.sessionId) ?? []).map((s) => ({
           ...s,
-          private: privateIds.has(s.segmentId),
+          private: privateIds.get(segment.sessionId)?.has(s.segmentId) ?? false,
         })),
       );
     },
@@ -293,7 +293,7 @@ describe('detectClaim (ADR 0017)', () => {
     expect(outcome.kind).toBe('claim');
   });
 
-  it('shows a private segment to later states only as a placeholder, also to the formulation', async () => {
+  it('shows a private segment, even a non-claim, to later states only as a placeholder', async () => {
     const privateText = 'Mein Nachbar Thomas Krüger ist seit März arbeitslos.';
     const newestText = (state: unknown): unknown =>
       typeof state === 'object' &&
@@ -309,9 +309,11 @@ describe('detectClaim (ADR 0017)', () => {
       classifierStates,
       llmRequests,
     } = deps({
-      // The first segment is private, the second a claim that is not.
+      // The first segment is private and no claim, the second a claim that is not private.
       classifier: (state, questions) =>
-        answering(0.97, 3, newestText(state) === privateText ? 0.9 : 0.1)(state, questions),
+        newestText(state) === privateText
+          ? answering(0.1, 3, 0.9)(state, questions)
+          : answering(0.97, 3, 0.1)(state, questions),
     });
     expect(await detectClaim(segment(privateText, 'A', 0), d)).toEqual({
       kind: 'dropped',
@@ -324,12 +326,35 @@ describe('detectClaim (ADR 0017)', () => {
 
     expect(outcome.kind).toBe('claim');
     expect(classifierStates.at(-1)).toMatchObject({
-      verlauf: [{ sprecher: 'A', text: PRIVATE_PLACEHOLDER }],
+      verlauf: [{ sprecher: 'A', text: '[private Äußerung ausgelassen]' }],
     });
-    const formulation = llmRequests.at(-1)?.user ?? '';
-    expect(formulation).toContain(PRIVATE_PLACEHOLDER);
-    expect(formulation).not.toContain('Krüger');
-    expect(formulation).not.toContain('Nachbar');
+    // No later request carries the private text, neither to the classifier nor to the LLM.
+    const later = JSON.stringify([...classifierStates.slice(1), ...llmRequests]);
+    expect(later).not.toContain('Krüger');
+    expect(later).not.toContain('Nachbar');
+    expect(llmRequests.at(-1)?.user).toContain('[private Äußerung ausgelassen]');
+  });
+
+  it('never asks again about a redelivered segment already judged private', async () => {
+    let calls = 0;
+    const { deps: d, llmRequests } = deps({
+      // The second answer would let it through: the mark must win.
+      classifier: (state, questions) => {
+        calls += 1;
+        return answering(0.97, 3, calls === 1 ? 0.9 : 0.1)(state, questions);
+      },
+    });
+    const delivery = segment('Meine Schwester hat seit 2019 Schulden bei der Bank.');
+    expect(await detectClaim(delivery, d)).toEqual({ kind: 'dropped', reason: 'private' });
+    expect(await detectClaim(delivery, d)).toEqual({ kind: 'dropped', reason: 'private' });
+    expect(calls).toBe(1);
+    expect(llmRequests).toHaveLength(0);
+  });
+
+  it('names the placeholder in the privacy question and in the formulation rules', () => {
+    expect(PRIVATE_PLACEHOLDER).toBe('[private Äußerung ausgelassen]');
+    expect(DETECTION_QUESTIONS.private.instructions).toContain(PRIVATE_PLACEHOLDER);
+    expect(PROMPT.system).toContain(PRIVATE_PLACEHOLDER);
   });
 
   it('lets a rhetorical question that insinuates a fact reach the classifier and become a claim', async () => {

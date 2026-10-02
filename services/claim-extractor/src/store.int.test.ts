@@ -62,13 +62,16 @@ describe('redisSessionStore against a real Redis', () => {
     await s.addToWindow(secret);
     await s.markPrivate(sessionId, secret.segmentId);
     await s.markPrivate(sessionId, secret.segmentId); // redelivered: idempotent
+    // The mark has its own expiry, also when the session ends right after it (ADR 0018).
+    expect(await redis.pttl(`extractor:v1:private:${sessionId}`)).toBeGreaterThan(50_000);
     const window = await s.addToWindow(segment(sessionId, 'öffentlich', 1_000));
     expect(window.map((w) => [w.text, w.private])).toEqual([
       ['privat', true],
       ['öffentlich', false],
     ]);
-    expect(await redis.pttl(`extractor:v1:private:${sessionId}`)).toBeGreaterThan(50_000);
-    expect((await s.addToWindow(segment(randomUUID(), 'andere', 0)))[0]?.private).toBe(false);
+    // The same segment id in another session is not private there.
+    const elsewhere = await s.addToWindow({ ...secret, sessionId: randomUUID() });
+    expect(elsewhere.map((w) => w.private)).toEqual([false]);
   });
 
   it('skips a corrupt window entry instead of failing', async () => {

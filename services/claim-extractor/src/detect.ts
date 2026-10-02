@@ -18,6 +18,9 @@ import type { PrefilterReason } from './prefilter.js';
 import { prefilter } from './prefilter.js';
 import type { SessionStore, WindowEntry } from './store.js';
 
+/** What later states show instead of a segment judged private (round 3b). */
+export const PRIVATE_PLACEHOLDER = '[private Äußerung ausgelassen]';
+
 /** The questions of ADR 0017 (claim, privacy, checkworthiness), asked together in one classifier call. */
 // LANG-EN: the classifier questions are German, like prompts/standalone.md; per language or answer in the conversation language (ADR 0020)
 export const DETECTION_QUESTIONS = {
@@ -36,8 +39,7 @@ export const DETECTION_QUESTIONS = {
   // Frau" is the owner's own test sentence).
   private: {
     type: 'bool',
-    instructions:
-      'Geht es in der neuesten Äußerung um das Privatleben einer nicht öffentlich bekannten Person, also von jemandem am Tisch, aus der Familie, dem Freundes- oder Kollegenkreis oder der Nachbarschaft? Privat sind etwa Gesundheit, Geld, Arbeit, Beziehungen, Wohnung, Herkunft, Religion, politische Einstellung, Sexualität oder Strafsachen. Bezieht sich die neueste Äußerung auf eine private oder ausgelassene Äußerung im Verlauf (er, sie, das), zählt sie ebenfalls als privat; steht Privates nur im Verlauf, zählt das nicht. Bekannte Personen des öffentlichen Lebens (Politik, Wirtschaft, Kultur, Sport) zählen nicht dazu, auch nicht bei Gesundheit, Familie oder Beziehungen, ebenso wenig Orte, Zahlen und allgemeine Sachverhalte.',
+    instructions: `Geht es in der neuesten Äußerung um das Privatleben einer nicht öffentlich bekannten Person, etwa von jemandem am Tisch, aus der Familie, dem Freundes- oder Kollegenkreis, der Nachbarschaft oder sonst einer Privatperson wie einer Ladenbesitzerin oder einem Arzt? Privat sind etwa Gesundheit, Geld, Arbeit, Beziehungen, Wohnung, Herkunft, Religion, politische Einstellung, Sexualität oder Strafsachen. Bezieht sich die neueste Äußerung auf eine private Äußerung oder auf „${PRIVATE_PLACEHOLDER}“ im Verlauf (er, sie, das), zählt sie ebenfalls als privat; steht Privates nur im Verlauf, zählt das nicht. Bekannte Personen des öffentlichen Lebens (Politik, Wirtschaft, Kultur, Sport) zählen nicht dazu, auch nicht bei Gesundheit, Familie oder Beziehungen. Gemeint ist die bekannte Person selbst: Ihre Angehörigen und Partner gelten als nicht öffentlich bekannt, solange sie nicht selbst öffentlich auftreten. Was jemand über ein öffentliches Amt, Abstimmungen oder öffentliche Äußerungen sagt, ist nicht privat, ebenso wenig Orte, Zahlen und allgemeine Sachverhalte.`,
     criteria: {
       true: 'Die neueste Äußerung handelt vom Privatleben einer nicht öffentlich bekannten Person oder verweist darauf.',
       false:
@@ -127,13 +129,11 @@ export function similarity(a: string, b: string): number {
 
 const SIMILAR = 0.6;
 
-/** What later states show instead of a segment judged private (round 3b). */
-export const PRIVATE_PLACEHOLDER = '[private Äußerung ausgelassen]';
-
 /**
  * The classifier and LLM state: the window as context, the newest segment to judge. A segment
- * judged private earlier appears only as a placeholder, so its text goes to the classifier once,
- * as the newest segment, and never to the formulation, search or checking.
+ * judged private earlier appears only as a placeholder, so after that judgement its text goes
+ * nowhere. Segments never judged (pre-filter drops, classifier failures, segments still in
+ * flight) stay as they are; ADR 0017 names this gap.
  */
 function stateOf(window: readonly WindowEntry[], newest: TranscriptSegment) {
   return {
@@ -156,6 +156,10 @@ export async function detectClaim(
 ): Promise<DetectOutcome> {
   const started = deps.clock();
   const window = await deps.store.addToWindow(segment);
+  // A redelivered segment already judged private is never asked again (at-least-once streams).
+  if (window.some((s) => s.segmentId === segment.segmentId && s.private)) {
+    return { kind: 'dropped', reason: 'private' };
+  }
   const filtered = prefilter(segment.text, { minWords: deps.minWords });
   if (!filtered.pass) return { kind: 'dropped', reason: filtered.reason };
 
