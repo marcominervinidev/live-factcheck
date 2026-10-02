@@ -4,8 +4,10 @@ import type { ClaimDetected, TranscriptSegment } from '@lfc/contracts';
 import { ClaimDetected as ClaimDetectedSchema, countSentences } from '@lfc/contracts';
 import type {
   BoolQuestion,
+  ClassifierErrorKind,
   ClassifierProvider,
   DailyBudget,
+  LlmErrorKind,
   LlmProvider,
   PromptTemplate,
   ScoreQuestion,
@@ -81,7 +83,7 @@ export type DropReason =
  */
 export interface ProviderFailure {
   readonly source: 'classifier' | 'llm';
-  readonly kind: string;
+  readonly kind: LlmErrorKind | ClassifierErrorKind;
   readonly status?: number;
   readonly error?: string;
 }
@@ -241,19 +243,22 @@ function droppedBy(error: unknown): DetectOutcome {
 }
 
 function failureOf(error: LlmError | ClassifierError): ProviderFailure {
-  // The SDK error the provider wrapped: its class names the failure, `status` the HTTP answer.
-  const cause: unknown = error.cause;
-  const status =
-    typeof cause === 'object' &&
-    cause !== null &&
-    'status' in cause &&
-    typeof cause.status === 'number'
-      ? cause.status
-      : undefined;
+  // The SDK error sits one or two levels down (the llm classifier wraps an LlmError): the first
+  // HTTP status on the way, and the innermost error's class.
+  let status: number | undefined;
+  let innermost: Error | undefined;
+  let current: unknown = error.cause;
+  for (let depth = 0; depth < 5 && current instanceof Error; depth++) {
+    innermost = current;
+    if (status === undefined && 'status' in current && typeof current.status === 'number') {
+      status = current.status;
+    }
+    current = current.cause;
+  }
   return {
     source: error instanceof ClassifierError ? 'classifier' : 'llm',
     kind: error.kind,
     ...(status === undefined ? {} : { status }),
-    ...(cause instanceof Error ? { error: cause.constructor.name } : {}),
+    ...(innermost === undefined ? {} : { error: innermost.constructor.name }),
   };
 }

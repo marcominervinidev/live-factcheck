@@ -391,6 +391,40 @@ describe('detectClaim (ADR 0017)', () => {
     expect(JSON.stringify(outcome)).not.toContain('ts-secret');
   });
 
+  it('finds HTTP status and SDK error two levels down, as the llm classifier wraps them (plan D1)', async () => {
+    class RateLimitError extends Error {
+      readonly status = 429;
+    }
+    const sdk = new RateLimitError('rate limited for "Berlin hat 3,9 Millionen Einwohner."');
+    const { deps: d } = deps();
+    const failing = {
+      ...d,
+      classifier: {
+        ...d.classifier,
+        ask: () =>
+          Promise.reject(
+            new ClassifierError('provider_error', 'llm classifier failed', undefined, {
+              cause: new LlmError('provider_error', 'classify: request failed', undefined, {
+                cause: sdk,
+              }),
+            }),
+          ),
+      },
+    };
+    const outcome = await detectClaim(segment('Berlin hat 3,9 Millionen Einwohner.'), failing);
+    expect(outcome).toEqual({
+      kind: 'dropped',
+      reason: 'provider_error',
+      failure: {
+        source: 'classifier',
+        kind: 'provider_error',
+        status: 429,
+        error: 'RateLimitError',
+      },
+    });
+    expect(JSON.stringify(outcome)).not.toContain('Berlin');
+  });
+
   it('does not hide programming errors behind a drop reason', async () => {
     const { deps: d } = deps();
     const broken = {
