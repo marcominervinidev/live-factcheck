@@ -1,0 +1,64 @@
+Erkennung · E1b – no word limit and no checkworthiness minimum by default (2026-10-02, branch feat/e1b-weniger-verwerfen)
+==========================================================================================================================
+
+Plan .ai/plans/feature-erkennung-absatz.md (grilling round 3, decisions 14 and 15), task E1b;
+ADR 0017, amendment 2026-10-02 (round 3).
+Change: DETECTOR_MIN_WORDS and DETECTOR_MIN_SCORE default to 1, which switches both rules off; both
+stay configurable, and Compose now passes DETECTOR_MIN_WORDS through like DETECTOR_MIN_SCORE.
+
+0. Trigger: the owner's test run of 2026-10-02 (after a key fix; counters read from the owner's
+   stack, nothing changed there)
+     claims_detected_total                         3   (fact-checker: 1 falsch, 2 nicht_pruefbar no_evidence)
+     segments_dropped_total{reason=not_a_claim}         3
+     segments_dropped_total{reason=low_checkworthiness} 4
+     segments_dropped_total{reason=too_short}           2
+   Spoken, among others: "Helmut Kohl ist eine Frau." (twice), "Paris ist eine der kleinste Städte
+   in Frankreich.", "Robert Habeck" | "hat Abitur" (two segments), "Robert Ahabig hat gar kein
+   Abitur." (STT spelling). The counters do not name sentences; the numbers fit these exactly.
+
+1. Red first: the new tests against the old defaults (5 words, checkworthiness 3)
+   $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run src/config.test.ts src/prefilter.test.ts src/detect.test.ts
+     × applies the detection defaults of ADR 0017
+     × lets a fragment reach the classifier with the segment before it as context (no word limit by default)
+     × checks a claim the classifier rates as trivial (no checkworthiness minimum by default)
+     Tests  3 failed | 59 passed (62)
+
+2. Green
+   $ cd services/claim-extractor && ../../scripts/tb pnpm exec vitest run --project unit
+     Test Files  4 passed (4)
+     Tests  66 passed (66)
+   $ scripts/tb pnpm typecheck                                          exit 0
+   $ scripts/tb pnpm exec eslint --max-warnings 0 <changed .ts files>  exit 0
+   $ scripts/tb pnpm exec prettier --check <changed .ts files> docker-compose.yml
+     All matched files use Prettier code style!
+   $ scripts/tb pnpm depcruise
+     ✔ no dependency violations found (315 modules, 934 dependencies cruised)
+   $ make sast
+     Ran 244 rules on 512 files: 0 findings.
+
+3. Detection set, pre-filter only (deterministic, no model; the real TypeScript module run with
+   Node 24 type stripping in the toolbox)
+   $ scripts/tb node --input-type=module -e "
+       import { prefilter } from '/workspace/services/claim-extractor/src/prefilter.ts';
+       ... tally prefilter(r.text, { minWords }) by reason and label for minWords 5 and 1,
+       then list the segments that pass only with minWords 1"
+
+                                        limit 5   limit 1 (new default)
+     pass               | expected=true     63        64
+     pass               | expected=false   138       163
+     too_short          | expected=true      1         –
+     too_short          | expected=false    28         –
+     greeting_or_filler | expected=false     4         7
+     segments                              234       234
+
+   26 segments reach the classifier only without the word limit:
+   - one positive: bt21-095-befragung-1-49 "und mit der Bereichsausnahme." (until now left to the
+     paragraph path, E3)
+   - 25 negatives, mostly salutations and procedure: "Frau Präsidentin!" (4), "Bitte." (2),
+     "Eine Nachfrage." (2), "Liebe Kolleginnen und Kollegen!" (2), "Meine Damen und Herren!",
+     "Sehr geehrter Herr Bundeskanzler!", "Wir fahren fort.", short exclamations ("Ach was!",
+     "Mit Schulden!") and three short statements labelled false ("Das steht im Grundgesetz.",
+     "Die europäische Sicherheitsarchitektur wankt.", "Die Unsicherheiten werden größer.")
+   Three short segments now drop as filler instead of too short.
+   How the classifier rates the 26, and what the missing checkworthiness minimum does to
+   precision, needs a model run: the E2c baseline measures both.
