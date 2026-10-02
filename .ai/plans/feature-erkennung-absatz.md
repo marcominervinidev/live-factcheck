@@ -57,14 +57,18 @@
 **E1 – Vorfilter: Fragen gehen an den Klassifikator** · Risiko: **niedrig** (revertibel, nur
 `claim-extractor`, kein Vertrag) · Typ: implement
 
-- `prefilter.ts` verwirft keine Fragen mehr, weder mit Fragewort am Anfang („Was uns empört,
-  ist …“) noch mit „?“ („Wer hat denn die Mieten verdoppelt?“). Der Klassifikator unterscheidet
-  rhetorische und echte Fragen (Prompt nach ADR 0017); die Regel „verneinte Frage geht durch“
-  (2026-09-30) geht darin auf.
+- Umgesetzt in **PR #92**: Eine Frage ist kein Grund mehr zum Verwerfen, weder mit Fragewort am
+  Anfang („Was uns empört, ist …“) noch mit „?“ („Wer hat denn die Mieten verdoppelt?“). Der
+  Klassifikator unterscheidet rhetorische und echte Fragen (Prompt nach ADR 0017); die Regel
+  „verneinte Frage geht durch“ (2026-09-30) geht darin auf.
 - Unverändert (Entscheidung 1): Fetzen unter 5 Wörtern (`too_short`, E3 holt sie nach),
-  Füllwort-Anfänge und Meinungsmarker ohne Zahl. E2 zählt mit, wie viele echte Behauptungen diese
+  Füllwort-Anfänge und Meinungsmarker ohne Zahl – auch vor einer Frage („Also wer hat denn …?“
+  wird verworfen; offene Frage an Marco in #92). E2 zählt mit, wie viele echte Behauptungen diese
   Regeln im Gespräch verwerfen; die Zahlen gehen an Marco.
-- Kosten: ein Jev-Aufruf mehr je Frage (0,042 $ pro 1 Mio. Input-Tokens).
+- Kosten: ein Klassifikator-Aufruf mehr je Frage (Jev 0,042 $ pro 1 Mio. Input-Tokens, der
+  `llm`-Klassifikator zum Preis des Extractor-Modells); wird eine Frage zur Behauptung, kommen
+  Formulierung und Faktencheck dazu. Auf dem Eval-Set bewegt sich F1 je nach Urteil zwischen −3,2
+  und +1,3 Punkten; die E2-Baseline misst es.
 - Unit-Tests: „Was uns empört, ist …“, rhetorische und echte Fragen erreichen den Klassifikator.
   Nachweis: Zählung über das Eval-Set vorher/nachher mit dem echten Code (kostenlos); die Wirkung
   auf die Präzision misst der Baseline-Lauf in E2.
@@ -79,8 +83,9 @@ Typ: research → implement
   Zwischenrufen (Bundestag-Fragestunde, Landtage) und der rechtliche Rahmen für Talkshows →
   `.ai/research/conversation-audio-sources.md`.
 - Ins Repo (Set plus Zeile in `evals/SOURCES.md`) kommt nur, was die Lizenz erlaubt. Talkshows aus
-  YouTube oder der Mediathek misst der Agent nur lokal: Audio und Transkript liegen in einem
-  ignorierten Ordner, ins Repo kommen nur Zahlen.
+  YouTube oder der Mediathek misst der Agent nur lokal: Audio und Transkript liegen in
+  `evals/local/` (per `.gitignore` ausgeschlossen, ebenso `tests/fixtures/audio/local-*`), ins
+  Repo kommen nur Zahlen.
 - Die Aufnahmen laufen durch die Spracherkennung des Live-Tests (gleicher Anbieter, gleiches
   Finalisierungs-Fenster); die echten Fetzen gehen als Text ins Set, Zwischenrufe als eigene
   Sprecher. Die Kosten der Spracherkennung schätzt der Agent vorher.
@@ -172,5 +177,9 @@ Danach #76.
 - [x] Plan freigegeben mit Änderungen (Marco, 2026-10-02, als Freigabe verstanden: „E3 passt zu
   bauen“; E1 nur Fragen; E2 echte Aufnahmen statt Einsprechen; Label-Regel „passt“)
 - Grilling-Runde 1 entschieden (Marco, 2026-10-02), Entscheidungen oben
-- **Frontier:** E1 umsetzen · E2-Research zu Quellen und Rechtslage läuft · danach braucht E2
-  Marco: Labels abnehmen (etwa 30 min), OK für die Kosten von Spracherkennung und Baseline-Lauf
+- E1 umgesetzt in PR #92 (Reviewer und Security-Reviewer ohne Blocker, Befunde eingearbeitet);
+  ältere Befunde aus dem Security-Review als Issues #90 (Datenschutz-Text zu Jev) und #91 (Budget
+  bei Jev ohne Token-Angabe); lokale Aufnahmen per `.gitignore` geschützt
+- **Frontier:** #89, dann #92 mergen (Marco) · E2-Research zu Quellen und Rechtslage läuft ·
+  danach braucht E2 Marco: Labels abnehmen (etwa 30 min), OK für die Kosten von Spracherkennung
+  und Baseline-Lauf, Antwort auf die offene Frage zu Fragen mit Füllwort-Anfang (#92)
