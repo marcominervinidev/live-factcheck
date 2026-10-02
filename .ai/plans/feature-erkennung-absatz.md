@@ -3,6 +3,8 @@
 > Nach Grilling-Runde 1 (Marco, 2026-10-02) und Marcos Änderungen am selben Tag. Auslöser:
 > Live-Test am 2026-10-01 mit einer Talkshow – 131 s, 25 Segmente, **0 Behauptungen** erkannt.
 > Reihenfolge danach: #76 Kosten-Monitoring, T7.5 Red-Team, Phase 3.
+> Grilling-Runde 3 nach Marcos Testlauf (2026-10-02): Wortgrenze und Prüfwürdigkeit aus (E1b),
+> erst Diagnose-Logs und das Leck in der Recherche (D1, R1), dann E2b.
 
 ## Context
 
@@ -73,6 +75,30 @@ Grilling-Runde 2 (E2-Quellen, Marco, 2026-10-02):
     „keine Belege“ und nach einem Themenwechsel nachzurecherchieren, wartet als #94 und wird
     danach geplant (Grilling).
 
+Grilling-Runde 3 (nach Marcos Testlauf, Marco, 2026-10-02):
+
+14. **Wortgrenze entfällt:** Auch kurze Behauptungen und Fetzen gehen an den Klassifikator. Er
+    sieht die Abschnitte davor, so kann aus „Robert Habeck“ und „hat Abitur“ eine Behauptung
+    werden; im Testlauf verwarf die Grenze genau diese beiden Fetzen. Ersetzt in Entscheidung 1
+    den Teil „Fetzen unter 5 Wörtern“.
+15. **Prüfwürdigkeit filtert nicht mehr** (Q1 a): Jede erkannte Behauptung wird geprüft, auch
+    scheinbar Belangloses oder Absurdes. Im Testlauf fielen vier Abschnitte an dieser Regel
+    heraus, darunter „Helmut Kohl ist eine Frau“ und „Robert Habeck hat gar kein Abitur“ (#79
+    kennt das Muster vom 2026-10-01). Kosten: rund 5 Cent je Prüfung mit Opus, das Tagesbudget
+    deckelt. Beide Grenzen bleiben einstellbar, für den Messlauf.
+16. **Testtage mit 5 $ Tagesbudget** (Q2 b, `CLOUD_DAILY_BUDGET_USD=5` in Marcos `.env`). Ist ein
+    Budget aufgebraucht, soll ein Hinweis kommen: Faktencheck-Karten und Spracherkennung zeigen
+    ihn schon; für das Budget der Erkennung, das heute ohne Hinweis endet, kommt er mit #76.
+17. **„Keine Belege“: erst das Leck finden** (Q3 a): Die Suche liefert Treffer (für die
+    Berlin-Mieten 26, darunter „binnen zehn Jahren um 69 Prozent“), die Prüfung meldet trotzdem
+    `no_evidence`. Erst Diagnose-Logs (D1), dann die Ursache beheben (R1). Eine
+    LLM-Zweitprüfung nicht prüfbarer Karten kommt erst, wenn feststeht, woran es lag, und nur,
+    wenn danach noch zu viele Karten „nicht prüfbar“ bleiben: mit einem günstigen
+    Anthropic-Modell (Haiku 4.5), austauschbar gegen ein lokales. Auslöser, Anzeige (Prototyp mit
+    Varianten) und ob das lokale Modell mit dem Debattier-Modus (#59) kommt, klärt dann eine
+    eigene Runde. Reihenfolge: E1b → D1 → Marcos Testlauf → R1 → Gate R → E2b.
+18. **Diagnose-Logs** wie vorgeschlagen (D1), nie mit Gesprächs- oder Behauptungstext.
+
 ## Aufgaben
 
 **E1 – Vorfilter: Fragen gehen an den Klassifikator** · Risiko: **niedrig** (revertibel, nur
@@ -84,8 +110,8 @@ Grilling-Runde 2 (E2-Quellen, Marco, 2026-10-02):
   („Ich finde es absurd, dass …“). Der Klassifikator unterscheidet
   rhetorische und echte Fragen (Prompt nach ADR 0017); die Regel „verneinte Frage geht durch“
   (2026-09-30) geht darin auf.
-- Unverändert (Entscheidung 1): Fetzen unter 5 Wörtern (`too_short`, E3 holt sie nach) und
-  Aussagen mit Füllwort-Anfang ohne Zahl. E2 zählt mit, wie viele echte Behauptungen die
+- Unverändert (Entscheidung 1): Fetzen unter 5 Wörtern (`too_short`, E3 holt sie nach; mit E1b
+  aus, Entscheidung 14) und Aussagen mit Füllwort-Anfang ohne Zahl. E2 zählt mit, wie viele echte Behauptungen die
   Füllwort-Regel im Gespräch verwirft.
 - Kosten: ein Klassifikator-Aufruf mehr je Frage (Jev 0,042 $ pro 1 Mio. Input-Tokens, der
   `llm`-Klassifikator zum Preis des Extractor-Modells); wird eine Frage zur Behauptung, kommen
@@ -99,6 +125,38 @@ Grilling-Runde 2 (E2-Quellen, Marco, 2026-10-02):
   (2026-10-02); Eval-Bericht mit einer Zeile pro Quelle; lokale Sets schreiben ihre Berichte nach
   `evals/local/reports/`; jede Quelle muss für ihr Set dokumentiert sein.
 - Grenze: Protokolltext hat kaum Satzfetzen. Das misst erst E2b.
+
+**E1b – Wortgrenze und Prüfwürdigkeit aus** · Risiko: **mittel** (mehr Klassifikator-Aufrufe und
+Prüfungen kosten mehr; revertibel per Einstellung, nur `claim-extractor`, kein Vertrag) · Typ:
+implement
+
+- `DETECTOR_MIN_WORDS` mit Standard 1 (nur leere Abschnitte fallen weg), neu auch in Compose
+  einstellbar; `DETECTOR_MIN_SCORE` mit Standard 1 (keine Behauptung fällt wegen geringer
+  Prüfwürdigkeit weg). Beide bleiben für den Messlauf einstellbar (Entscheidungen 14, 15).
+- Datierter Nachtrag in ADR 0017; Vorfilter-Zählung auf dem Eval-Set vorher und nachher als
+  Nachweis.
+
+**D1 – Diagnose-Logs** · Risiko: **niedrig** (nur Logzeilen, kein Vertrag; revertibel) · Typ:
+implement
+
+- Erkennung: je verworfenem Abschnitt eine Zeile mit `segmentId` und Grund; bei Anbieterfehlern
+  Quelle (Klassifikator oder LLM), Fehlerart und HTTP-Status (#79).
+- Faktencheck: je Prüfung eine Zeile „research summary“ mit Suchanfragen, Treffern je Quelle,
+  geladenen und gescheiterten Seiten, Ausschnitten, relevanten Ausschnitten und Zeiten (#80).
+- Nie Gesprächs- oder Behauptungstext, keine URLs (Entscheidung 18).
+
+**Meilenstein** – Marcos Testlauf nach Testanleitung (AGENTS.md): kurze Behauptungen und die
+Berlin-Mieten; die D1-Zeilen zeigen, wo die Belege verloren gehen.
+
+**R1 – Leck in der Recherche beheben** · Risiko: **mittel** (Urteilsqualität aller Prüfungen;
+revertibel) · Typ: research → implement
+
+- Die Stelle aus den D1-Zeilen bestimmen (Suchanfragen, Laden der Seiten, Sortieren,
+  Relevanzprüfung) und beheben; Kandidat ist #80 (Zahlen in den Suchanfragen).
+- Die Owner-Fälle als Urteils-Testfälle in `evals/claims.de.jsonl`.
+
+**Gate R** – Marco testet: Bekommen die Fälle jetzt Belege? Bleiben zu viele Karten „nicht
+prüfbar“, folgt die Grilling-Runde zur LLM-Zweitprüfung (Entscheidung 17).
 
 **E2b – Audio-Regressionstests** · Risiko: **mittel** (neue Testart mit echtem Anbieter und Kosten,
 Audio-Dateien im öffentlichen Repo, Lizenzfragen; revertibel) · Typ: research → prototype →
@@ -147,7 +205,7 @@ prototype (Marco wählt nach Zahlen)
   `startMs`/`endMs`), höchstens etwa 20 s oder Aufnahme-Ende. Ohne Sprechertrennung (heute
   `stt-local`, Diarization ist Phase 3) zählen nur Pause, Höchstdauer und Ende.
 - Der Absatz-Pfad läuft nur, wenn im Redebeitrag ein Segment als `too_short` oder `uncertain`
-  hängen blieb.
+  hängen blieb (`too_short` seit E1b nur noch bei gesetzter Wortgrenze).
 - **Variante A „Zusammenfügen“:** Die hängen gebliebenen Fetzen werden mit ihren Nachbarn zu
   ganzen Sätzen verbunden und laufen noch einmal durch den bestehenden Pfad. Wenig neuer Code,
   kaum Kosten.
@@ -183,6 +241,9 @@ Danach #76.
 | Anforderung | Stufe | Test / Nachweis | Status |
 |---|---|---|---|
 | Fragen und Meinungen erreichen den Klassifikator („Was uns empört, ist …“, rhetorische, echte und mit Füllwort vorn, „Ich finde es absurd, dass …“); Aussagen mit Füllwort vorn ohne Zahl weiter verworfen | 1 | `prefilter.test.ts`, `detect.test.ts` | in #92 |
+| Kurze Behauptungen und Fetzen erreichen den Klassifikator; jede erkannte Behauptung wird ohne Prüfwürdigkeits-Grenze geprüft (Standard); beide Grenzen bleiben einstellbar | 1 | `prefilter.test.ts`, `detect.test.ts`, `config.test.ts` | geplant (E1b) |
+| Verworfene Abschnitte mit Grund und Anbieterfehler mit Quelle und HTTP-Status im Log der Erkennung; je Prüfung eine Recherche-Zusammenfassung; nie Text oder URLs | 1 | Tests in `claim-extractor` und `fact-checker` | geplant (D1) |
+| Die Owner-Fälle (Berlin-Mieten) bekommen Belege | 5 | Marcos Testlauf, `evals/claims.de.jsonl` | geplant (R1) |
 | Gesprächssegmente aus Protokollen, jedes Label von Marco abgenommen, Quelle in `SOURCES.md` | – | `evals/detection.de.jsonl` | in #93 |
 | 8–10 Audio-Clips (2–3 min, Querschnitt nach Entscheidung 10), Lizenz und Metadaten je Clip, Labels von Marco abgenommen | – | `tests/fixtures/audio/regression/` | geplant |
 | Audio-Regressionslauf: Wortfehlerrate und Erkennung je Clip gegen die festgehaltenen Werte | 5 | Make-Target (Deepgram, bezahlt) | geplant |
@@ -197,6 +258,9 @@ Danach #76.
 
 - **Verzögerung:** Karten aus dem Absatz-Pfad kommen erst am Ende des Redebeitrags (bis etwa 20 s
   plus Modellzeit). Klare Behauptungen kommen weiter sofort.
+- **Kosten nach E1b:** Jeder Fetzen kostet einen Klassifikator-Aufruf, jede zusätzliche
+  Behauptung eine Prüfung (rund 5 Cent mit Opus). Das Tagesbudget deckelt (fail closed); an
+  Testtagen 5 $ (Entscheidung 16).
 - **Kosten ohne Anzeige:** #76 kommt erst danach. Das Tagesbudget (fail closed) deckelt, E3 misst
   die Kosten pro Gesprächsminute.
 - **Präzision:** Mehr Sätze erreichen den Klassifikator (E1), der Absatz-Pfad findet mehr; falsche
@@ -237,5 +301,11 @@ Danach #76.
 - Datenschutz-Text zu Jev in **PR #95** (Review eingearbeitet: „standardmäßig sechs“
   Gesprächsabschnitte, Aufbewahrung „bei uns“); Übersicht aller Regeln als Artifact
   „Prüfstrecke Live-Faktencheck“.
-- **Frontier:** #89 mergen, dann #92, #93 und #95 (Marco) · Marcos Testlauf nach Anleitung ·
-  E2b: Clips auswählen und die Kostenschätzung für den ersten Deepgram-Lauf an Marco
+- #89, #92, #93 und #95 gemergt (Marco, 2026-10-02). Marcos Testlauf danach: zuerst
+  8 × `provider_error` (ein Anbieter-Zugang, nach Marcos Korrektur und Neustart behoben); dann
+  3 Behauptungen (1 × falsch, 2 × nicht prüfbar mit `no_evidence`), verworfen 3 × keine
+  Behauptung, 4 × wenig prüfwürdig, 2 × zu kurz.
+- Grilling-Runde 3 entschieden (Marco, 2026-10-02): Entscheidungen 14–18, Plan-Änderung
+  freigegeben („Ja, mach das so“).
+- **Frontier:** E1b und D1 (Agent) · dann Marcos Testlauf nach Anleitung · R1 · Gate R · danach
+  E2b (Clips auswählen, Kostenschätzung für den ersten Deepgram-Lauf an Marco)
