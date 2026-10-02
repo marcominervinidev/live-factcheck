@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { INJECTED_PAGE_URL, mockClassifier, mockLlm, mockResearch } from './mocks.js';
-import type { PipelineDeps } from './pipeline.js';
+import type { PipelineDeps, ResearchSummary } from './pipeline.js';
 import { checkClaim, fallbackQueries, verdictCacheKey } from './pipeline.js';
 import { loadQuestionTexts } from './questions.js';
 
@@ -509,5 +509,90 @@ describe('checkClaim (brief 9.6)', () => {
     // becomes a source (brief 15.5: cited URLs only from the fetched list).
     const urls = [...result.evidence.map((e) => e.url), result.existingFactCheck?.url];
     expect(urls.some((url) => url?.includes('evil.example'))).toBe(false);
+  });
+});
+
+describe('research summary for the diagnose log (plan D1)', () => {
+  const collect = () => {
+    const summaries: { claimId: string; summary: ResearchSummary }[] = [];
+    const onResearch = (detected: ClaimDetected, summary: ResearchSummary) => {
+      summaries.push({ claimId: detected.claimId, summary });
+    };
+    return { summaries, onResearch };
+  };
+
+  it('counts what a judged check found and kept, without any text', async () => {
+    const { summaries, onResearch } = collect();
+    const detected = claim('Der Zweite Weltkrieg endete 1945.');
+    await checkClaim(detected, deps({ onResearch }));
+
+    expect(summaries).toHaveLength(1);
+    const { claimId, summary } = summaries[0] ?? {};
+    expect(claimId).toBe(detected.claimId);
+    expect(summary).toMatchObject({ fallbackQueries: false, factChecks: 0, failedSources: [] });
+    expect(summary?.queries).toBeGreaterThan(0);
+    expect(summary?.snippets).toBeGreaterThan(0);
+    expect(summary?.relevant).toBeGreaterThan(0);
+    expect(summary?.sufficient).toBeGreaterThanOrEqual(0.5);
+    expect(JSON.stringify(summary)).not.toMatch(/Weltkrieg|https?:/);
+  });
+
+  it('shows where a check without evidence lost it: tiers, failures and skipped pages', async () => {
+    const { summaries, onResearch } = collect();
+    const nothing = (): Promise<ResearchResult> =>
+      Promise.resolve({
+        documents: [],
+        factChecks: [],
+        perSource: { wikipedia: 0, web: 0 },
+        failures: [
+          {
+            source: 'wikidata',
+            reason: 'FetchFailedError: HTTP 429',
+            error: 'FetchFailedError',
+            status: 429,
+          },
+        ],
+        web: { queries: 2, failedQueries: 0, results: 8, pages: 5, skipped: { http_403: 5 } },
+      });
+    const result = await checkClaim(
+      claim('In Berlin sind die Mieten seit 2015 um 7000 Prozent gestiegen.'),
+      deps({ research: nothing, onResearch }),
+    );
+
+    expect(result.reason).toBe('no_evidence');
+    expect(summaries.map((s) => s.summary)).toEqual([
+      {
+        queries: expect.any(Number) as number,
+        fallbackQueries: false,
+        documents: { wikipedia: 0, web: 0 },
+        factChecks: 0,
+        failedSources: ['wikidata: FetchFailedError 429'],
+        web: { queries: 2, failedQueries: 0, results: 8, pages: 5, skipped: { http_403: 5 } },
+        snippets: 0,
+        retrieveMs: expect.any(Number) as number,
+        classifyMs: 0,
+      },
+    ]);
+  });
+
+  it('marks heuristic queries after a failed query step', async () => {
+    const { summaries, onResearch } = collect();
+    const brokenLlm: LlmProvider = {
+      ...llm,
+      generateStructured: () => Promise.reject(new LlmError('provider_error', 'down')),
+    };
+    await checkClaim(
+      claim('Der Zweite Weltkrieg endete 1945.'),
+      deps({ llm: brokenLlm, onResearch }),
+    );
+    expect(summaries[0]?.summary).toMatchObject({ queries: 2, fallbackQueries: true });
+  });
+
+  it('reports nothing for a cached verdict, which does no research', async () => {
+    const { summaries, onResearch } = collect();
+    const d = deps({ onResearch });
+    await checkClaim(claim('Der Zweite Weltkrieg endete 1945.'), d);
+    await checkClaim(claim('Der Zweite Weltkrieg endete 1945.'), d);
+    expect(summaries).toHaveLength(1);
   });
 });

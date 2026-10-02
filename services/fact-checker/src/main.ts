@@ -1,5 +1,6 @@
 import { hostname } from 'node:os';
 
+import type { ClaimDetected } from '@lfc/contracts';
 import { STREAMS } from '@lfc/contracts';
 import {
   describeClassifierConfig,
@@ -16,6 +17,7 @@ import {
 import { Counter, Histogram } from 'prom-client';
 
 import { configSchema, secretKeys } from './config.js';
+import type { ResearchSummary } from './pipeline.js';
 import { checkClaim } from './pipeline.js';
 
 await runService({
@@ -55,7 +57,16 @@ await runService({
       password: config.REDIS_PASSWORD,
       logger,
     });
-    const deps = createPipelineDeps(config, redis.client);
+    const deps = {
+      ...createPipelineDeps(config, redis.client),
+      // Diagnose log (plan D1): where a check found or lost its evidence, counts only.
+      onResearch: (detected: ClaimDetected, summary: ResearchSummary) => {
+        logger.info(
+          { sessionId: detected.sessionId, claimId: detected.claimId, ...summary },
+          'research summary',
+        );
+      },
+    };
     const marker = processedMarker(redis.client, 'fact-checker', 7 * 24 * 3600);
 
     const checked = new Counter({

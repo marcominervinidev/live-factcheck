@@ -26,7 +26,13 @@ import {
   estimateCostUsd,
   renderPrompt,
 } from '@lfc/providers';
-import type { FactCheckHit, RankedChunk, ResearchResult, TextCache } from '@lfc/research';
+import type {
+  FactCheckHit,
+  RankedChunk,
+  ResearchResult,
+  TextCache,
+  WebSearchStats,
+} from '@lfc/research';
 import { rankChunks, sha256, toSnippet } from '@lfc/research';
 import { z } from 'zod';
 
@@ -51,6 +57,45 @@ export interface PipelineDeps {
   readonly questions: QuestionTexts;
   readonly now: () => Date;
   readonly clock: () => number;
+  /** Called once per check that researched, for the diagnose log (plan D1). */
+  readonly onResearch?: (detected: ClaimDetected, summary: ResearchSummary) => void;
+}
+
+/**
+ * What one check's research did, for the diagnose log (plan D1, #80): counts and timings only,
+ * never the claim, the queries or a URL.
+ */
+export interface ResearchSummary {
+  readonly queries: number;
+  /** The LLM query step failed and the heuristic queries ran instead. */
+  readonly fallbackQueries: boolean;
+  /** Documents per research tier before deduplication. */
+  readonly documents: Readonly<Record<string, number>>;
+  readonly factChecks: number;
+  /** Tiers that failed or timed out: `tier: ErrorName` plus the HTTP status if there was one. */
+  readonly failedSources: readonly string[];
+  readonly web?: WebSearchStats;
+  /** Ranked snippets shown to the relevance question. */
+  readonly snippets: number;
+  /** Snippets judged relevant; absent when the relevance step did not run. */
+  readonly relevant?: number;
+  /** Probability that the relevant evidence suffices; absent when no verdict was asked. */
+  readonly sufficient?: number;
+  readonly retrieveMs: number;
+  readonly classifyMs: number;
+}
+
+/** Filled while one check runs; becomes its `ResearchSummary`. */
+interface ResearchNotes {
+  queries: number;
+  fallbackQueries: boolean;
+  documents: Readonly<Record<string, number>>;
+  factChecks: number;
+  failedSources: readonly string[];
+  web?: WebSearchStats;
+  snippets: number;
+  relevant?: number;
+  sufficient?: number;
 }
 
 const Queries = z.strictObject({
@@ -244,6 +289,7 @@ async function generateQueries(
   claim: string,
   deps: PipelineDeps,
   spending: Spending,
+  notes: ResearchNotes,
   signal: AbortSignal | undefined,
 ): Promise<readonly string[]> {
   try {
@@ -258,11 +304,15 @@ async function generateQueries(
       withSignal(signal),
     );
     await spending.add(result.model, result.usage);
+    notes.queries = result.value.queries.length;
     return result.value.queries;
   } catch (error) {
     if (!(error instanceof LlmError)) throw error;
     await spending.add(deps.llm.model, error.usage);
-    return fallbackQueries(claim);
+    const fallback = fallbackQueries(claim);
+    notes.queries = fallback.length;
+    notes.fallbackQueries = true;
+    return fallback;
   }
 }
 
@@ -271,14 +321,24 @@ async function gatherFindings(
   claim: string,
   queries: readonly string[],
   deps: PipelineDeps,
+  notes: ResearchNotes,
   signal: AbortSignal | undefined,
 ): Promise<Findings> {
   const research = await deps.research({ claim, queries }, signal);
+  notes.documents = research.perSource ?? {};
+  notes.factChecks = research.factChecks.length;
+  notes.failedSources = research.failures.map(
+    (failure) =>
+      `${failure.source}: ${failure.error ?? 'Error'}` +
+      (failure.status === undefined ? '' : ` ${String(failure.status)}`),
+  );
+  if (research.web !== undefined) notes.web = research.web;
   const ranked = await rankChunks(claim, research.documents, deps.embeddings, {
     topK: deps.topK,
     maxChunksPerDocument: MAX_CHUNKS_PER_DOCUMENT,
     ...withSignal(signal),
   });
+  notes.snippets = ranked.length;
   return {
     ranked,
     factChecks: research.factChecks.slice(0, MAX_FACT_CHECKS),
@@ -295,6 +355,7 @@ async function classify(
   findings: Findings,
   deps: PipelineDeps,
   spending: Spending,
+  notes: ResearchNotes,
   signal: AbortSignal | undefined,
 ): Promise<Classification> {
   const { ranked, factChecks, retrievedAt } = findings;
@@ -335,6 +396,7 @@ async function classify(
     const relevantKeys = snippetKeys.filter(
       (key) => (relevance?.answers[key]?.probability ?? 0) >= RELEVANT,
     );
+    if (relevance !== undefined) notes.relevant = relevantKeys.length;
 
     const evidenceByKey = new Map<string, Evidence>();
     for (const key of relevantKeys) {
@@ -380,6 +442,7 @@ async function classify(
       withSignal(signal),
     );
     await spending.add(decision.model, decision.usage);
+    notes.sufficient = decision.answers.sufficient.probability;
     return {
       kind: 'judged',
       fields: toVerdictFields(decision.answers, evidenceByKey, factChecks[0], deps.thresholds),
@@ -532,30 +595,46 @@ export async function checkClaim(
     throw error;
   }
 
-  // 3.–4. Search queries, research and ranking.
+  // 3.–4. Search queries, research and ranking; every answer from here on is reported (plan D1).
+  const notes: ResearchNotes = {
+    queries: 0,
+    fallbackQueries: false,
+    documents: {},
+    factChecks: 0,
+    failedSources: [],
+    snippets: 0,
+  };
+  const reported = (checked: ClaimChecked): ClaimChecked => {
+    deps.onResearch?.(detected, {
+      ...notes,
+      retrieveMs: Math.round(timings.retrieveMs),
+      classifyMs: Math.round(timings.classifyMs),
+    });
+    return checked;
+  };
   const retrieveStart = deps.clock();
-  const queries = await generateQueries(claim, deps, spending, signal);
+  const queries = await generateQueries(claim, deps, spending, notes, signal);
   let findings: Findings;
   try {
-    findings = await gatherFindings(claim, queries, deps, signal);
+    findings = await gatherFindings(claim, queries, deps, notes, signal);
   } catch (error) {
     // Embedding provider down or the check's time budget used up: an answer, not a retry.
     if (!(error instanceof EmbeddingError) && signal?.aborted !== true) throw error;
     timings.retrieveMs = deps.clock() - retrieveStart;
-    return uncheckable('provider_error');
+    return reported(uncheckable('provider_error'));
   }
   timings.retrieveMs = deps.clock() - retrieveStart;
   if (findings.ranked.length === 0 && findings.factChecks.length === 0) {
-    return uncheckable('no_evidence');
+    return reported(uncheckable('no_evidence'));
   }
 
   // 5. Classifier and thresholds.
   const classifyStart = deps.clock();
-  const outcome = await classify(claim, findings, deps, spending, signal);
+  const outcome = await classify(claim, findings, deps, spending, notes, signal);
   timings.classifyMs = deps.clock() - classifyStart;
-  if (outcome.kind === 'uncheckable') return uncheckable(outcome.reason);
+  if (outcome.kind === 'uncheckable') return reported(uncheckable(outcome.reason));
 
   const result = finish(outcome.fields);
   if (result.verdict !== 'nicht_pruefbar') await writeCachedVerdict(detected, result, deps);
-  return result;
+  return reported(result);
 }
