@@ -156,7 +156,6 @@ describe('detectClaim (ADR 0017)', () => {
 
   it.each([
     ['Guten Abend und willkommen zur Diskussion.', 'greeting_or_filler'],
-    ['Das sehe ich anders, ich finde das Thema wichtig.', 'opinion_only'],
     ['Stimmt nicht.', 'too_short'],
   ] as const)('drops %j in the pre-filter (%s) without asking a model', async (text, reason) => {
     const { deps: d, classifierStates, llmRequests } = deps();
@@ -165,13 +164,12 @@ describe('detectClaim (ADR 0017)', () => {
     expect(llmRequests).toHaveLength(0);
   });
 
-  it('leaves a genuine question to the classifier, which drops it as no claim', async () => {
+  it.each([
+    'Wie hoch ist die Arbeitslosigkeit eigentlich gerade?',
+    'Das sehe ich anders, ich finde das Thema wichtig.',
+  ])('leaves %j to the classifier, which drops it as no claim', async (text) => {
     const { deps: d, classifierStates } = deps({ classifier: answering(0.1, 4) });
-    const outcome = await detectClaim(
-      segment('Wie hoch ist die Arbeitslosigkeit eigentlich gerade?'),
-      d,
-    );
-    expect(outcome).toEqual({ kind: 'dropped', reason: 'not_a_claim' });
+    expect(await detectClaim(segment(text), d)).toEqual({ kind: 'dropped', reason: 'not_a_claim' });
     expect(classifierStates).toHaveLength(1);
   });
 
