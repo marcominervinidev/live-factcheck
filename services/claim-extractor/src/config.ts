@@ -32,10 +32,18 @@ export const configSchema = baseConfigSchema
     ...budgetConfigShape,
     /** Final segments kept per session as context (ADR 0017). */
     DETECTOR_WINDOW_SEGMENTS: z.coerce.number().int().min(1).max(30).default(6),
-    /** Shorter segments are dropped by the pre-filter. */
-    DETECTOR_MIN_WORDS: z.coerce.number().int().min(1).max(20).default(5),
-    /** Minimum checkworthiness on the 1–5 scale. */
-    DETECTOR_MIN_SCORE: z.coerce.number().int().min(1).max(5).default(3),
+    /**
+     * Shorter segments are dropped by the pre-filter. The default 1 drops only empty segments:
+     * the classifier sees the window, so a fragment can still complete a claim (owner decision
+     * 2026-10-02, ADR 0017). A higher value is for measurements.
+     */
+    DETECTOR_MIN_WORDS: z.coerce.number().int().min(1).max(20).default(1),
+    /**
+     * Minimum checkworthiness on the 1–5 scale. The default 1 checks every detected claim,
+     * trivial or absurd ones included (owner decision 2026-10-02, ADR 0017); the daily budget
+     * caps the cost.
+     */
+    DETECTOR_MIN_SCORE: z.coerce.number().int().min(1).max(5).default(1),
     /** Earlier claims of the session compared for duplicates. */
     DETECTOR_DEDUP_CANDIDATES: z.coerce.number().int().min(0).max(50).default(10),
     /** Time budget per segment (classifier, formulation and duplicate check together). */

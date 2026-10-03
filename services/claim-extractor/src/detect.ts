@@ -18,9 +18,12 @@ import { z } from 'zod';
 
 import type { PrefilterReason } from './prefilter.js';
 import { prefilter } from './prefilter.js';
-import type { SessionStore, WindowSegment } from './store.js';
+import type { SessionStore, WindowEntry } from './store.js';
 
-/** The two questions of ADR 0017, asked together in one classifier call. */
+/** What later states show instead of a segment judged private (round 3b). */
+export const PRIVATE_PLACEHOLDER = '[private Äußerung ausgelassen]';
+
+/** The questions of ADR 0017 (claim, privacy, checkworthiness), asked together in one classifier call. */
 // LANG-EN: the classifier questions are German, like prompts/standalone.md; per language or answer in the conversation language (ADR 0020)
 export const DETECTION_QUESTIONS = {
   claim: {
@@ -31,6 +34,18 @@ export const DETECTION_QUESTIONS = {
       true: 'Die neueste Äußerung behauptet oder unterstellt einen überprüfbaren Sachverhalt.',
       false:
         'Die neueste Äußerung ist Meinung, echte Frage, Prognose, Smalltalk oder unverständlich.',
+    },
+  } satisfies BoolQuestion,
+  // Owner decision 2026-10-02 (round 3b): without a checkworthiness minimum, private matters need
+  // their own question. Public persons are checked even on private topics ("Helmut Kohl ist eine
+  // Frau" is the owner's own test sentence).
+  private: {
+    type: 'bool',
+    instructions: `Geht es in der neuesten Äußerung um das Privatleben einer nicht öffentlich bekannten Person, etwa von jemandem am Tisch, aus der Familie, dem Freundes- oder Kollegenkreis, der Nachbarschaft oder sonst einer Privatperson wie einer Ladenbesitzerin oder einem Arzt? Privat sind etwa Gesundheit, Geld, Arbeit, Beziehungen, Wohnung, Herkunft, Religion, politische Einstellung, Sexualität oder Strafsachen. Bezieht sich die neueste Äußerung auf eine private Äußerung oder auf „${PRIVATE_PLACEHOLDER}“ im Verlauf (er, sie, das), zählt sie ebenfalls als privat; steht Privates nur im Verlauf, zählt das nicht. Bekannte Personen des öffentlichen Lebens (Politik, Wirtschaft, Kultur, Sport) zählen nicht dazu, auch nicht bei Gesundheit, Familie oder Beziehungen. Gemeint ist die bekannte Person selbst: Ihre Angehörigen und Partner gelten als nicht öffentlich bekannt, solange sie nicht selbst öffentlich auftreten. Was jemand über ein öffentliches Amt, Abstimmungen oder öffentliche Äußerungen sagt, ist nicht privat, ebenso wenig Orte, Zahlen und allgemeine Sachverhalte.`,
+    criteria: {
+      true: 'Die neueste Äußerung handelt vom Privatleben einer nicht öffentlich bekannten Person oder verweist darauf.',
+      false:
+        'Die neueste Äußerung handelt von bekannten öffentlichen Personen, Orten, Zahlen oder allgemeinen Sachverhalten.',
     },
   } satisfies BoolQuestion,
   checkworthiness: {
@@ -71,6 +86,7 @@ export type DropReason =
   | 'not_a_claim'
   | 'uncertain'
   | 'low_checkworthiness'
+  | 'private'
   | 'duplicate'
   | 'invalid_llm_output'
   | 'refused'
@@ -126,12 +142,17 @@ export function similarity(a: string, b: string): number {
 
 const SIMILAR = 0.6;
 
-/** The classifier and LLM state: the window as context, the newest segment to judge. */
-function stateOf(window: readonly WindowSegment[], newest: TranscriptSegment) {
+/**
+ * The classifier and LLM state: the window as context, the newest segment to judge. A segment
+ * judged private earlier appears only as a placeholder, so after that judgement its text goes
+ * nowhere. Segments never judged (pre-filter drops, classifier failures, segments still in
+ * flight) stay as they are; ADR 0017 names this gap.
+ */
+function stateOf(window: readonly WindowEntry[], newest: TranscriptSegment) {
   return {
     verlauf: window
       .filter((s) => s.segmentId !== newest.segmentId)
-      .map((s) => ({ sprecher: s.speaker, text: s.text })),
+      .map((s) => ({ sprecher: s.speaker, text: s.private ? PRIVATE_PLACEHOLDER : s.text })),
     // Speakers are letters (A, B, …), never names: Jev runs in the US (brief 15.6, ADR 0017).
     neu: { sprecher: newest.speaker, text: newest.text },
   };
@@ -148,6 +169,10 @@ export async function detectClaim(
 ): Promise<DetectOutcome> {
   const started = deps.clock();
   const window = await deps.store.addToWindow(segment);
+  // A redelivered segment already judged private is never asked again (at-least-once streams).
+  if (window.some((s) => s.segmentId === segment.segmentId && s.private)) {
+    return { kind: 'dropped', reason: 'private' };
+  }
   const filtered = prefilter(segment.text, { minWords: deps.minWords });
   if (!filtered.pass) return { kind: 'dropped', reason: filtered.reason };
 
@@ -156,6 +181,13 @@ export async function detectClaim(
     const state = stateOf(window, segment);
     const detection = await deps.classifier.ask(state, DETECTION_QUESTIONS);
     await deps.budget?.record(detection.model, detection.usage);
+    // Privacy first (round 3b): from a probability of 0.5 on, whatever the claim answers, the
+    // segment is dropped and marked, so later states show a placeholder. `!(p < 0.5)` also
+    // drops on a malformed probability.
+    if (!(detection.answers.private.probability < 0.5)) {
+      await deps.store.markPrivate(segment.sessionId, segment.segmentId);
+      return { kind: 'dropped', reason: 'private' };
+    }
     const { claim, checkworthiness } = detection.answers;
     if (claim.probability < 0.5) return { kind: 'dropped', reason: 'not_a_claim' };
     // Precision first (ADR 0017): an uncertain "yes" is dropped, not shown.

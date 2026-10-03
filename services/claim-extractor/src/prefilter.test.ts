@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { prefilter } from './prefilter.js';
 
+// The cases below set the word limit to 5, as before 2026-10-02; the default of 1 is tested at
+// the end.
 const run = (text: string) => prefilter(text, { minWords: 5 });
 
 describe('prefilter (ADR 0017)', () => {
@@ -54,5 +56,22 @@ describe('prefilter (ADR 0017)', () => {
     ['Also wer hat denn die Mieten in Berlin verdoppelt', 'greeting_or_filler'],
   ] as const)('drops %j as %s', (text, reason) => {
     expect(run(text)).toEqual({ pass: false, reason });
+  });
+
+  // Default since the owner decision of 2026-10-02 (DETECTOR_MIN_WORDS=1): the classifier sees
+  // the segments before a fragment, so "Robert Habeck" and then "hat Abitur" can make a claim.
+  it.each(['hat Abitur', 'Robert Habeck', 'Stimmt nicht.', 'Helmut Kohl ist eine Frau.'])(
+    'passes the fragment %j with the default word limit',
+    (text) => {
+      expect(prefilter(text, { minWords: 1 })).toEqual({ pass: true });
+    },
+  );
+
+  it('drops only empty segments as too short with the default word limit, a lone filler word as filler', () => {
+    expect(prefilter('  ', { minWords: 1 })).toEqual({ pass: false, reason: 'too_short' });
+    expect(prefilter('Ja.', { minWords: 1 })).toEqual({
+      pass: false,
+      reason: 'greeting_or_filler',
+    });
   });
 });

@@ -8,7 +8,9 @@
  * empört, ist …"). A filler opener does not drop a question either ("Also wer hat denn …?");
  * a question is recognised by its question mark. An opinion marker is no reason to drop
  * either: the classifier finds the fact inside "Ich finde es absurd, dass …" and rejects a pure
- * opinion itself (owner decisions 2026-10-02, ADR 0017).
+ * opinion itself (owner decisions 2026-10-02, ADR 0017). Shortness is no reason by default
+ * either (`DETECTOR_MIN_WORDS=1`): the classifier sees the segments before a fragment, so
+ * "Robert Habeck" and then "hat Abitur" can still make a claim.
  */
 
 export type PrefilterReason = 'too_short' | 'greeting_or_filler';

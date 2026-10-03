@@ -23,8 +23,9 @@ import {
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
+import { configSchema } from './config.js';
 import type { DetectDeps } from './detect.js';
-import { detectClaim, similarity } from './detect.js';
+import { DETECTION_QUESTIONS, PRIVATE_PLACEHOLDER, detectClaim, similarity } from './detect.js';
 import { mockDetector, mockStandalone } from './mocks.js';
 import type { SessionStore, WindowSegment } from './store.js';
 
@@ -32,8 +33,13 @@ function memoryStore(): SessionStore & { windows: Map<string, WindowSegment[]> }
   const windows = new Map<string, WindowSegment[]>();
   const claims = new Map<string, Set<string>>();
   const recent = new Map<string, string[]>();
+  const privateIds = new Map<string, Set<string>>();
   return {
     windows,
+    markPrivate(sessionId, segmentId) {
+      privateIds.set(sessionId, new Set([...(privateIds.get(sessionId) ?? []), segmentId]));
+      return Promise.resolve();
+    },
     addToWindow(segment) {
       const list = windows.get(segment.sessionId) ?? [];
       if (!list.some((s) => s.segmentId === segment.segmentId)) {
@@ -45,7 +51,12 @@ function memoryStore(): SessionStore & { windows: Map<string, WindowSegment[]> }
         });
       }
       windows.set(segment.sessionId, list.slice(-6));
-      return Promise.resolve([...(windows.get(segment.sessionId) ?? [])]);
+      return Promise.resolve(
+        (windows.get(segment.sessionId) ?? []).map((s) => ({
+          ...s,
+          private: privateIds.get(segment.sessionId)?.has(s.segmentId) ?? false,
+        })),
+      );
     },
     hasClaim: (sessionId, normalized) =>
       Promise.resolve(claims.get(sessionId)?.has(normalized) ?? false),
@@ -61,12 +72,24 @@ function memoryStore(): SessionStore & { windows: Map<string, WindowSegment[]> }
 
 const PROMPT = loadPromptTemplate(new URL('../prompts/standalone.md', import.meta.url));
 
+/** The detection defaults of config.ts: no word limit, no checkworthiness minimum (2026-10-02). */
+const DEFAULTS = configSchema.parse({
+  PORT: '8080',
+  REDIS_URL: 'redis://redis:6379',
+  REDIS_PASSWORD: 'x',
+  EXTRACTOR_LLM_PROVIDER: 'mock',
+  EXTRACTOR_LLM_MODEL: 'mock',
+  DETECTOR_CLASSIFIER_PROVIDER: 'mock',
+});
+
 function deps(
   overrides: {
     classifier?: MockClassifierHandler;
     llm?: MockLlmHandler;
     store?: SessionStore;
     budget?: DailyBudget;
+    minWords?: number;
+    minScore?: number;
   } = {},
 ) {
   const llmRequests: StructuredRequest<unknown>[] = [];
@@ -94,8 +117,8 @@ function deps(
     store: overrides.store ?? memoryStore(),
     ...(overrides.budget === undefined ? {} : { budget: overrides.budget }),
     thresholds: { high: 0.75, low: 0.45 },
-    minScore: 3,
-    minWords: 5,
+    minScore: overrides.minScore ?? DEFAULTS.DETECTOR_MIN_SCORE,
+    minWords: overrides.minWords ?? DEFAULTS.DETECTOR_MIN_WORDS,
     now: () => new Date('2026-09-29T12:00:00.000Z'),
     clock: () => (tick += 40),
   };
@@ -115,13 +138,14 @@ const segment = (text: string, speaker = 'A', startMs = 0): TranscriptSegment =>
   language: 'de',
 });
 
-/** Classifier answers: claim probability and checkworthiness level (0–4). */
+/** Classifier answers: claim probability, checkworthiness level (0–4), privacy probability. */
 const answering =
-  (claim: number, level: number): MockClassifierHandler =>
+  (claim: number, level: number, privateMatter = 0.02): MockClassifierHandler =>
   (_state, questions) => {
     const answers: Record<string, RawAnswer> = {};
     if ('claim' in questions) {
       answers['claim'] = claim;
+      answers['private'] = privateMatter;
       answers['checkworthiness'] = Object.fromEntries(
         [0, 1, 2, 3, 4].map((i) => [String(i), i === level ? 1 : 0]),
       );
@@ -155,14 +179,18 @@ describe('detectClaim (ADR 0017)', () => {
   });
 
   it.each([
-    ['Guten Abend und willkommen zur Diskussion.', 'greeting_or_filler'],
-    ['Stimmt nicht.', 'too_short'],
-  ] as const)('drops %j in the pre-filter (%s) without asking a model', async (text, reason) => {
-    const { deps: d, classifierStates, llmRequests } = deps();
-    expect(await detectClaim(segment(text), d)).toEqual({ kind: 'dropped', reason });
-    expect(classifierStates).toHaveLength(0);
-    expect(llmRequests).toHaveLength(0);
-  });
+    ['Guten Abend und willkommen zur Diskussion.', 'greeting_or_filler', {}],
+    // The word limit applies only when set (DETECTOR_MIN_WORDS, off by default since 2026-10-02).
+    ['Stimmt nicht.', 'too_short', { minWords: 5 }],
+  ] as const)(
+    'drops %j in the pre-filter (%s) without asking a model',
+    async (text, reason, limits) => {
+      const { deps: d, classifierStates, llmRequests } = deps(limits);
+      expect(await detectClaim(segment(text), d)).toEqual({ kind: 'dropped', reason });
+      expect(classifierStates).toHaveLength(0);
+      expect(llmRequests).toHaveLength(0);
+    },
+  );
 
   it.each([
     'Wie hoch ist die Arbeitslosigkeit eigentlich gerade?',
@@ -174,13 +202,15 @@ describe('detectClaim (ADR 0017)', () => {
   });
 
   it.each([
-    ['not_a_claim', answering(0.1, 4)],
-    ['uncertain', answering(0.8, 4)],
-    ['low_checkworthiness', answering(0.97, 1)],
+    ['not_a_claim', answering(0.1, 4), {}],
+    ['uncertain', answering(0.8, 4), {}],
+    // The checkworthiness minimum applies only when set (DETECTOR_MIN_SCORE, off by default since
+    // 2026-10-02).
+    ['low_checkworthiness', answering(0.97, 1), { minScore: 3 }],
   ] as const)(
     'drops a segment the classifier rates as %s, without formulating it',
-    async (reason, classifier) => {
-      const { deps: d, llmRequests } = deps({ classifier });
+    async (reason, classifier, limits) => {
+      const { deps: d, llmRequests } = deps({ classifier, ...limits });
       const outcome = await detectClaim(
         segment('Die Mondlandung wurde in einem Filmstudio gedreht.'),
         d,
@@ -189,6 +219,143 @@ describe('detectClaim (ADR 0017)', () => {
       expect(llmRequests).toHaveLength(0);
     },
   );
+
+  it('lets a fragment reach the classifier with the segment before it as context (no word limit by default)', async () => {
+    const newestText = (state: unknown): unknown =>
+      typeof state === 'object' &&
+      state !== null &&
+      'neu' in state &&
+      typeof state.neu === 'object' &&
+      state.neu !== null &&
+      'text' in state.neu
+        ? state.neu.text
+        : undefined;
+    const {
+      deps: d,
+      classifierStates,
+      llmRequests,
+    } = deps({
+      // A claim only once the fragment completes it.
+      classifier: (state, questions) =>
+        answering(newestText(state) === 'hat Abitur' ? 0.97 : 0.1, 3)(state, questions),
+    });
+    expect(await detectClaim(segment('Robert Habeck', 'A', 0), d)).toEqual({
+      kind: 'dropped',
+      reason: 'not_a_claim',
+    });
+    const outcome = await detectClaim(segment('hat Abitur', 'A', 1_500), d);
+
+    expect(outcome.kind).toBe('claim');
+    expect(classifierStates.at(-1)).toEqual({
+      verlauf: [{ sprecher: 'A', text: 'Robert Habeck' }],
+      neu: { sprecher: 'A', text: 'hat Abitur' },
+    });
+    // The formulation gets the same window, so it can name the subject of the fragment.
+    expect(llmRequests.at(-1)?.user).toContain('Robert Habeck');
+  });
+
+  it('checks a claim the classifier rates as trivial (no checkworthiness minimum by default)', async () => {
+    const { deps: d } = deps({ classifier: answering(0.97, 0) });
+    const outcome = await detectClaim(segment('Helmut Kohl ist eine Frau.'), d);
+    expect(outcome).toMatchObject({ kind: 'claim', claim: { checkworthiness: 0 } });
+  });
+
+  it('drops a private matter of a non-public person before any text is formulated (owner 2026-10-02)', async () => {
+    const {
+      deps: d,
+      llmRequests,
+      classifierStates,
+    } = deps({ classifier: answering(0.97, 1, 0.9) });
+    const outcome = await detectClaim(segment('Meine Schwester ist seit 2019 arbeitslos.'), d);
+    expect(outcome).toEqual({ kind: 'dropped', reason: 'private' });
+    expect(classifierStates).toHaveLength(1);
+    expect(llmRequests).toHaveLength(0);
+  });
+
+  it.each([
+    ['at 0.5', answering(0.97, 0, 0.5)],
+    ['before not_a_claim', answering(0.1, 4, 0.9)],
+    ['before uncertain', answering(0.8, 4, 0.9)],
+    ['on a malformed probability', answering(0.97, 3, Number.NaN)],
+  ] as const)('drops a private matter %s', async (_when, classifier) => {
+    const outcome = await detectClaim(
+      segment('Helmut Kohl ist eine Frau.'),
+      deps({ classifier }).deps,
+    );
+    expect(outcome).toEqual({ kind: 'dropped', reason: 'private' });
+  });
+
+  it('keeps a public matter just below the privacy threshold', async () => {
+    const outcome = await detectClaim(
+      segment('Helmut Kohl ist eine Frau.'),
+      deps({ classifier: answering(0.97, 0, 0.49) }).deps,
+    );
+    expect(outcome.kind).toBe('claim');
+  });
+
+  it('shows a private segment, even a non-claim, to later states only as a placeholder', async () => {
+    const privateText = 'Mein Nachbar Thomas Krüger ist seit März arbeitslos.';
+    const newestText = (state: unknown): unknown =>
+      typeof state === 'object' &&
+      state !== null &&
+      'neu' in state &&
+      typeof state.neu === 'object' &&
+      state.neu !== null &&
+      'text' in state.neu
+        ? state.neu.text
+        : undefined;
+    const {
+      deps: d,
+      classifierStates,
+      llmRequests,
+    } = deps({
+      // The first segment is private and no claim, the second a claim that is not private.
+      classifier: (state, questions) =>
+        newestText(state) === privateText
+          ? answering(0.1, 3, 0.9)(state, questions)
+          : answering(0.97, 3, 0.1)(state, questions),
+    });
+    expect(await detectClaim(segment(privateText, 'A', 0), d)).toEqual({
+      kind: 'dropped',
+      reason: 'private',
+    });
+    const outcome = await detectClaim(
+      segment('Er ist einer von 2,9 Millionen Arbeitslosen in Deutschland.', 'A', 3_000),
+      d,
+    );
+
+    expect(outcome.kind).toBe('claim');
+    expect(classifierStates.at(-1)).toMatchObject({
+      verlauf: [{ sprecher: 'A', text: '[private Äußerung ausgelassen]' }],
+    });
+    // No later request carries the private text, neither to the classifier nor to the LLM.
+    const later = JSON.stringify([...classifierStates.slice(1), ...llmRequests]);
+    expect(later).not.toContain('Krüger');
+    expect(later).not.toContain('Nachbar');
+    expect(llmRequests.at(-1)?.user).toContain('[private Äußerung ausgelassen]');
+  });
+
+  it('never asks again about a redelivered segment already judged private', async () => {
+    let calls = 0;
+    const { deps: d, llmRequests } = deps({
+      // The second answer would let it through: the mark must win.
+      classifier: (state, questions) => {
+        calls += 1;
+        return answering(0.97, 3, calls === 1 ? 0.9 : 0.1)(state, questions);
+      },
+    });
+    const delivery = segment('Meine Schwester hat seit 2019 Schulden bei der Bank.');
+    expect(await detectClaim(delivery, d)).toEqual({ kind: 'dropped', reason: 'private' });
+    expect(await detectClaim(delivery, d)).toEqual({ kind: 'dropped', reason: 'private' });
+    expect(calls).toBe(1);
+    expect(llmRequests).toHaveLength(0);
+  });
+
+  it('names the placeholder in the privacy question and in the formulation rules', () => {
+    expect(PRIVATE_PLACEHOLDER).toBe('[private Äußerung ausgelassen]');
+    expect(DETECTION_QUESTIONS.private.instructions).toContain(PRIVATE_PLACEHOLDER);
+    expect(PROMPT.system).toContain(PRIVATE_PLACEHOLDER);
+  });
 
   it('lets a rhetorical question that insinuates a fact reach the classifier and become a claim', async () => {
     const { deps: d, classifierStates, llmRequests } = deps({ classifier: answering(0.97, 3) });
@@ -274,8 +441,8 @@ describe('detectClaim (ADR 0017)', () => {
   });
 
   it('asks "same claim?" from a similarity of exactly 0.6 on', async () => {
-    // Five words for the pre-filter, four tokens each ("so" is too short to count), three
-    // shared: Jaccard 3 / 5 = 0.6, the threshold itself.
+    // Four counted tokens each ("so" is too short to count), three shared: Jaccard 3 / 5 = 0.6,
+    // the threshold itself.
     expect(similarity('Der Krieg endete 1945 so.', 'Der Krieg endete 1965 so.')).toBeCloseTo(
       0.6,
       10,
@@ -298,9 +465,9 @@ describe('detectClaim (ADR 0017)', () => {
     );
   });
 
-  it('keeps a claim whose checkworthiness is exactly the minimum', async () => {
-    // Level 2 of 0–4 is score 3 on the 1–5 scale, the default minimum.
-    const { deps: d } = deps({ classifier: answering(0.97, 2) });
+  it('keeps a claim whose checkworthiness is exactly a configured minimum', async () => {
+    // Level 2 of 0–4 is score 3 on the 1–5 scale; 3 was the default minimum until 2026-10-02.
+    const { deps: d } = deps({ classifier: answering(0.97, 2), minScore: 3 });
     expect((await detectClaim(segment('Die Mondlandung fand 1969 statt.'), d)).kind).toBe('claim');
   });
 

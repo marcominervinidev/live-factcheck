@@ -35,6 +35,8 @@ export const mockDetector: MockClassifierHandler = (state, questions) => {
   }
   const claim = hasDigit(newestText(state));
   answers['claim'] = claim ? 0.97 : 0.03;
+  // The mock never sees private matters; tests that need one answer it themselves.
+  answers['private'] = 0.03;
   // Level 4 of 5 ("wichtig") for every claim.
   answers['checkworthiness'] = { '0': 0, '1': 0, '2': 0, '3': 1, '4': 0 };
   return answers;

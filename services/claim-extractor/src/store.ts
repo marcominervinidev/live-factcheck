@@ -10,6 +10,14 @@ export interface WindowSegment {
   readonly startMs: number;
 }
 
+/**
+ * A window entry as read: `private` when the classifier judged the segment a private matter, so
+ * later states show a placeholder instead of its text (owner decision 2026-10-02, round 3b).
+ */
+export interface WindowEntry extends WindowSegment {
+  readonly private: boolean;
+}
+
 const WindowSegmentSchema = z.strictObject({
   segmentId: z.string(),
   speaker: z.string(),
@@ -24,7 +32,9 @@ const WindowSegmentSchema = z.strictObject({
  */
 export interface SessionStore {
   /** Adds the segment (idempotent by id) and returns the window, oldest first, including it. */
-  addToWindow(segment: TranscriptSegment): Promise<readonly WindowSegment[]>;
+  addToWindow(segment: TranscriptSegment): Promise<readonly WindowEntry[]>;
+  /** Marks a segment of the session as private for every later window (idempotent). */
+  markPrivate(sessionId: string, segmentId: string): Promise<void>;
   /** True when the session already has a claim with exactly this normalised text. */
   hasClaim(sessionId: string, normalizedText: string): Promise<boolean>;
   /** The standalone texts of the session's most recent claims, newest first. */
@@ -45,6 +55,7 @@ export interface SessionStoreOptions {
 const windowKey = (sessionId: string) => `extractor:v1:window:${sessionId}`;
 const claimsKey = (sessionId: string) => `extractor:v1:claims:${sessionId}`;
 const recentKey = (sessionId: string) => `extractor:v1:recent:${sessionId}`;
+const privateKey = (sessionId: string) => `extractor:v1:private:${sessionId}`;
 
 function parseWindow(entries: readonly string[]): WindowSegment[] {
   const segments: WindowSegment[] = [];
@@ -79,11 +90,30 @@ export function redisSessionStore(redis: Redis, options: SessionStoreOptions): S
           .pexpire(key, options.ttlMs)
           .pexpire(claimsKey(segment.sessionId), options.ttlMs)
           .pexpire(recentKey(segment.sessionId), options.ttlMs)
+          .pexpire(privateKey(segment.sessionId), options.ttlMs)
           .exec();
         current.push(entry);
       }
       // Segments can arrive out of order with several consumers (pipeline summary).
-      return current.slice(-options.windowSize).sort((a, b) => a.startMs - b.startMs);
+      const window = current.slice(-options.windowSize).sort((a, b) => a.startMs - b.startMs);
+      // Only the window's own ids: the private set grows with the session.
+      const marks = await redis.smismember(
+        privateKey(segment.sessionId),
+        ...window.map((s) => s.segmentId),
+      );
+      return window.map((s, i) => ({ ...s, private: marks[i] === 1 }));
+    },
+    async markPrivate(sessionId, segmentId) {
+      const results = await redis
+        .multi()
+        .sadd(privateKey(sessionId), segmentId)
+        .pexpire(privateKey(sessionId), options.ttlMs)
+        .exec();
+      // A lost mark would let the text into later states: fail instead of returning quietly.
+      const failed = (results ?? []).find(([error]) => error !== null);
+      if (results === null || failed !== undefined) {
+        throw new Error('marking a private segment failed', { cause: failed?.[0] ?? undefined });
+      }
     },
     async hasClaim(sessionId, normalizedText) {
       return (await redis.sismember(claimsKey(sessionId), normalizedText)) === 1;
