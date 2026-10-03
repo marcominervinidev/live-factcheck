@@ -4,8 +4,10 @@ import type { ClaimDetected, TranscriptSegment } from '@lfc/contracts';
 import { ClaimDetected as ClaimDetectedSchema, countSentences } from '@lfc/contracts';
 import type {
   BoolQuestion,
+  ClassifierErrorKind,
   ClassifierProvider,
   DailyBudget,
+  LlmErrorKind,
   LlmProvider,
   PromptTemplate,
   ScoreQuestion,
@@ -75,9 +77,20 @@ export type DropReason =
   | 'budget_exceeded'
   | 'provider_error';
 
+/**
+ * Where and how a model call failed, for the diagnose log (plan D1): the source, the error kind,
+ * and the HTTP status and SDK error class when the provider answered - never any text.
+ */
+export interface ProviderFailure {
+  readonly source: 'classifier' | 'llm';
+  readonly kind: LlmErrorKind | ClassifierErrorKind;
+  readonly status?: number;
+  readonly error?: string;
+}
+
 export type DetectOutcome =
   | { readonly kind: 'claim'; readonly claim: ClaimDetected }
-  | { readonly kind: 'dropped'; readonly reason: DropReason };
+  | { readonly kind: 'dropped'; readonly reason: DropReason; readonly failure?: ProviderFailure };
 
 export interface DetectDeps {
   readonly classifier: ClassifierProvider;
@@ -189,7 +202,7 @@ export async function detectClaim(
     });
     return { kind: 'claim', claim: claimDetected };
   } catch (error) {
-    return { kind: 'dropped', reason: reasonOf(error) };
+    return droppedBy(error);
   }
 }
 
@@ -215,12 +228,37 @@ async function isDuplicate(
   return false;
 }
 
-function reasonOf(error: unknown): DropReason {
-  if (error instanceof BudgetExceededError) return 'budget_exceeded';
+function droppedBy(error: unknown): DetectOutcome {
+  if (error instanceof BudgetExceededError) return { kind: 'dropped', reason: 'budget_exceeded' };
   if (error instanceof LlmError || error instanceof ClassifierError) {
-    if (error.kind === 'invalid_output') return 'invalid_llm_output';
-    if (error.kind === 'refused') return 'refused';
-    return 'provider_error';
+    const reason: DropReason =
+      error.kind === 'invalid_output'
+        ? 'invalid_llm_output'
+        : error.kind === 'refused'
+          ? 'refused'
+          : 'provider_error';
+    return { kind: 'dropped', reason, failure: failureOf(error) };
   }
   throw error;
+}
+
+function failureOf(error: LlmError | ClassifierError): ProviderFailure {
+  // The SDK error sits one or two levels down (the llm classifier wraps an LlmError): the first
+  // HTTP status on the way, and the innermost error's class.
+  let status: number | undefined;
+  let innermost: Error | undefined;
+  let current: unknown = error.cause;
+  for (let depth = 0; depth < 5 && current instanceof Error; depth++) {
+    innermost = current;
+    if (status === undefined && 'status' in current && typeof current.status === 'number') {
+      status = current.status;
+    }
+    current = current.cause;
+  }
+  return {
+    source: error instanceof ClassifierError ? 'classifier' : 'llm',
+    kind: error.kind,
+    ...(status === undefined ? {} : { status }),
+    ...(innermost === undefined ? {} : { error: innermost.constructor.name }),
+  };
 }

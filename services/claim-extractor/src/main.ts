@@ -142,6 +142,10 @@ await runService({
           );
         } else {
           dropped.inc({ reason: outcome.reason });
+          // Diagnose log (plan D1): ids, reason and provider failure, never the segment text.
+          const fields = { sessionId, segmentId, reason: outcome.reason };
+          if (outcome.failure === undefined) logger.info(fields, 'segment dropped');
+          else logger.warn({ ...fields, failure: outcome.failure }, 'segment dropped');
         }
         await marker.markProcessed(segmentId);
       },

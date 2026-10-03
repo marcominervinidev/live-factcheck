@@ -125,6 +125,16 @@ describe('claim-extractor with a secret file against a real Redis', () => {
         sourceSegmentIds: [lines[2]?.payload.segmentId],
         provider: { classifier: 'mock', model: 'mock' },
       });
+      // Diagnose log (plan D1): one line per dropped final segment, ids and reason, never text.
+      const output = run?.output() ?? '';
+      const dropped = output
+        .split('\n')
+        .filter((line) => line.includes('"msg":"segment dropped"'))
+        .map((line) => (JSON.parse(line) as { reason: string }).reason);
+      expect(dropped.sort()).toEqual(['duplicate', 'greeting_or_filler', 'not_a_claim']);
+      for (const text of ['Guten Abend', 'Das sehe ich anders', 'Weltkrieg', 'Einwohner']) {
+        expect(output).not.toContain(text);
+      }
       // The window keeps the final segments as context for later ones.
       expect(await client.llen(`extractor:v1:window:${sessionId}`)).toBe(5);
       // The provider status for the settings page.

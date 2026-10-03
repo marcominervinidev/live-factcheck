@@ -129,6 +129,12 @@ describe('fact-checker with a secret file against a real Redis', () => {
         .toBe(0);
       // Claim text never reaches the logs (brief 15.6).
       expect(run?.output()).not.toContain('20 Jahre vorbei');
+      // One research summary per check, counts only (plan D1).
+      const summaries = (run?.output() ?? '')
+        .split('\n')
+        .filter((line) => line.includes('"msg":"research summary"'));
+      expect(summaries).toHaveLength(1);
+      expect(JSON.parse(summaries[0] ?? '{}')).toMatchObject({ claimId, verdict: 'falsch' });
     } finally {
       client.disconnect();
       subscriber.disconnect();

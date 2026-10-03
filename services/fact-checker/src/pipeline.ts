@@ -26,7 +26,13 @@ import {
   estimateCostUsd,
   renderPrompt,
 } from '@lfc/providers';
-import type { FactCheckHit, RankedChunk, ResearchResult, TextCache } from '@lfc/research';
+import type {
+  FactCheckHit,
+  RankedChunk,
+  ResearchResult,
+  TextCache,
+  WebSearchStats,
+} from '@lfc/research';
 import { rankChunks, sha256, toSnippet } from '@lfc/research';
 import { z } from 'zod';
 
@@ -51,6 +57,63 @@ export interface PipelineDeps {
   readonly questions: QuestionTexts;
   readonly now: () => Date;
   readonly clock: () => number;
+  /**
+   * Called once per check that researched, for the diagnose log (plan D1). Gets ids, never the
+   * claim; an error in it never changes the answer.
+   */
+  readonly onResearch?: (
+    claim: { readonly sessionId: string; readonly claimId: string },
+    summary: ResearchSummary,
+  ) => void;
+}
+
+/** A research tier that failed: its error class (or `timeout`) and the HTTP status if any. */
+export interface FailedSource {
+  readonly source: string;
+  readonly error: string;
+  readonly status?: number;
+}
+
+/**
+ * What one check's research did, for the diagnose log (plan D1, #80): counts and timings only,
+ * never the claim, the queries or a URL.
+ */
+export interface ResearchSummary {
+  readonly queries: number;
+  /** The LLM query step failed and the heuristic queries ran instead. */
+  readonly fallbackQueries: boolean;
+  /** Queries with a run of six or more digits, which search engines rarely match (#80). */
+  readonly longNumberQueries: number;
+  /** Documents per research tier before deduplication. */
+  readonly documents: Readonly<Record<string, number>>;
+  readonly factChecks: number;
+  readonly failedSources: readonly FailedSource[];
+  readonly web?: WebSearchStats;
+  /** Ranked snippets shown to the relevance question. */
+  readonly snippets: number;
+  /** Snippets judged relevant; absent when the relevance step did not run. */
+  readonly relevant?: number;
+  /** Probability that the relevant evidence suffices; absent when no verdict was asked. */
+  readonly sufficient?: number;
+  /** The answer, so a summary line shows which `no_evidence` exit fired. */
+  readonly verdict: Verdict;
+  readonly reason?: UncheckableReason;
+  readonly retrieveMs: number;
+  readonly classifyMs: number;
+}
+
+/** Filled while one check runs; becomes its `ResearchSummary`. */
+interface ResearchNotes {
+  queries: number;
+  fallbackQueries: boolean;
+  longNumberQueries: number;
+  documents: Readonly<Record<string, number>>;
+  factChecks: number;
+  failedSources: readonly FailedSource[];
+  web?: WebSearchStats;
+  snippets: number;
+  relevant?: number;
+  sufficient?: number;
 }
 
 const Queries = z.strictObject({
@@ -239,11 +302,22 @@ export function fallbackQueries(claim: string): readonly string[] {
   return keywords !== '' && keywords !== claim ? [claim, keywords] : [claim];
 }
 
+/** "11660000000": a character scan instead of a regex over claim-derived text (Semgrep regex_dos). */
+function hasLongNumber(query: string): boolean {
+  let run = 0;
+  for (const char of query) {
+    run = char >= '0' && char <= '9' ? run + 1 : 0;
+    if (run >= 6) return true;
+  }
+  return false;
+}
+
 /** Step 3: search queries from the LLM; if it fails, the claim itself is the query. */
 async function generateQueries(
   claim: string,
   deps: PipelineDeps,
   spending: Spending,
+  notes: ResearchNotes,
   signal: AbortSignal | undefined,
 ): Promise<readonly string[]> {
   try {
@@ -258,11 +332,17 @@ async function generateQueries(
       withSignal(signal),
     );
     await spending.add(result.model, result.usage);
+    notes.queries = result.value.queries.length;
+    notes.longNumberQueries = result.value.queries.filter(hasLongNumber).length;
     return result.value.queries;
   } catch (error) {
     if (!(error instanceof LlmError)) throw error;
     await spending.add(deps.llm.model, error.usage);
-    return fallbackQueries(claim);
+    const fallback = fallbackQueries(claim);
+    notes.queries = fallback.length;
+    notes.fallbackQueries = true;
+    notes.longNumberQueries = fallback.filter(hasLongNumber).length;
+    return fallback;
   }
 }
 
@@ -271,14 +351,28 @@ async function gatherFindings(
   claim: string,
   queries: readonly string[],
   deps: PipelineDeps,
+  notes: ResearchNotes,
   signal: AbortSignal | undefined,
 ): Promise<Findings> {
   const research = await deps.research({ claim, queries }, signal);
+  // Copied field by field: anything the research package adds later stays out of the log.
+  notes.documents = { ...research.perSource };
+  notes.factChecks = research.factChecks.length;
+  notes.failedSources = research.failures.map(({ source, error, status }) => ({
+    source,
+    error,
+    ...(status === undefined ? {} : { status }),
+  }));
+  if (research.web !== undefined) {
+    const { queries: webQueries, failedQueries, results, pages, skipped } = research.web;
+    notes.web = { queries: webQueries, failedQueries, results, pages, skipped: { ...skipped } };
+  }
   const ranked = await rankChunks(claim, research.documents, deps.embeddings, {
     topK: deps.topK,
     maxChunksPerDocument: MAX_CHUNKS_PER_DOCUMENT,
     ...withSignal(signal),
   });
+  notes.snippets = ranked.length;
   return {
     ranked,
     factChecks: research.factChecks.slice(0, MAX_FACT_CHECKS),
@@ -295,6 +389,7 @@ async function classify(
   findings: Findings,
   deps: PipelineDeps,
   spending: Spending,
+  notes: ResearchNotes,
   signal: AbortSignal | undefined,
 ): Promise<Classification> {
   const { ranked, factChecks, retrievedAt } = findings;
@@ -335,6 +430,7 @@ async function classify(
     const relevantKeys = snippetKeys.filter(
       (key) => (relevance?.answers[key]?.probability ?? 0) >= RELEVANT,
     );
+    if (relevance !== undefined) notes.relevant = relevantKeys.length;
 
     const evidenceByKey = new Map<string, Evidence>();
     for (const key of relevantKeys) {
@@ -380,6 +476,7 @@ async function classify(
       withSignal(signal),
     );
     await spending.add(decision.model, decision.usage);
+    notes.sufficient = decision.answers.sufficient.probability;
     return {
       kind: 'judged',
       fields: toVerdictFields(decision.answers, evidenceByKey, factChecks[0], deps.thresholds),
@@ -532,30 +629,56 @@ export async function checkClaim(
     throw error;
   }
 
-  // 3.–4. Search queries, research and ranking.
+  // 3.–4. Search queries, research and ranking; every answer from here on is reported (plan D1).
+  const notes: ResearchNotes = {
+    queries: 0,
+    fallbackQueries: false,
+    longNumberQueries: 0,
+    documents: {},
+    factChecks: 0,
+    failedSources: [],
+    snippets: 0,
+  };
+  const reported = (checked: ClaimChecked): ClaimChecked => {
+    try {
+      deps.onResearch?.(
+        { sessionId: detected.sessionId, claimId: detected.claimId },
+        {
+          ...notes,
+          verdict: checked.verdict,
+          ...(checked.reason === undefined ? {} : { reason: checked.reason }),
+          retrieveMs: Math.round(timings.retrieveMs),
+          classifyMs: Math.round(timings.classifyMs),
+        },
+      );
+    } catch {
+      // A diagnose line must never turn a finished check into a retry.
+    }
+    return checked;
+  };
   const retrieveStart = deps.clock();
-  const queries = await generateQueries(claim, deps, spending, signal);
+  const queries = await generateQueries(claim, deps, spending, notes, signal);
   let findings: Findings;
   try {
-    findings = await gatherFindings(claim, queries, deps, signal);
+    findings = await gatherFindings(claim, queries, deps, notes, signal);
   } catch (error) {
     // Embedding provider down or the check's time budget used up: an answer, not a retry.
     if (!(error instanceof EmbeddingError) && signal?.aborted !== true) throw error;
     timings.retrieveMs = deps.clock() - retrieveStart;
-    return uncheckable('provider_error');
+    return reported(uncheckable('provider_error'));
   }
   timings.retrieveMs = deps.clock() - retrieveStart;
   if (findings.ranked.length === 0 && findings.factChecks.length === 0) {
-    return uncheckable('no_evidence');
+    return reported(uncheckable('no_evidence'));
   }
 
   // 5. Classifier and thresholds.
   const classifyStart = deps.clock();
-  const outcome = await classify(claim, findings, deps, spending, signal);
+  const outcome = await classify(claim, findings, deps, spending, notes, signal);
   timings.classifyMs = deps.clock() - classifyStart;
-  if (outcome.kind === 'uncheckable') return uncheckable(outcome.reason);
+  if (outcome.kind === 'uncheckable') return reported(uncheckable(outcome.reason));
 
   const result = finish(outcome.fields);
   if (result.verdict !== 'nicht_pruefbar') await writeCachedVerdict(detected, result, deps);
-  return result;
+  return reported(result);
 }

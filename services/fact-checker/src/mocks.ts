@@ -153,15 +153,16 @@ export function mockResearch(
   now: () => Date,
   options: { readonly injectedPage?: boolean } = {},
 ): (input: { readonly claim: string }) => Promise<ResearchResult> {
-  return (input) =>
-    Promise.resolve({
-      documents: [
-        ...CORPUS,
-        ...(options.injectedPage === true && MOON.test(input.claim) ? MOON_CORPUS : []),
-      ].map((doc) => ({
-        ...doc,
-        retrievedAt: now().toISOString(),
-      })),
+  return (input) => {
+    const documents = [
+      ...CORPUS,
+      ...(options.injectedPage === true && MOON.test(input.claim) ? MOON_CORPUS : []),
+    ].map((doc) => ({
+      ...doc,
+      retrievedAt: now().toISOString(),
+    }));
+    return Promise.resolve({
+      documents,
       // The brief's example claim also has an existing fact check ("bereits von … geprüft").
       factChecks: /20 Jahre vorbei/i.test(input.claim)
         ? [
@@ -174,5 +175,7 @@ export function mockResearch(
           ]
         : [],
       failures: [],
+      perSource: { mock: documents.length },
     });
+  };
 }
