@@ -3,6 +3,8 @@
 > **Merge-Gefahr:** Risiko **niedrig / mittel / hoch** · **revertibel / nicht revertibel** (warum) · Wirkradius: **örtlich / dienstübergreifend / System** · Nutzen: **hoch / mittel / niedrig** (warum)
 > **Empfohlene Review-Tiefe:** überfliegen · gezielt die genannten Stellen · Zeile für Zeile
 
+**Visuelle Review-Anleitung:** <Link zum privaten Artifact> (AGENTS.md, „Pull requests“: bei jedem PR)
+
 <!-- Herleitung (AGENTS.md, "Pull requests"): nicht revertibel = Verträge/Schema, Migration oder
 Datenverlust, Secrets/Security, CI/Branch-Schutz, nach außen sichtbares Verhalten.
 Risiko niedrig = revertibel + örtlich; hoch = nicht revertibel oder Wirkradius System; sonst mittel.
